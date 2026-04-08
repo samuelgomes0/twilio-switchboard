@@ -2,15 +2,18 @@
 
 import {
   AlertTriangle,
+  AtSign,
   Check,
   CheckCircle2,
   ChevronDown,
+  ClipboardList,
   GitBranch,
   Menu,
   MessageSquareOff,
   Phone,
   Search,
   Settings2,
+  User,
   UserPlus,
   X,
 } from "lucide-react"
@@ -49,6 +52,12 @@ const conversationsNavItems: NavItem[] = [
     icon: Search,
     description: "Retorna detalhes por SID",
   },
+  {
+    label: "Buscar por Participante",
+    href: "/conversations/fetch-by-participant",
+    icon: AtSign,
+    description: "Lista conversas de um endereço",
+  },
 ]
 
 const taskrouterNavItems: NavItem[] = [
@@ -63,6 +72,18 @@ const taskrouterNavItems: NavItem[] = [
     href: "/taskrouter/create-workflow",
     icon: GitBranch,
     description: "Cria workflow de roteamento via CSV",
+  },
+  {
+    label: "Buscar Task",
+    href: "/taskrouter/fetch-task",
+    icon: ClipboardList,
+    description: "Retorna detalhes de uma task por SID",
+  },
+  {
+    label: "Buscar Worker",
+    href: "/taskrouter/fetch-worker",
+    icon: User,
+    description: "Retorna dados de um worker por SID ou e-mail",
   },
 ]
 
@@ -220,6 +241,7 @@ function SidebarNav() {
           />
           <NavSection
             label="Configurações"
+            href="/environments"
             items={configNavItems}
             pathname={pathname}
             onNavigate={closeMenu}

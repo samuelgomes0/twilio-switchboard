@@ -97,8 +97,12 @@ export function CloseForm() {
   }, [])
 
   const participants = parseParticipants(input)
+  const MAX_ITEMS = 10
   const canSubmit =
-    participants.length > 0 && status !== "running" && !!activeEnvironment
+    participants.length > 0 &&
+    participants.length <= MAX_ITEMS &&
+    status !== "running" &&
+    !!activeEnvironment
 
   function addLog(level: LogEntry["level"], message: string) {
     setLogs((prev) => [...prev, createLogEntry(level, message)])
@@ -271,8 +275,9 @@ export function CloseForm() {
             disabled={status === "running"}
           />
           {participants.length > 0 && (
-            <p className="text-xs text-muted-foreground">
+            <p className={`text-xs ${participants.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}>
               {participants.length} número(s) detectado(s)
+              {participants.length > MAX_ITEMS && ` — máximo ${MAX_ITEMS} por vez`}
             </p>
           )}
         </div>

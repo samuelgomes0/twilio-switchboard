@@ -114,7 +114,7 @@ function JsonBlock({ value }: { value: string }) {
   }
 
   return (
-    <pre className="overflow-x-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
+    <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
     </pre>
   )

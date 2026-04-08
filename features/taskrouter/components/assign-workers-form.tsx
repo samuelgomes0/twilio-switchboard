@@ -107,10 +107,12 @@ export function AssignWorkersForm() {
   }, [])
 
   const emails = parseEmails(emailsInput)
+  const MAX_ITEMS = 10
   const canSubmit =
     workspaceSid.trim().length > 0 &&
     skill.trim().length > 0 &&
     emails.length > 0 &&
+    emails.length <= MAX_ITEMS &&
     status !== "running" &&
     !!activeEnvironment
 
@@ -130,7 +132,8 @@ export function AssignWorkersForm() {
     reset()
     setStatus("running")
 
-    const level = levelInput.trim() !== "" ? Number(levelInput.trim()) : null
+    const rawLevel = levelInput.trim() !== "" ? Number(levelInput.trim()) : null
+    const level = rawLevel !== null ? Math.min(5, Math.max(0, rawLevel)) : null
 
     try {
       const res = await fetch("/api/taskrouter/assign-workers", {
@@ -320,6 +323,8 @@ export function AssignWorkersForm() {
             id="level"
             type="number"
             placeholder="ex: 5"
+            min={0}
+            max={5}
             value={levelInput}
             onChange={(e) => setLevelInput(e.target.value)}
             disabled={status === "running"}
@@ -329,22 +334,23 @@ export function AssignWorkersForm() {
         {/* Emails */}
         <div className="space-y-2">
           <Label htmlFor="emails">
-            E-mails dos workers{" "}
+            E-mails ou SIDs dos workers{" "}
             <span className="font-normal text-muted-foreground">
               (um por linha ou separados por vírgula)
             </span>
           </Label>
           <Textarea
             id="emails"
-            placeholder={"agente1@empresa.com\nagente2@empresa.com"}
+            placeholder={"agente1@empresa.com\nWKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
             value={emailsInput}
             onChange={(e) => setEmailsInput(e.target.value)}
             className="min-h-[120px] font-mono text-xs"
             disabled={status === "running"}
           />
           {emails.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {emails.length} e-mail(s) detectado(s)
+            <p className={`text-xs ${emails.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}>
+              {emails.length} identificador(es) detectado(s)
+              {emails.length > MAX_ITEMS && ` — máximo ${MAX_ITEMS} por vez`}
             </p>
           )}
         </div>

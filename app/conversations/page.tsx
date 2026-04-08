@@ -1,4 +1,4 @@
-import { ArrowRight, MessageSquareOff, Search } from "lucide-react"
+import { ArrowRight, AtSign, MessageSquareOff, Search } from "lucide-react"
 import Link from "next/link"
 import type { ElementType } from "react"
 
@@ -33,6 +33,14 @@ const tools: Tool[] = [
       "Retorna estado, participantes, atributos e datas de uma conversa a partir do SID.",
     href: "/conversations/fetch",
     icon: Search,
+    available: true,
+  },
+  {
+    label: "Buscar por Participante",
+    description:
+      "Lista todas as conversas associadas a um endereço de participante (WhatsApp, SMS, etc.).",
+    href: "/conversations/fetch-by-participant",
+    icon: AtSign,
     available: true,
   },
 ]

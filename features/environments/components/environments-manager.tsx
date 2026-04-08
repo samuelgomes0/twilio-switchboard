@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Settings2, Plus, Trash2 } from "lucide-react"
+import { ChevronRight, Settings2, Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useEnvironment } from "@/features/environments/context"
@@ -44,6 +44,13 @@ export function EnvironmentsManager() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      {/* Breadcrumb */}
+      <nav className="mb-5 flex items-center gap-1 text-sm">
+        <span className="text-muted-foreground">Configurações</span>
+        <ChevronRight className="size-3.5 text-muted-foreground" />
+        <span className="font-medium text-foreground">Gerenciar Ambientes</span>
+      </nav>
+
       {/* Header */}
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">

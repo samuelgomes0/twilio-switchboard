@@ -1,6 +1,6 @@
 import type { ElementType } from "react"
 import Link from "next/link"
-import { UserPlus, GitBranch, ArrowRight } from "lucide-react"
+import { UserPlus, GitBranch, ClipboardList, User, ArrowRight } from "lucide-react"
 
 import {
   Card,
@@ -35,6 +35,22 @@ const tools: Tool[] = [
     icon: GitBranch,
     available: true,
   },
+  {
+    label: "Buscar Task",
+    description:
+      "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID.",
+    href: "/taskrouter/fetch-task",
+    icon: ClipboardList,
+    available: true,
+  },
+  {
+    label: "Buscar Worker",
+    description:
+      "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail.",
+    href: "/taskrouter/fetch-worker",
+    icon: User,
+    available: true,
+  },
 ]
 
 export default function TaskRouterPage() {
@@ -43,8 +59,8 @@ export default function TaskRouterPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">TaskRouter</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Atribua skills a workers por e-mail e crie workflows de roteamento a
-          partir de arquivos CSV.
+          Atribua workers, crie workflows, consulte tasks e inspecione workers
+          do TaskRouter.
         </p>
       </div>
 
