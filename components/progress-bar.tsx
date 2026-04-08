@@ -48,7 +48,8 @@ export function ProgressBar() {
       aria-hidden
       style={{
         width: `${width}%`,
-        transition: width === 0 ? "none" : "width 400ms ease, opacity 300ms ease",
+        transition:
+          width === 0 ? "none" : "width 400ms ease, opacity 300ms ease",
         opacity: width === 100 ? 0 : 1,
       }}
       className="pointer-events-none fixed top-0 left-0 z-50 h-[2px] bg-primary"

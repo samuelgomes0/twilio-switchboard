@@ -1,6 +1,5 @@
-import { ArrowRight, AtSign, MessageSquareOff, Search } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import Link from "next/link"
-import type { ElementType } from "react"
 
 import {
   Card,
@@ -9,41 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-
-interface Tool {
-  label: string
-  description: string
-  href: string
-  icon: ElementType
-  available: boolean
-}
-
-const tools: Tool[] = [
-  {
-    label: "Fechar Conversas",
-    description:
-      "Recebe números de telefone e fecha todas as conversas ativas associadas em lote.",
-    href: "/conversations/close",
-    icon: MessageSquareOff,
-    available: true,
-  },
-  {
-    label: "Buscar Conversa",
-    description:
-      "Retorna estado, participantes, atributos e datas de uma conversa a partir do SID.",
-    href: "/conversations/fetch",
-    icon: Search,
-    available: true,
-  },
-  {
-    label: "Buscar por Participante",
-    description:
-      "Lista todas as conversas associadas a um endereço de participante (WhatsApp, SMS, etc.).",
-    href: "/conversations/fetch-by-participant",
-    icon: AtSign,
-    available: true,
-  },
-]
+import { conversationsTools } from "@/features/conversations/tools"
 
 export default function ConversationsPage() {
   return (
@@ -57,7 +22,7 @@ export default function ConversationsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tools.map((tool) => {
+        {conversationsTools.map((tool) => {
           const Icon = tool.icon
 
           if (!tool.available) {

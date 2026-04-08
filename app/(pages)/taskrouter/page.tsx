@@ -1,6 +1,5 @@
-import type { ElementType } from "react"
+import { ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { UserPlus, GitBranch, ClipboardList, User, ArrowRight } from "lucide-react"
 
 import {
   Card,
@@ -9,49 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-
-interface Tool {
-  label: string
-  description: string
-  href: string
-  icon: ElementType
-  available: boolean
-}
-
-const tools: Tool[] = [
-  {
-    label: "Atribuir Workers à Fila",
-    description:
-      "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail.",
-    href: "/taskrouter/assign-workers",
-    icon: UserPlus,
-    available: true,
-  },
-  {
-    label: "Criar Workflow",
-    description:
-      "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter.",
-    href: "/taskrouter/create-workflow",
-    icon: GitBranch,
-    available: true,
-  },
-  {
-    label: "Buscar Task",
-    description:
-      "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID.",
-    href: "/taskrouter/fetch-task",
-    icon: ClipboardList,
-    available: true,
-  },
-  {
-    label: "Buscar Worker",
-    description:
-      "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail.",
-    href: "/taskrouter/fetch-worker",
-    icon: User,
-    available: true,
-  },
-]
+import { taskrouterTools } from "@/features/taskrouter/tools"
 
 export default function TaskRouterPage() {
   return (
@@ -65,7 +22,7 @@ export default function TaskRouterPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {tools.map((tool) => {
+        {taskrouterTools.map((tool) => {
           const Icon = tool.icon
 
           if (!tool.available) {

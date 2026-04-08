@@ -348,14 +348,18 @@ export function AssignWorkersForm() {
           </Label>
           <Textarea
             id="emails"
-            placeholder={"agente1@empresa.com\nWKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+            placeholder={
+              "agente1@empresa.com\nWKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            }
             value={emailsInput}
             onChange={(e) => setEmailsInput(e.target.value)}
             className="min-h-[120px] font-mono text-xs"
             disabled={status === "running"}
           />
           {emails.length > 0 && (
-            <p className={`text-xs ${emails.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}>
+            <p
+              className={`text-xs ${emails.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
+            >
               {emails.length} identificador(es) detectado(s)
               {emails.length > MAX_ITEMS && ` — máximo ${MAX_ITEMS} por vez`}
             </p>

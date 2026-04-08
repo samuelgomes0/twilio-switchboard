@@ -282,9 +282,12 @@ export function CloseForm() {
             disabled={status === "running"}
           />
           {participants.length > 0 && (
-            <p className={`text-xs ${participants.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}>
+            <p
+              className={`text-xs ${participants.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
+            >
               {participants.length} número(s) detectado(s)
-              {participants.length > MAX_ITEMS && ` — máximo ${MAX_ITEMS} por vez`}
+              {participants.length > MAX_ITEMS &&
+                ` — máximo ${MAX_ITEMS} por vez`}
             </p>
           )}
         </div>

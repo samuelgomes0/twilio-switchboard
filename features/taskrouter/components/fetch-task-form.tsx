@@ -2,7 +2,12 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronRight, ClipboardList, Loader2, AlertTriangle } from "lucide-react"
+import {
+  ChevronRight,
+  ClipboardList,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -102,7 +107,7 @@ function JsonBlock({ value }: { value: string }) {
     parsed === "" ||
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
   if (isEmpty)
-    return <span className="text-xs italic text-muted-foreground">vazio</span>
+    return <span className="text-xs text-muted-foreground italic">vazio</span>
   return (
     <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
@@ -110,7 +115,13 @@ function JsonBlock({ value }: { value: string }) {
   )
 }
 
-type StatusVariant = "success" | "warning" | "destructive" | "secondary" | "info" | "outline"
+type StatusVariant =
+  | "success"
+  | "warning"
+  | "destructive"
+  | "secondary"
+  | "info"
+  | "outline"
 
 function statusVariant(s: string): StatusVariant {
   if (s === "assigned") return "success"
@@ -267,7 +278,11 @@ export function FetchTaskForm() {
               disabled={loading}
               className="flex-1 font-mono text-sm"
             />
-            <Button type="submit" disabled={!canSubmit} className="shrink-0 gap-2">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="shrink-0 gap-2"
+            >
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
@@ -341,19 +356,25 @@ export function FetchTaskForm() {
                 {data.task.taskChannelUniqueName && (
                   <div>
                     <p className="mb-0.5 text-muted-foreground">Canal</p>
-                    <p className="font-medium">{data.task.taskChannelUniqueName}</p>
+                    <p className="font-medium">
+                      {data.task.taskChannelUniqueName}
+                    </p>
                   </div>
                 )}
                 {data.task.workflowFriendlyName && (
                   <div>
                     <p className="mb-0.5 text-muted-foreground">Workflow</p>
-                    <p className="font-medium">{data.task.workflowFriendlyName}</p>
+                    <p className="font-medium">
+                      {data.task.workflowFriendlyName}
+                    </p>
                   </div>
                 )}
                 {data.task.taskQueueFriendlyName && (
                   <div className="col-span-2">
                     <p className="mb-0.5 text-muted-foreground">Fila</p>
-                    <p className="font-medium">{data.task.taskQueueFriendlyName}</p>
+                    <p className="font-medium">
+                      {data.task.taskQueueFriendlyName}
+                    </p>
                   </div>
                 )}
                 {data.task.reason && (
@@ -369,18 +390,24 @@ export function FetchTaskForm() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
                   <p className="mb-0.5 text-muted-foreground">Criada em</p>
-                  <p className="font-medium">{formatDate(data.task.dateCreated)}</p>
+                  <p className="font-medium">
+                    {formatDate(data.task.dateCreated)}
+                  </p>
                 </div>
                 <div>
                   <p className="mb-0.5 text-muted-foreground">Atualizada em</p>
-                  <p className="font-medium">{formatDate(data.task.dateUpdated)}</p>
+                  <p className="font-medium">
+                    {formatDate(data.task.dateUpdated)}
+                  </p>
                 </div>
               </div>
 
               <Separator />
 
               <div>
-                <p className="mb-1.5 text-xs text-muted-foreground">Atributos</p>
+                <p className="mb-1.5 text-xs text-muted-foreground">
+                  Atributos
+                </p>
                 <JsonBlock value={data.task.attributes} />
               </div>
             </CardContent>

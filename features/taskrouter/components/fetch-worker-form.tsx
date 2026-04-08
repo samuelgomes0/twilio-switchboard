@@ -94,7 +94,7 @@ function JsonBlock({ value }: { value: string }) {
     parsed === "" ||
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
   if (isEmpty)
-    return <span className="text-xs italic text-muted-foreground">vazio</span>
+    return <span className="text-xs text-muted-foreground italic">vazio</span>
   return (
     <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
@@ -264,9 +264,7 @@ export function FetchWorkerForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="identifier">
-            Worker SID ou e-mail
-          </Label>
+          <Label htmlFor="identifier">Worker SID ou e-mail</Label>
           <div className="flex gap-2">
             <StoredInput
               id="identifier"
@@ -278,7 +276,11 @@ export function FetchWorkerForm() {
               containerClassName="flex-1"
               className="font-sans text-sm placeholder:font-sans"
             />
-            <Button type="submit" disabled={!canSubmit} className="shrink-0 gap-2">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="shrink-0 gap-2"
+            >
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (

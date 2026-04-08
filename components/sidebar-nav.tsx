@@ -41,12 +41,6 @@ interface NavItem {
 
 const conversationsNavItems: NavItem[] = [
   {
-    label: "Fechar Conversas",
-    href: "/conversations/close",
-    icon: MessageSquareOff,
-    description: "Fecha conversas ativas por número",
-  },
-  {
     label: "Buscar Conversa",
     href: "/conversations/fetch",
     icon: Search,
@@ -57,6 +51,12 @@ const conversationsNavItems: NavItem[] = [
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
     description: "Lista conversas de um endereço",
+  },
+  {
+    label: "Fechar Conversas",
+    href: "/conversations/close",
+    icon: MessageSquareOff,
+    description: "Fecha conversas ativas por número",
   },
 ]
 

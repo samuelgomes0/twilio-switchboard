@@ -96,7 +96,9 @@ export function FetchByParticipantForm() {
   const [stateFilter, setStateFilter] = React.useState<StateFilter>("all")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [results, setResults] = React.useState<ParticipantConversation[] | null>(null)
+  const [results, setResults] = React.useState<
+    ParticipantConversation[] | null
+  >(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
   const [confirmOpen, setConfirmOpen] = React.useState(false)
 
@@ -179,7 +181,9 @@ export function FetchByParticipantForm() {
           Conversations
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Buscar por Participante</span>
+        <span className="font-medium text-foreground">
+          Buscar por Participante
+        </span>
       </nav>
 
       {/* Header */}
@@ -241,7 +245,11 @@ export function FetchByParticipantForm() {
                 className="pl-[7.5rem] font-mono text-sm"
               />
             </div>
-            <Button type="submit" disabled={!canSubmit} className="shrink-0 gap-2">
+            <Button
+              type="submit"
+              disabled={!canSubmit}
+              className="shrink-0 gap-2"
+            >
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
@@ -284,7 +292,10 @@ export function FetchByParticipantForm() {
               Buscar conversas do participante{" "}
               <strong className="font-mono">{address}</strong>
               {stateFilter !== "all" && (
-                <> com estado <strong>{stateFilter}</strong></>
+                <>
+                  {" "}
+                  com estado <strong>{stateFilter}</strong>
+                </>
               )}{" "}
               no ambiente <strong>{activeEnvironment?.name}</strong>?
             </AlertDialogDescription>
@@ -323,9 +334,11 @@ export function FetchByParticipantForm() {
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
                 {filteredResults.length} conversa(s) encontrada(s)
-                {stateFilter !== "all" && results && results.length !== filteredResults.length && (
-                  <> · {results.length} total</>
-                )}
+                {stateFilter !== "all" &&
+                  results &&
+                  results.length !== filteredResults.length && (
+                    <> · {results.length} total</>
+                  )}
               </p>
               <ul className="space-y-2">
                 {filteredResults.map((pc) => (
@@ -349,12 +362,19 @@ export function FetchByParticipantForm() {
                       </Badge>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                      <span>Criada: {formatDate(pc.conversationDateCreated)}</span>
-                      <span>Atualizada: {formatDate(pc.conversationDateUpdated)}</span>
+                      <span>
+                        Criada: {formatDate(pc.conversationDateCreated)}
+                      </span>
+                      <span>
+                        Atualizada: {formatDate(pc.conversationDateUpdated)}
+                      </span>
                     </div>
                     {pc.participantIdentity && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Identidade: <span className="font-mono">{pc.participantIdentity}</span>
+                        Identidade:{" "}
+                        <span className="font-mono">
+                          {pc.participantIdentity}
+                        </span>
                       </p>
                     )}
                   </li>
@@ -386,9 +406,7 @@ export function FetchByParticipantForm() {
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
                 {" — "}
                 <span className="font-mono">{h.phone}</span>
-                {h.stateFilter !== "all" && (
-                  <span> · {h.stateFilter}</span>
-                )}
+                {h.stateFilter !== "all" && <span> · {h.stateFilter}</span>}
                 {" · "}
                 {h.count} conversa(s)
               </li>

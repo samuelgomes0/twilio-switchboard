@@ -29,6 +29,7 @@ export async function fetchConversationsByParticipant(
     participantSid: pc.participantSid,
     participantIdentity: pc.participantIdentity ?? null,
     participantMessagingBinding:
-      (pc.participantMessagingBinding as Record<string, unknown> | null) ?? null,
+      (pc.participantMessagingBinding as Record<string, unknown> | null) ??
+      null,
   }))
 }
