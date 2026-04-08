@@ -181,6 +181,13 @@ export function FetchForm() {
     setConfirmOpen(true)
   }
 
+  function clearHistory() {
+    try {
+      localStorage.removeItem(HISTORY_KEY)
+    } catch {}
+    setHistory([])
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       {/* Breadcrumb */}
@@ -459,9 +466,18 @@ export function FetchForm() {
       {/* History */}
       {history.length > 0 && (
         <div className="mt-8 space-y-1.5">
-          <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-            Últimas consultas
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Últimas consultas
+            </p>
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Limpar
+            </button>
+          </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
               <li key={i} className="text-xs text-muted-foreground">

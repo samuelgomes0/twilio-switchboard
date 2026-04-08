@@ -90,7 +90,7 @@ const taskrouterNavItems: NavItem[] = [
 const configNavItems: NavItem[] = [
   {
     label: "Gerenciar Ambientes",
-    href: "/environments",
+    href: "/environments/manage",
     icon: Settings2,
     description: "Cadastre e gerencie credenciais Twilio",
   },

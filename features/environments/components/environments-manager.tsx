@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { ChevronRight, Settings2, Plus, Trash2 } from "lucide-react"
+import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { useEnvironment } from "@/features/environments/context"
@@ -46,7 +47,12 @@ export function EnvironmentsManager() {
     <div className="mx-auto max-w-2xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
-        <span className="text-muted-foreground">Configurações</span>
+        <Link
+          href="/environments"
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Configurações
+        </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
         <span className="font-medium text-foreground">Gerenciar Ambientes</span>
       </nav>

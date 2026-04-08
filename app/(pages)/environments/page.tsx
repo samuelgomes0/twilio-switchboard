@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircle, Settings2, Workflow } from "lucide-react"
+import { ArrowRight, Settings2 } from "lucide-react"
 import Link from "next/link"
 import type { ElementType } from "react"
 
@@ -20,39 +20,22 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    label: "Conversations",
+    label: "Gerenciar Ambientes",
     description:
-      "Fecha conversas ativas em lote por número de telefone e consulta estado, participantes e atributos de conversas por SID.",
-    href: "/conversations",
-    icon: MessageCircle,
-    available: true,
-  },
-  {
-    label: "TaskRouter",
-    description:
-      "Atribui skills a workers por e-mail e cria workflows de roteamento a partir de arquivos CSV.",
-    href: "/taskrouter",
-    icon: Workflow,
-    available: true,
-  },
-  {
-    label: "Configurações",
-    description:
-      "Cadastre e gerencie credenciais Twilio (Account SID e Auth Token) para múltiplos ambientes.",
-    href: "/environments",
+      "Cadastre, edite e remova ambientes Twilio com Account SID e Auth Token.",
+    href: "/environments/manage",
     icon: Settings2,
     available: true,
   },
 ]
 
-export default function DashboardPage() {
+export default function EnvironmentsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Switchboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Interface visual para operações Twilio. Selecione uma ferramenta
-          abaixo.
+          Gerencie credenciais e configurações do Switchboard.
         </p>
       </div>
 

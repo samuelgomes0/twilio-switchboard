@@ -10,6 +10,16 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { StoredInput } from "@/components/stored-input"
+import {
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogRoot,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
 
@@ -122,6 +132,7 @@ export function FetchWorkerForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [data, setData] = React.useState<{ worker: WorkerData } | null>(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   React.useEffect(() => {
     setHistory(readHistory())
@@ -174,7 +185,15 @@ export function FetchWorkerForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    void runSearch()
+    if (!canSubmit) return
+    setConfirmOpen(true)
+  }
+
+  function clearHistory() {
+    try {
+      localStorage.removeItem(HISTORY_KEY)
+    } catch {}
+    setHistory([])
   }
 
   const routing = data ? parseRouting(data.worker.attributes) : null
@@ -274,6 +293,31 @@ export function FetchWorkerForm() {
         </div>
       </form>
 
+      {/* Confirmation dialog */}
+      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buscar worker?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Buscar dados do worker{" "}
+              <strong className="font-mono">{identifier}</strong> no ambiente{" "}
+              <strong>{activeEnvironment?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false)
+                void runSearch()
+              }}
+            >
+              Buscar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogRoot>
+
       {/* Error */}
       {error && (
         <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
@@ -369,9 +413,18 @@ export function FetchWorkerForm() {
       {/* History */}
       {history.length > 0 && (
         <div className="mt-8 space-y-1.5">
-          <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-            Últimas consultas
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Últimas consultas
+            </p>
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Limpar
+            </button>
+          </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
               <li key={i} className="text-xs text-muted-foreground">

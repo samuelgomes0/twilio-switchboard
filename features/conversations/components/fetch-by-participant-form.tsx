@@ -7,18 +7,30 @@ import { AtSign, ChevronRight, Loader2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { StoredInput } from "@/components/stored-input"
+import { Input } from "@/components/ui/input"
+import {
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogRoot,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { ParticipantConversation } from "@/features/conversations/lib/fetch-by-participant"
 
+type StateFilter = "all" | "active" | "inactive" | "closed"
+
 interface HistoryEntry {
   ts: number
-  address: string
+  phone: string
+  stateFilter: StateFilter
   count: number
 }
 
 const HISTORY_KEY = "switchboard:fetch-by-participant-history"
-const ADDRESSES_KEY = "switchboard:participant-addresses"
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -71,19 +83,30 @@ function stateVariant(state: string): StateVariant {
   return "outline"
 }
 
+const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "active", label: "Ativas" },
+  { value: "inactive", label: "Inativas" },
+  { value: "closed", label: "Fechadas" },
+]
+
 export function FetchByParticipantForm() {
   const { activeEnvironment } = useEnvironment()
-  const [address, setAddress] = React.useState("")
+  const [phone, setPhone] = React.useState("")
+  const [stateFilter, setStateFilter] = React.useState<StateFilter>("all")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [results, setResults] = React.useState<ParticipantConversation[] | null>(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   React.useEffect(() => {
     setHistory(readHistory())
   }, [])
 
-  const canSubmit = address.trim().length > 0 && !loading && !!activeEnvironment
+  const canSubmit = phone.trim().length > 0 && !loading && !!activeEnvironment
+
+  const address = `whatsapp:+55${phone.trim()}`
 
   async function runSearch() {
     if (!canSubmit || !activeEnvironment) return
@@ -93,7 +116,7 @@ export function FetchByParticipantForm() {
 
     try {
       const res = await fetch(
-        `/api/conversations/fetch-by-participant?address=${encodeURIComponent(address.trim())}`,
+        `/api/conversations/fetch-by-participant?address=${encodeURIComponent(address)}`,
         {
           headers: {
             "x-twilio-account-sid": activeEnvironment.accountSid,
@@ -112,7 +135,8 @@ export function FetchByParticipantForm() {
       setResults(json.conversations)
       const entry: HistoryEntry = {
         ts: Date.now(),
-        address: address.trim(),
+        phone: phone.trim(),
+        stateFilter,
         count: json.conversations.length,
       }
       pushHistory(entry)
@@ -126,8 +150,23 @@ export function FetchByParticipantForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    void runSearch()
+    if (!canSubmit) return
+    setConfirmOpen(true)
   }
+
+  function clearHistory() {
+    try {
+      localStorage.removeItem(HISTORY_KEY)
+    } catch {}
+    setHistory([])
+  }
+
+  const filteredResults =
+    results === null
+      ? null
+      : stateFilter === "all"
+        ? results
+        : results.filter((pc) => pc.conversationState === stateFilter)
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -153,7 +192,7 @@ export function FetchByParticipantForm() {
             Buscar por Participante
           </h1>
           <p className="text-sm text-muted-foreground">
-            Retorna todas as conversas associadas a um endereço de participante
+            Retorna todas as conversas WhatsApp associadas a um número
           </p>
         </div>
       </div>
@@ -182,18 +221,26 @@ export function FetchByParticipantForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="address">Endereço do participante</Label>
+          <Label htmlFor="phone">
+            Número de telefone{" "}
+            <span className="font-normal text-muted-foreground">
+              (DDD + número, sem dígito 9)
+            </span>
+          </Label>
           <div className="flex gap-2">
-            <StoredInput
-              id="address"
-              storageKey={ADDRESSES_KEY}
-              value={address}
-              onChange={setAddress}
-              placeholder="whatsapp:+5511999999999"
-              disabled={loading}
-              containerClassName="flex-1"
-              className="font-sans text-sm placeholder:font-sans"
-            />
+            <div className="relative flex-1">
+              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                whatsapp:+55
+              </span>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="1187654321"
+                disabled={loading}
+                className="pl-[7.5rem] font-mono text-sm"
+              />
+            </div>
             <Button type="submit" disabled={!canSubmit} className="shrink-0 gap-2">
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -203,11 +250,58 @@ export function FetchByParticipantForm() {
               Buscar
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Formatos: whatsapp:+55... · sms:+55... · messenger:...
-          </p>
+        </div>
+
+        {/* State filter */}
+        <div className="space-y-2">
+          <Label>Filtrar por estado</Label>
+          <div className="flex gap-1.5">
+            {STATE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setStateFilter(opt.value)}
+                disabled={loading}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  stateFilter === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </form>
+
+      {/* Confirmation dialog */}
+      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buscar conversas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Buscar conversas do participante{" "}
+              <strong className="font-mono">{address}</strong>
+              {stateFilter !== "all" && (
+                <> com estado <strong>{stateFilter}</strong></>
+              )}{" "}
+              no ambiente <strong>{activeEnvironment?.name}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false)
+                void runSearch()
+              }}
+            >
+              Buscar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialogRoot>
 
       {/* Error */}
       {error && (
@@ -217,19 +311,24 @@ export function FetchByParticipantForm() {
       )}
 
       {/* Results */}
-      {results !== null && (
+      {filteredResults !== null && (
         <div className="mt-6">
-          {results.length === 0 ? (
+          {filteredResults.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Nenhuma conversa encontrada para esse endereço.
+              {results?.length === 0
+                ? "Nenhuma conversa encontrada para esse número."
+                : `Nenhuma conversa com estado "${stateFilter}" encontrada.`}
             </p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                {results.length} conversa(s) encontrada(s)
+                {filteredResults.length} conversa(s) encontrada(s)
+                {stateFilter !== "all" && results && results.length !== filteredResults.length && (
+                  <> · {results.length} total</>
+                )}
               </p>
               <ul className="space-y-2">
-                {results.map((pc) => (
+                {filteredResults.map((pc) => (
                   <li
                     key={pc.conversationSid}
                     className="rounded-lg border border-border bg-card px-4 py-3"
@@ -269,15 +368,27 @@ export function FetchByParticipantForm() {
       {/* History */}
       {history.length > 0 && (
         <div className="mt-8 space-y-1.5">
-          <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-            Últimas consultas
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+              Últimas consultas
+            </p>
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Limpar
+            </button>
+          </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
               <li key={i} className="text-xs text-muted-foreground">
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
                 {" — "}
-                <span className="font-mono">{h.address}</span>
+                <span className="font-mono">{h.phone}</span>
+                {h.stateFilter !== "all" && (
+                  <span> · {h.stateFilter}</span>
+                )}
                 {" · "}
                 {h.count} conversa(s)
               </li>

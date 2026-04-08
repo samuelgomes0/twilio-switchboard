@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 
+import { ProgressBar } from "@/components/progress-bar"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { ThemeProvider } from "@/components/theme-provider"
 import { EnvironmentProvider } from "@/features/environments/context"
@@ -42,6 +43,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <EnvironmentProvider>
+            <ProgressBar />
             <div className="flex min-h-svh font-sans">
               <SidebarNav />
               <main className="flex-1 overflow-auto p-6 md:p-8">
