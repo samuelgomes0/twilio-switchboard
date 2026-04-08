@@ -1,6 +1,6 @@
-import { ArrowRight, MessageCircle, Workflow } from "lucide-react"
-import Link from "next/link"
 import type { ElementType } from "react"
+import Link from "next/link"
+import { UserPlus, GitBranch, ArrowRight } from "lucide-react"
 
 import {
   Card,
@@ -20,31 +20,31 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    label: "Conversations",
+    label: "Atribuir Workers à Fila",
     description:
-      "Fecha conversas ativas em lote por número de telefone e consulta estado, participantes e atributos de conversas por SID.",
-    href: "/conversations",
-    icon: MessageCircle,
+      "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail.",
+    href: "/taskrouter/assign-workers",
+    icon: UserPlus,
     available: true,
   },
   {
-    label: "TaskRouter",
+    label: "Criar Workflow",
     description:
-      "Atribui skills a workers por e-mail e cria workflows de roteamento a partir de arquivos CSV.",
-    href: "/taskrouter",
-    icon: Workflow,
+      "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter.",
+    href: "/taskrouter/create-workflow",
+    icon: GitBranch,
     available: true,
   },
 ]
 
-export default function DashboardPage() {
+export default function TaskRouterPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Switchboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">TaskRouter</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Interface visual para operações Twilio. Selecione uma ferramenta
-          abaixo.
+          Atribua skills a workers por e-mail e crie workflows de roteamento a
+          partir de arquivos CSV.
         </p>
       </div>
 

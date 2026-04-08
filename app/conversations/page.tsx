@@ -1,4 +1,4 @@
-import { ArrowRight, MessageCircle, Workflow } from "lucide-react"
+import { ArrowRight, MessageSquareOff, Search } from "lucide-react"
 import Link from "next/link"
 import type { ElementType } from "react"
 
@@ -20,31 +20,31 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    label: "Conversations",
+    label: "Fechar Conversas",
     description:
-      "Fecha conversas ativas em lote por número de telefone e consulta estado, participantes e atributos de conversas por SID.",
-    href: "/conversations",
-    icon: MessageCircle,
+      "Recebe números de telefone e fecha todas as conversas ativas associadas em lote.",
+    href: "/conversations/close",
+    icon: MessageSquareOff,
     available: true,
   },
   {
-    label: "TaskRouter",
+    label: "Buscar Conversa",
     description:
-      "Atribui skills a workers por e-mail e cria workflows de roteamento a partir de arquivos CSV.",
-    href: "/taskrouter",
-    icon: Workflow,
+      "Retorna estado, participantes, atributos e datas de uma conversa a partir do SID.",
+    href: "/conversations/fetch",
+    icon: Search,
     available: true,
   },
 ]
 
-export default function DashboardPage() {
+export default function ConversationsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Switchboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Conversations</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Interface visual para operações Twilio. Selecione uma ferramenta
-          abaixo.
+          Feche conversas ativas em lote e consulte detalhes de conversas por
+          SID.
         </p>
       </div>
 
