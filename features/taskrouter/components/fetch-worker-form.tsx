@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 interface HistoryEntry {
   ts: number
@@ -33,8 +35,8 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:fetch-worker-history"
-const WS_SIDS_KEY = "switchboard:workspace-sids"
-const WORKER_IDS_KEY = "switchboard:worker-identifiers"
+const WS_SIDS_KEY = STORED_KEYS.workspaceSids
+const WORKER_IDS_KEY = STORED_KEYS.workerIdentifiers
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -94,7 +96,7 @@ function JsonBlock({ value }: { value: string }) {
     parsed === "" ||
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
   if (isEmpty)
-    return <span className="text-xs text-muted-foreground italic">vazio</span>
+    return <span className="text-xs text-muted-foreground italic">{strings.common.empty}</span>
   return (
     <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
@@ -162,7 +164,7 @@ export function FetchWorkerForm() {
       )
       const json = (await res.json()) as { worker: WorkerData; error?: string }
       if (!res.ok || json.error) {
-        setError(json.error ?? "Erro desconhecido")
+        setError(json.error ?? strings.common.unknown)
         return
       }
       setData(json)
@@ -177,7 +179,7 @@ export function FetchWorkerForm() {
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro de rede")
+      setError(err instanceof Error ? err.message : strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -206,10 +208,10 @@ export function FetchWorkerForm() {
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          TaskRouter
+          {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Buscar Worker</span>
+        <span className="font-medium text-foreground">{strings.taskrouter.fetchWorker.breadcrumb}</span>
       </nav>
 
       {/* Header */}
@@ -219,11 +221,10 @@ export function FetchWorkerForm() {
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            Buscar Worker
+            {strings.taskrouter.fetchWorker.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Retorna atividade, skills, atributos e datas de um worker pelo SID
-            ou e-mail
+            {strings.taskrouter.fetchWorker.subtitle}
           </p>
         </div>
       </div>
@@ -234,15 +235,15 @@ export function FetchWorkerForm() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-sm">
             <p className="font-medium text-destructive">
-              Nenhum ambiente selecionado
+              {strings.common.noEnvironmentSelected.title}
             </p>
             <p className="mt-0.5 text-destructive/80">
-              Selecione um ambiente antes de executar operações.{" "}
+              {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
-                Gerenciar ambientes
+                {strings.common.noEnvironmentSelected.link}
               </Link>
             </p>
           </div>
@@ -252,10 +253,11 @@ export function FetchWorkerForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">Workspace SID</Label>
+          <Label htmlFor="workspaceSid">{strings.taskrouter.fetchWorker.workspaceSidLabel}</Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
+            environmentId={activeEnvironment?.id}
             value={workspaceSid}
             onChange={setWorkspaceSid}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -264,11 +266,12 @@ export function FetchWorkerForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="identifier">Worker SID ou e-mail</Label>
+          <Label htmlFor="identifier">{strings.taskrouter.fetchWorker.identifierLabel}</Label>
           <div className="flex gap-2">
             <StoredInput
               id="identifier"
               storageKey={WORKER_IDS_KEY}
+              environmentId={activeEnvironment?.id}
               value={identifier}
               onChange={setIdentifier}
               placeholder="WKxxxxx... ou agente@empresa.com"
@@ -286,11 +289,11 @@ export function FetchWorkerForm() {
               ) : (
                 <User className="size-3.5" />
               )}
-              Buscar
+              {strings.common.search}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Aceita SID (WK + 32 hex) ou e-mail/nome do worker
+            {strings.taskrouter.fetchWorker.identifierHint}
           </p>
         </div>
       </form>
@@ -299,7 +302,7 @@ export function FetchWorkerForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Buscar worker?</AlertDialogTitle>
+            <AlertDialogTitle>{strings.taskrouter.fetchWorker.confirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Buscar dados do worker{" "}
               <strong className="font-mono">{identifier}</strong> no ambiente{" "}
@@ -307,14 +310,14 @@ export function FetchWorkerForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
-              Buscar
+              {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -353,7 +356,7 @@ export function FetchWorkerForm() {
               {routing?.skills && routing.skills.length > 0 && (
                 <>
                   <div>
-                    <p className="mb-2 text-xs text-muted-foreground">Skills</p>
+                    <p className="mb-2 text-xs text-muted-foreground">{strings.taskrouter.fetchWorker.result.skills}</p>
                     <ul className="space-y-1">
                       {routing.skills.map((skill) => (
                         <li
@@ -363,7 +366,7 @@ export function FetchWorkerForm() {
                           <span className="font-medium">{skill}</span>
                           {routing.levels?.[skill] !== undefined && (
                             <span className="text-muted-foreground">
-                              nível {routing.levels[skill]}
+                              {strings.taskrouter.fetchWorker.result.level(routing.levels[skill])}
                             </span>
                           )}
                         </li>
@@ -377,20 +380,20 @@ export function FetchWorkerForm() {
               {/* Dates */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">Criado em</p>
+                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchWorker.result.dateCreated}</p>
                   <p className="font-medium">
                     {formatDate(data.worker.dateCreated)}
                   </p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">Atualizado em</p>
+                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchWorker.result.dateUpdated}</p>
                   <p className="font-medium">
                     {formatDate(data.worker.dateUpdated)}
                   </p>
                 </div>
                 <div className="col-span-2">
                   <p className="mb-0.5 text-muted-foreground">
-                    Atividade alterada em
+                    {strings.taskrouter.fetchWorker.result.dateStatusChanged}
                   </p>
                   <p className="font-medium">
                     {formatDate(data.worker.dateStatusChanged)}
@@ -403,7 +406,7 @@ export function FetchWorkerForm() {
               {/* Full attributes */}
               <div>
                 <p className="mb-1.5 text-xs text-muted-foreground">
-                  Atributos completos
+                  {strings.taskrouter.fetchWorker.result.fullAttributes}
                 </p>
                 <JsonBlock value={data.worker.attributes} />
               </div>
@@ -417,14 +420,14 @@ export function FetchWorkerForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Últimas consultas
+              {strings.taskrouter.fetchWorker.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Limpar
+              {strings.taskrouter.fetchWorker.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">

@@ -9,15 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { conversationsTools } from "@/features/conversations/tools"
+import { strings } from "@/lib/strings"
 
 export default function ConversationsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Conversations</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{strings.conversations.page.title}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Feche conversas ativas em lote e consulte detalhes de conversas por
-          SID.
+          {strings.conversations.page.subtitle}
         </p>
       </div>
 
@@ -37,7 +37,7 @@ export default function ConversationsPage() {
                       <Icon className="size-4 text-muted-foreground" />
                     </div>
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      Em breve
+                      {strings.common.comingSoon}
                     </span>
                   </div>
                   <CardTitle className="mt-3">{tool.label}</CardTitle>

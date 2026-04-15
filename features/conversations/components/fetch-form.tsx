@@ -31,6 +31,8 @@ import {
   type MessagingBinding,
 } from "@/features/conversations/types"
 import { useEnvironment } from "@/features/environments/context"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 type ConversationState = "active" | "inactive" | "closed" | string
 
@@ -42,7 +44,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:fetch-history"
-const SIDS_KEY = "switchboard:conversation-sids"
+const SIDS_KEY = STORED_KEYS.conversationSids
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -110,7 +112,7 @@ function JsonBlock({ value }: { value: string }) {
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
 
   if (isEmpty) {
-    return <span className="text-xs text-muted-foreground italic">vazio</span>
+    return <span className="text-xs text-muted-foreground italic">{strings.common.empty}</span>
   }
 
   return (
@@ -155,7 +157,7 @@ export function FetchForm() {
       const json = (await res.json()) as FetchResponse & { error?: string }
 
       if (!res.ok || json.error) {
-        setError(json.error ?? "Erro desconhecido")
+        setError(json.error ?? strings.common.unknown)
         return
       }
 
@@ -169,7 +171,7 @@ export function FetchForm() {
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro de rede")
+      setError(err instanceof Error ? err.message : strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -196,10 +198,10 @@ export function FetchForm() {
           href="/conversations"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          Conversations
+          {strings.sidebar.sections.conversations}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Buscar Conversa</span>
+        <span className="font-medium text-foreground">{strings.conversations.fetch.breadcrumb}</span>
       </nav>
 
       {/* Header */}
@@ -209,10 +211,10 @@ export function FetchForm() {
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            Buscar Conversa por SID
+            {strings.conversations.fetch.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Retorna estado, participantes, atributos e datas de uma conversa
+            {strings.conversations.fetch.subtitle}
           </p>
         </div>
       </div>
@@ -223,15 +225,15 @@ export function FetchForm() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-sm">
             <p className="font-medium text-destructive">
-              Nenhum ambiente selecionado
+              {strings.common.noEnvironmentSelected.title}
             </p>
             <p className="mt-0.5 text-destructive/80">
-              Selecione um ambiente antes de executar operações.{" "}
+              {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
-                Gerenciar ambientes
+                {strings.common.noEnvironmentSelected.link}
               </Link>
             </p>
           </div>
@@ -241,11 +243,12 @@ export function FetchForm() {
       {/* Form */}
       <form onSubmit={handleFormSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="sid">Conversation SID</Label>
+          <Label htmlFor="sid">{strings.conversations.fetch.sidLabel}</Label>
           <div className="flex gap-2">
             <StoredInput
               id="sid"
               storageKey={SIDS_KEY}
+            environmentId={activeEnvironment?.id}
               value={sid}
               onChange={setSid}
               placeholder="CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -262,11 +265,11 @@ export function FetchForm() {
               ) : (
                 <Search className="size-3.5" />
               )}
-              Buscar
+              {strings.common.search}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Formato: CH seguido de 32 caracteres hexadecimais
+            {strings.conversations.fetch.sidHint}
           </p>
         </div>
       </form>
@@ -275,21 +278,21 @@ export function FetchForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Buscar conversa?</AlertDialogTitle>
+            <AlertDialogTitle>{strings.conversations.fetch.confirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Buscar dados da conversa <strong>{sid}</strong> no ambiente{" "}
               <strong>{activeEnvironment?.name}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
-              Buscar
+              {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -313,7 +316,7 @@ export function FetchForm() {
                     {data.conversation.sid}
                   </CardTitle>
                   <CardDescription className="mt-1">
-                    {data.conversation.friendlyName ?? "Sem nome amigável"}
+                    {data.conversation.friendlyName ?? strings.conversations.fetch.result.noFriendlyName}
                   </CardDescription>
                 </div>
                 <Badge variant={stateBadgeVariant(data.conversation.state)}>
@@ -325,7 +328,7 @@ export function FetchForm() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                 <div>
                   <p className="mb-0.5 text-xs text-muted-foreground">
-                    Criada em
+                    {strings.conversations.fetch.result.dateCreated}
                   </p>
                   <p className="text-xs font-medium">
                     {formatDate(data.conversation.dateCreated)}
@@ -333,7 +336,7 @@ export function FetchForm() {
                 </div>
                 <div>
                   <p className="mb-0.5 text-xs text-muted-foreground">
-                    Atualizada em
+                    {strings.conversations.fetch.result.dateUpdated}
                   </p>
                   <p className="text-xs font-medium">
                     {formatDate(data.conversation.dateUpdated)}
@@ -355,7 +358,7 @@ export function FetchForm() {
 
               <div>
                 <p className="mb-1.5 text-xs text-muted-foreground">
-                  Atributos
+                  {strings.conversations.fetch.result.attributes}
                 </p>
                 <JsonBlock value={data.conversation.attributes} />
               </div>
@@ -365,7 +368,7 @@ export function FetchForm() {
           <Card>
             <CardHeader>
               <CardTitle>
-                Participantes{" "}
+                {strings.conversations.fetch.result.participants}{" "}
                 <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
                   {data.participants.length}
                 </span>
@@ -374,7 +377,7 @@ export function FetchForm() {
             <CardContent>
               {data.participants.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">
-                  Nenhum participante encontrado
+                  {strings.conversations.fetch.result.noParticipants}
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -398,7 +401,7 @@ export function FetchForm() {
                             {(p.messagingBinding as MessagingBinding).type && (
                               <div className="flex gap-2">
                                 <span className="w-16 shrink-0 text-muted-foreground">
-                                  Tipo
+                                  {strings.conversations.fetch.result.type}
                                 </span>
                                 <span>
                                   {
@@ -412,7 +415,7 @@ export function FetchForm() {
                               .address && (
                               <div className="flex gap-2">
                                 <span className="w-16 shrink-0 text-muted-foreground">
-                                  Endereço
+                                  {strings.conversations.fetch.result.address}
                                 </span>
                                 <span className="font-mono">
                                   {
@@ -426,7 +429,7 @@ export function FetchForm() {
                               .proxy_address && (
                               <div className="flex gap-2">
                                 <span className="w-16 shrink-0 text-muted-foreground">
-                                  Proxy
+                                  {strings.conversations.fetch.result.proxy}
                                 </span>
                                 <span className="font-mono">
                                   {
@@ -442,13 +445,13 @@ export function FetchForm() {
                         <div className="grid grid-cols-2 gap-x-4 text-xs">
                           <div>
                             <span className="text-muted-foreground">
-                              Adicionado:{" "}
+                              {strings.conversations.fetch.result.added}{" "}
                             </span>
                             {formatDate(p.dateCreated)}
                           </div>
                           <div>
                             <span className="text-muted-foreground">
-                              Atualizado:{" "}
+                              {strings.conversations.fetch.result.updated}{" "}
                             </span>
                             {formatDate(p.dateUpdated)}
                           </div>
@@ -468,14 +471,14 @@ export function FetchForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Últimas consultas
+              {strings.conversations.fetch.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Limpar
+              {strings.conversations.fetch.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">

@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { strings } from "@/lib/strings"
 
 interface Tool {
   label: string
@@ -20,25 +21,22 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    label: "Conversations",
-    description:
-      "Fecha conversas ativas em lote por número de telefone e consulta estado, participantes e atributos de conversas por SID.",
+    label: strings.dashboard.tools.conversations.label,
+    description: strings.dashboard.tools.conversations.description,
     href: "/conversations",
     icon: MessageCircle,
     available: true,
   },
   {
-    label: "TaskRouter",
-    description:
-      "Atribui skills a workers por e-mail e cria workflows de roteamento a partir de arquivos CSV.",
+    label: strings.dashboard.tools.taskrouter.label,
+    description: strings.dashboard.tools.taskrouter.description,
     href: "/taskrouter",
     icon: Workflow,
     available: true,
   },
   {
-    label: "Configurações",
-    description:
-      "Cadastre e gerencie credenciais Twilio (Account SID e Auth Token) para múltiplos ambientes.",
+    label: strings.dashboard.tools.settings.label,
+    description: strings.dashboard.tools.settings.description,
     href: "/environments",
     icon: Settings2,
     available: true,
@@ -49,10 +47,9 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Switchboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{strings.dashboard.title}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Interface visual para operações Twilio. Selecione uma ferramenta
-          abaixo.
+          {strings.dashboard.subtitle}
         </p>
       </div>
 
@@ -72,7 +69,7 @@ export default function DashboardPage() {
                       <Icon className="size-4 text-muted-foreground" />
                     </div>
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      Em breve
+                      {strings.common.comingSoon}
                     </span>
                   </div>
                   <CardTitle className="mt-3">{tool.label}</CardTitle>

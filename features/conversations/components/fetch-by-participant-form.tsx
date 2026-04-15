@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { ParticipantConversation } from "@/features/conversations/lib/fetch-by-participant"
+import { strings } from "@/lib/strings"
 
 type StateFilter = "all" | "active" | "inactive" | "closed"
 
@@ -84,10 +85,10 @@ function stateVariant(state: string): StateVariant {
 }
 
 const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
-  { value: "all", label: "Todos" },
-  { value: "active", label: "Ativas" },
-  { value: "inactive", label: "Inativas" },
-  { value: "closed", label: "Fechadas" },
+  { value: "all", label: strings.conversations.fetchByParticipant.stateOptions.all },
+  { value: "active", label: strings.conversations.fetchByParticipant.stateOptions.active },
+  { value: "inactive", label: strings.conversations.fetchByParticipant.stateOptions.inactive },
+  { value: "closed", label: strings.conversations.fetchByParticipant.stateOptions.closed },
 ]
 
 export function FetchByParticipantForm() {
@@ -131,7 +132,7 @@ export function FetchByParticipantForm() {
         error?: string
       }
       if (!res.ok || json.error) {
-        setError(json.error ?? "Erro desconhecido")
+        setError(json.error ?? strings.common.unknown)
         return
       }
       setResults(json.conversations)
@@ -144,7 +145,7 @@ export function FetchByParticipantForm() {
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro de rede")
+      setError(err instanceof Error ? err.message : strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -178,11 +179,11 @@ export function FetchByParticipantForm() {
           href="/conversations"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          Conversations
+          {strings.sidebar.sections.conversations}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
         <span className="font-medium text-foreground">
-          Buscar por Participante
+          {strings.conversations.fetchByParticipant.breadcrumb}
         </span>
       </nav>
 
@@ -193,10 +194,10 @@ export function FetchByParticipantForm() {
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            Buscar por Participante
+            {strings.conversations.fetchByParticipant.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Retorna todas as conversas WhatsApp associadas a um número
+            {strings.conversations.fetchByParticipant.subtitle}
           </p>
         </div>
       </div>
@@ -207,15 +208,15 @@ export function FetchByParticipantForm() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-sm">
             <p className="font-medium text-destructive">
-              Nenhum ambiente selecionado
+              {strings.common.noEnvironmentSelected.title}
             </p>
             <p className="mt-0.5 text-destructive/80">
-              Selecione um ambiente antes de executar operações.{" "}
+              {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
-                Gerenciar ambientes
+                {strings.common.noEnvironmentSelected.link}
               </Link>
             </p>
           </div>
@@ -226,9 +227,9 @@ export function FetchByParticipantForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="phone">
-            Número de telefone{" "}
+            {strings.conversations.fetchByParticipant.phoneLabel}{" "}
             <span className="font-normal text-muted-foreground">
-              (DDD + número, sem dígito 9)
+              {strings.conversations.fetchByParticipant.phoneLabelHint}
             </span>
           </Label>
           <div className="flex gap-2">
@@ -255,14 +256,14 @@ export function FetchByParticipantForm() {
               ) : (
                 <AtSign className="size-3.5" />
               )}
-              Buscar
+              {strings.common.search}
             </Button>
           </div>
         </div>
 
         {/* State filter */}
         <div className="space-y-2">
-          <Label>Filtrar por estado</Label>
+          <Label>{strings.conversations.fetchByParticipant.filterLabel}</Label>
           <div className="flex gap-1.5">
             {STATE_OPTIONS.map((opt) => (
               <button
@@ -287,7 +288,7 @@ export function FetchByParticipantForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Buscar conversas?</AlertDialogTitle>
+            <AlertDialogTitle>{strings.conversations.fetchByParticipant.confirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Buscar conversas do participante{" "}
               <strong className="font-mono">{address}</strong>
@@ -301,14 +302,14 @@ export function FetchByParticipantForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
-              Buscar
+              {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -327,13 +328,13 @@ export function FetchByParticipantForm() {
           {filteredResults.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {results?.length === 0
-                ? "Nenhuma conversa encontrada para esse número."
-                : `Nenhuma conversa com estado "${stateFilter}" encontrada.`}
+                ? strings.conversations.fetchByParticipant.results.none
+                : strings.conversations.fetchByParticipant.results.noneFiltered(stateFilter)}
             </p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                {filteredResults.length} conversa(s) encontrada(s)
+                {strings.conversations.fetchByParticipant.results.count(filteredResults.length)}
                 {stateFilter !== "all" &&
                   results &&
                   results.length !== filteredResults.length && (
@@ -363,15 +364,15 @@ export function FetchByParticipantForm() {
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
                       <span>
-                        Criada: {formatDate(pc.conversationDateCreated)}
+                        {strings.conversations.fetchByParticipant.results.dateCreated} {formatDate(pc.conversationDateCreated)}
                       </span>
                       <span>
-                        Atualizada: {formatDate(pc.conversationDateUpdated)}
+                        {strings.conversations.fetchByParticipant.results.dateUpdated} {formatDate(pc.conversationDateUpdated)}
                       </span>
                     </div>
                     {pc.participantIdentity && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Identidade:{" "}
+                        {strings.conversations.fetchByParticipant.results.identity}{" "}
                         <span className="font-mono">
                           {pc.participantIdentity}
                         </span>
@@ -390,14 +391,14 @@ export function FetchByParticipantForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Últimas consultas
+              {strings.conversations.fetchByParticipant.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Limpar
+              {strings.conversations.fetchByParticipant.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">

@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { TaskData } from "@/features/taskrouter/types"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 interface HistoryEntry {
   ts: number
@@ -38,7 +40,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:fetch-task-history"
-const WS_SIDS_KEY = "switchboard:workspace-sids"
+const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -107,7 +109,7 @@ function JsonBlock({ value }: { value: string }) {
     parsed === "" ||
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
   if (isEmpty)
-    return <span className="text-xs text-muted-foreground italic">vazio</span>
+    return <span className="text-xs text-muted-foreground italic">{strings.common.empty}</span>
   return (
     <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
@@ -171,7 +173,7 @@ export function FetchTaskForm() {
       )
       const json = (await res.json()) as { task: TaskData; error?: string }
       if (!res.ok || json.error) {
-        setError(json.error ?? "Erro desconhecido")
+        setError(json.error ?? strings.common.unknown)
         return
       }
       setData(json)
@@ -185,7 +187,7 @@ export function FetchTaskForm() {
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro de rede")
+      setError(err instanceof Error ? err.message : strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -212,10 +214,10 @@ export function FetchTaskForm() {
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          TaskRouter
+          {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Buscar Task</span>
+        <span className="font-medium text-foreground">{strings.taskrouter.fetchTask.breadcrumb}</span>
       </nav>
 
       {/* Header */}
@@ -224,10 +226,9 @@ export function FetchTaskForm() {
           <ClipboardList className="size-4 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Buscar Task</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{strings.taskrouter.fetchTask.title}</h1>
           <p className="text-sm text-muted-foreground">
-            Retorna status, fila, prioridade, atributos e datas de uma task pelo
-            SID
+            {strings.taskrouter.fetchTask.subtitle}
           </p>
         </div>
       </div>
@@ -238,15 +239,15 @@ export function FetchTaskForm() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-sm">
             <p className="font-medium text-destructive">
-              Nenhum ambiente selecionado
+              {strings.common.noEnvironmentSelected.title}
             </p>
             <p className="mt-0.5 text-destructive/80">
-              Selecione um ambiente antes de executar operações.{" "}
+              {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
-                Gerenciar ambientes
+                {strings.common.noEnvironmentSelected.link}
               </Link>
             </p>
           </div>
@@ -256,10 +257,11 @@ export function FetchTaskForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">Workspace SID</Label>
+          <Label htmlFor="workspaceSid">{strings.taskrouter.fetchTask.workspaceSidLabel}</Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
+            environmentId={activeEnvironment?.id}
             value={workspaceSid}
             onChange={setWorkspaceSid}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -268,7 +270,7 @@ export function FetchTaskForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="taskSid">Task SID</Label>
+          <Label htmlFor="taskSid">{strings.taskrouter.fetchTask.taskSidLabel}</Label>
           <div className="flex gap-2">
             <Input
               id="taskSid"
@@ -288,11 +290,11 @@ export function FetchTaskForm() {
               ) : (
                 <ClipboardList className="size-3.5" />
               )}
-              Buscar
+              {strings.common.search}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Formato: WT seguido de 32 caracteres hexadecimais
+            {strings.taskrouter.fetchTask.taskSidHint}
           </p>
         </div>
       </form>
@@ -301,7 +303,7 @@ export function FetchTaskForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Buscar task?</AlertDialogTitle>
+            <AlertDialogTitle>{strings.taskrouter.fetchTask.confirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Buscar dados da task{" "}
               <strong className="font-mono">{taskSid}</strong> no ambiente{" "}
@@ -309,14 +311,14 @@ export function FetchTaskForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
-              Buscar
+              {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -346,16 +348,16 @@ export function FetchTaskForm() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">Prioridade</p>
+                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.priority}</p>
                   <p className="font-medium">{data.task.priority}</p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">Idade</p>
+                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.age}</p>
                   <p className="font-medium">{formatAge(data.task.age)}</p>
                 </div>
                 {data.task.taskChannelUniqueName && (
                   <div>
-                    <p className="mb-0.5 text-muted-foreground">Canal</p>
+                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.channel}</p>
                     <p className="font-medium">
                       {data.task.taskChannelUniqueName}
                     </p>
@@ -363,7 +365,7 @@ export function FetchTaskForm() {
                 )}
                 {data.task.workflowFriendlyName && (
                   <div>
-                    <p className="mb-0.5 text-muted-foreground">Workflow</p>
+                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.workflow}</p>
                     <p className="font-medium">
                       {data.task.workflowFriendlyName}
                     </p>
@@ -371,7 +373,7 @@ export function FetchTaskForm() {
                 )}
                 {data.task.taskQueueFriendlyName && (
                   <div className="col-span-2">
-                    <p className="mb-0.5 text-muted-foreground">Fila</p>
+                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.queue}</p>
                     <p className="font-medium">
                       {data.task.taskQueueFriendlyName}
                     </p>
@@ -379,7 +381,7 @@ export function FetchTaskForm() {
                 )}
                 {data.task.reason && (
                   <div className="col-span-2">
-                    <p className="mb-0.5 text-muted-foreground">Motivo</p>
+                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.reason}</p>
                     <p className="font-medium">{data.task.reason}</p>
                   </div>
                 )}
@@ -389,13 +391,13 @@ export function FetchTaskForm() {
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">Criada em</p>
+                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.dateCreated}</p>
                   <p className="font-medium">
                     {formatDate(data.task.dateCreated)}
                   </p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">Atualizada em</p>
+                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.dateUpdated}</p>
                   <p className="font-medium">
                     {formatDate(data.task.dateUpdated)}
                   </p>
@@ -406,7 +408,7 @@ export function FetchTaskForm() {
 
               <div>
                 <p className="mb-1.5 text-xs text-muted-foreground">
-                  Atributos
+                  {strings.taskrouter.fetchTask.result.attributes}
                 </p>
                 <JsonBlock value={data.task.attributes} />
               </div>
@@ -420,14 +422,14 @@ export function FetchTaskForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Últimas consultas
+              {strings.taskrouter.fetchTask.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Limpar
+              {strings.taskrouter.fetchTask.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">

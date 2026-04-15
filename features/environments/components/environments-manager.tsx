@@ -11,6 +11,7 @@ import {
   type FormState,
 } from "@/features/environments/components/environment-form"
 import { EnvironmentCard } from "@/features/environments/components/environment-card"
+import { strings } from "@/lib/strings"
 
 export function EnvironmentsManager() {
   const {
@@ -51,10 +52,10 @@ export function EnvironmentsManager() {
           href="/environments"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          Configurações
+          {strings.environments.page.title}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Gerenciar Ambientes</span>
+        <span className="font-medium text-foreground">{strings.environments.manager.breadcrumb}</span>
       </nav>
 
       {/* Header */}
@@ -65,10 +66,10 @@ export function EnvironmentsManager() {
           </div>
           <div>
             <h1 className="text-xl font-semibold tracking-tight">
-              Ambientes Twilio
+              {strings.environments.manager.title}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Gerencie as credenciais de cada ambiente
+              {strings.environments.manager.subtitle}
             </p>
           </div>
         </div>
@@ -83,7 +84,7 @@ export function EnvironmentsManager() {
             className="shrink-0 gap-1.5"
           >
             <Plus className="size-3.5" />
-            Novo ambiente
+            {strings.environments.manager.addButton}
           </Button>
         )}
       </div>
@@ -91,7 +92,7 @@ export function EnvironmentsManager() {
       {/* Add form */}
       {showAddForm && (
         <div className="mb-6 rounded-xl border border-border bg-card px-5 py-5">
-          <h2 className="mb-4 text-sm font-semibold">Novo ambiente</h2>
+          <h2 className="mb-4 text-sm font-semibold">{strings.environments.manager.addTitle}</h2>
           <EnvironmentForm
             onSave={handleAdd}
             onCancel={() => setShowAddForm(false)}
@@ -104,18 +105,18 @@ export function EnvironmentsManager() {
         <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
           <Settings2 className="mx-auto mb-3 size-8 text-muted-foreground/40" />
           <p className="text-sm font-medium text-muted-foreground">
-            Nenhum ambiente cadastrado
+            {strings.environments.manager.emptyTitle}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Clique em{" "}
+            {strings.environments.manager.emptyHint}{" "}
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
               className="text-primary hover:underline"
             >
-              Novo ambiente
+              {strings.environments.manager.emptyHintLink}
             </button>{" "}
-            para começar
+            {strings.environments.manager.emptyHintSuffix}
           </p>
         </div>
       ) : (
@@ -126,7 +127,7 @@ export function EnvironmentsManager() {
                 key={env.id}
                 className="rounded-xl border border-border bg-card px-5 py-5"
               >
-                <h2 className="mb-4 text-sm font-semibold">Editar ambiente</h2>
+                <h2 className="mb-4 text-sm font-semibold">{strings.environments.manager.editTitle}</h2>
                 <EnvironmentForm
                   initial={{
                     name: env.name,
@@ -143,8 +144,7 @@ export function EnvironmentsManager() {
                 className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-4"
               >
                 <p className="mb-3 text-sm font-medium text-destructive">
-                  Excluir &ldquo;{env.name}&rdquo;? Esta ação não pode ser
-                  desfeita.
+                  {strings.environments.manager.deleteConfirm(env.name)}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -154,14 +154,14 @@ export function EnvironmentsManager() {
                     className="gap-1.5"
                   >
                     <Trash2 className="size-3.5" />
-                    Confirmar exclusão
+                    {strings.environments.manager.deleteButton}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setConfirmDeleteId(null)}
                   >
-                    Cancelar
+                    {strings.common.cancel}
                   </Button>
                 </div>
               </div>

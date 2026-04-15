@@ -1,4 +1,4 @@
-import { ClipboardList, GitBranch, User, UserPlus } from "lucide-react"
+import { ClipboardList, GitBranch, ListX, User, UserPlus } from "lucide-react"
 import { ElementType } from "react"
 
 interface Tool {
@@ -40,6 +40,14 @@ export const taskrouterTools: Tool[] = [
       "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail.",
     href: "/taskrouter/fetch-worker",
     icon: User,
+    available: true,
+  },
+  {
+    label: "Encerrar Tasks da Fila",
+    description:
+      "Encerra todas as tasks pendentes/reservadas de uma fila e fecha as conversas associadas com mensagem de aviso.",
+    href: "/taskrouter/cancel-queue-tasks",
+    icon: ListX,
     available: true,
   },
 ]

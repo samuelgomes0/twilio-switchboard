@@ -9,15 +9,15 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { taskrouterTools } from "@/features/taskrouter/tools"
+import { strings } from "@/lib/strings"
 
 export default function TaskRouterPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">TaskRouter</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{strings.taskrouter.page.title}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Atribua workers, crie workflows, consulte tasks e inspecione workers
-          do TaskRouter.
+          {strings.taskrouter.page.subtitle}
         </p>
       </div>
 
@@ -37,7 +37,7 @@ export default function TaskRouterPage() {
                       <Icon className="size-4 text-muted-foreground" />
                     </div>
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      Em breve
+                      {strings.common.comingSoon}
                     </span>
                   </div>
                   <CardTitle className="mt-3">{tool.label}</CardTitle>

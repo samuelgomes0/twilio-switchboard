@@ -31,6 +31,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useEnvironment } from "@/features/environments/context"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -50,8 +52,8 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:assign-workers-history"
-const WS_SIDS_KEY = "switchboard:workspace-sids"
-const SKILLS_KEY = "switchboard:skill-names"
+const WS_SIDS_KEY = STORED_KEYS.workspaceSids
+const SKILLS_KEY = STORED_KEYS.skillNames
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -158,7 +160,7 @@ export function AssignWorkersForm() {
 
       if (!res.ok || !res.body) {
         const text = await res.text()
-        let message = "Erro ao conectar com a API"
+        let message: string = strings.common.apiConnectionError
         try {
           const json = JSON.parse(text) as { error?: string }
           if (json.error) message = json.error
@@ -227,7 +229,7 @@ export function AssignWorkersForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro inesperado"
+      const message = err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     }
@@ -247,10 +249,10 @@ export function AssignWorkersForm() {
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          TaskRouter
+          {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Atribuir Workers</span>
+        <span className="font-medium text-foreground">{strings.taskrouter.assignWorkers.breadcrumb}</span>
       </nav>
 
       {/* Header */}
@@ -260,11 +262,10 @@ export function AssignWorkersForm() {
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            Atribuir Workers à Fila
+            {strings.taskrouter.assignWorkers.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Adiciona uma skill com nível opcional aos attributes de workers
-            identificados por e-mail
+            {strings.taskrouter.assignWorkers.subtitle}
           </p>
         </div>
       </div>
@@ -275,15 +276,15 @@ export function AssignWorkersForm() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-sm">
             <p className="font-medium text-destructive">
-              Nenhum ambiente selecionado
+              {strings.common.noEnvironmentSelected.title}
             </p>
             <p className="mt-0.5 text-destructive/80">
-              Selecione um ambiente antes de executar operações.{" "}
+              {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
-                Gerenciar ambientes
+                {strings.common.noEnvironmentSelected.link}
               </Link>
             </p>
           </div>
@@ -293,10 +294,11 @@ export function AssignWorkersForm() {
       <form onSubmit={handleFormSubmit} className="space-y-5">
         {/* Workspace SID */}
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">Workspace SID</Label>
+          <Label htmlFor="workspaceSid">{strings.taskrouter.assignWorkers.workspaceSidLabel}</Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
+            environmentId={activeEnvironment?.id}
             value={workspaceSid}
             onChange={setWorkspaceSid}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -306,10 +308,11 @@ export function AssignWorkersForm() {
 
         {/* Skill name */}
         <div className="space-y-2">
-          <Label htmlFor="skill">Nome da skill (fila)</Label>
+          <Label htmlFor="skill">{strings.taskrouter.assignWorkers.skillLabel}</Label>
           <StoredInput
             id="skill"
             storageKey={SKILLS_KEY}
+            environmentId={activeEnvironment?.id}
             value={skill}
             onChange={setSkill}
             placeholder="ex: suporte-tecnico"
@@ -321,9 +324,9 @@ export function AssignWorkersForm() {
         {/* Level */}
         <div className="space-y-2">
           <Label htmlFor="level">
-            Nível{" "}
+            {strings.taskrouter.assignWorkers.levelLabel}{" "}
             <span className="font-normal text-muted-foreground">
-              (opcional)
+              {strings.taskrouter.assignWorkers.levelOptional}
             </span>
           </Label>
           <Input
@@ -341,9 +344,9 @@ export function AssignWorkersForm() {
         {/* Emails */}
         <div className="space-y-2">
           <Label htmlFor="emails">
-            E-mails ou SIDs dos workers{" "}
+            {strings.taskrouter.assignWorkers.emailsLabel}{" "}
             <span className="font-normal text-muted-foreground">
-              (um por linha ou separados por vírgula)
+              {strings.taskrouter.assignWorkers.emailsHint}
             </span>
           </Label>
           <Textarea
@@ -360,8 +363,8 @@ export function AssignWorkersForm() {
             <p
               className={`text-xs ${emails.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
             >
-              {emails.length} identificador(es) detectado(s)
-              {emails.length > MAX_ITEMS && ` — máximo ${MAX_ITEMS} por vez`}
+              {strings.taskrouter.assignWorkers.detected(emails.length)}
+              {emails.length > MAX_ITEMS && strings.taskrouter.assignWorkers.maxExceeded(MAX_ITEMS)}
             </p>
           )}
         </div>
@@ -372,12 +375,12 @@ export function AssignWorkersForm() {
             {status === "running" ? (
               <>
                 <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Processando...
+                {strings.common.processing}
               </>
             ) : (
               <>
                 <Play className="size-3.5" />
-                Atribuir Workers
+                {strings.taskrouter.assignWorkers.submit}
               </>
             )}
           </Button>
@@ -391,7 +394,7 @@ export function AssignWorkersForm() {
               className="gap-2"
             >
               <RotateCcw className="size-3.5" />
-              Limpar
+              {strings.common.clear}
             </Button>
           )}
         </div>
@@ -401,7 +404,7 @@ export function AssignWorkersForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Atribuir workers?</AlertDialogTitle>
+            <AlertDialogTitle>{strings.taskrouter.assignWorkers.confirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a adicionar a skill{" "}
               <strong>&quot;{skill}&quot;</strong> a{" "}
@@ -410,14 +413,14 @@ export function AssignWorkersForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()
               }}
             >
-              Atribuir
+              {strings.taskrouter.assignWorkers.confirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -427,18 +430,18 @@ export function AssignWorkersForm() {
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            {summary.totalUpdated} worker(s) atualizados
+            {strings.taskrouter.assignWorkers.summary.updated(summary.totalUpdated)}
           </span>{" "}
           &middot;{" "}
           <span className="text-muted-foreground">
-            {summary.totalSkipped} ignorados
+            {strings.taskrouter.assignWorkers.summary.skipped(summary.totalSkipped)}
           </span>
           {summary.totalErrors > 0 && (
             <>
               {" "}
               &middot;{" "}
               <span className="font-medium text-red-600 dark:text-red-400">
-                {summary.totalErrors} erros
+                {strings.taskrouter.assignWorkers.summary.errors(summary.totalErrors)}
               </span>
             </>
           )}
@@ -449,7 +452,7 @@ export function AssignWorkersForm() {
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
           <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-            Log de Operações
+            {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />
         </div>
@@ -460,14 +463,14 @@ export function AssignWorkersForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Últimas operações
+              {strings.taskrouter.assignWorkers.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Limpar
+              {strings.taskrouter.assignWorkers.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">

@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils"
 
 interface StoredInputProps {
   storageKey: string
+  /** When provided, values are scoped to this environment (key becomes storageKey:environmentId) */
+  environmentId?: string
   value: string
   onChange: (value: string) => void
   placeholder?: string
@@ -38,6 +40,7 @@ function writeSaved(key: string, values: string[]) {
 
 export function StoredInput({
   storageKey,
+  environmentId,
   value,
   onChange,
   placeholder,
@@ -46,13 +49,14 @@ export function StoredInput({
   className,
   id,
 }: StoredInputProps) {
+  const effectiveKey = environmentId ? `${storageKey}:${environmentId}` : storageKey
   const [saved, setSaved] = React.useState<string[]>([])
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    setSaved(readSaved(storageKey))
-  }, [storageKey])
+    setSaved(readSaved(effectiveKey))
+  }, [effectiveKey])
 
   const trimmed = value.trim()
   const filtered = trimmed
@@ -66,7 +70,7 @@ export function StoredInput({
     if (!t) return
     setSaved((prev) => {
       const next = [t, ...prev.filter((s) => s !== t)].slice(0, MAX_SAVED)
-      writeSaved(storageKey, next)
+      writeSaved(effectiveKey, next)
       return next
     })
   }
@@ -74,7 +78,7 @@ export function StoredInput({
   function deleteValue(val: string) {
     setSaved((prev) => {
       const next = prev.filter((s) => s !== val)
-      writeSaved(storageKey, next)
+      writeSaved(effectiveKey, next)
       return next
     })
   }

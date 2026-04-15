@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ClipboardList,
   GitBranch,
+  ListX,
   Menu,
   MessageSquareOff,
   Phone,
@@ -29,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useEnvironment } from "@/features/environments/context"
+import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
 interface NavItem {
@@ -41,58 +43,64 @@ interface NavItem {
 
 const conversationsNavItems: NavItem[] = [
   {
-    label: "Buscar Conversa",
+    label: strings.sidebar.nav.conversations.fetch.label,
     href: "/conversations/fetch",
     icon: Search,
-    description: "Retorna detalhes por SID",
+    description: strings.sidebar.nav.conversations.fetch.description,
   },
   {
-    label: "Buscar por Participante",
+    label: strings.sidebar.nav.conversations.fetchByParticipant.label,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
-    description: "Lista conversas de um endereço",
+    description: strings.sidebar.nav.conversations.fetchByParticipant.description,
   },
   {
-    label: "Fechar Conversas",
+    label: strings.sidebar.nav.conversations.close.label,
     href: "/conversations/close",
     icon: MessageSquareOff,
-    description: "Fecha conversas ativas por número",
+    description: strings.sidebar.nav.conversations.close.description,
   },
 ]
 
 const taskrouterNavItems: NavItem[] = [
   {
-    label: "Atribuir Workers",
+    label: strings.sidebar.nav.taskrouter.assignWorkers.label,
     href: "/taskrouter/assign-workers",
     icon: UserPlus,
-    description: "Adiciona skills a workers por e-mail",
+    description: strings.sidebar.nav.taskrouter.assignWorkers.description,
   },
   {
-    label: "Criar Workflow",
+    label: strings.sidebar.nav.taskrouter.createWorkflow.label,
     href: "/taskrouter/create-workflow",
     icon: GitBranch,
-    description: "Cria workflow de roteamento via CSV",
+    description: strings.sidebar.nav.taskrouter.createWorkflow.description,
   },
   {
-    label: "Buscar Task",
+    label: strings.sidebar.nav.taskrouter.fetchTask.label,
     href: "/taskrouter/fetch-task",
     icon: ClipboardList,
-    description: "Retorna detalhes de uma task por SID",
+    description: strings.sidebar.nav.taskrouter.fetchTask.description,
   },
   {
-    label: "Buscar Worker",
+    label: strings.sidebar.nav.taskrouter.fetchWorker.label,
     href: "/taskrouter/fetch-worker",
     icon: User,
-    description: "Retorna dados de um worker por SID ou e-mail",
+    description: strings.sidebar.nav.taskrouter.fetchWorker.description,
+  },
+  {
+    label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
+    href: "/taskrouter/cancel-queue-tasks",
+    icon: ListX,
+    description: strings.sidebar.nav.taskrouter.cancelQueueTasks.description,
   },
 ]
 
 const configNavItems: NavItem[] = [
   {
-    label: "Gerenciar Ambientes",
+    label: strings.sidebar.nav.config.manageEnvironments.label,
     href: "/environments/manage",
     icon: Settings2,
-    description: "Cadastre e gerencie credenciais Twilio",
+    description: strings.sidebar.nav.config.manageEnvironments.description,
   },
 ]
 
@@ -189,7 +197,7 @@ function SidebarNav() {
         type="button"
         className="fixed top-4 left-4 z-50 flex size-9 items-center justify-center rounded-lg border border-border bg-card shadow-sm md:hidden"
         onClick={() => setMobileOpen((v) => !v)}
-        aria-label="Toggle sidebar"
+        aria-label={strings.sidebar.toggleLabel}
       >
         {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
       </button>
@@ -219,28 +227,28 @@ function SidebarNav() {
             <Phone className="size-3.5" />
           </div>
           <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-            Switchboard
+            {strings.sidebar.title}
           </span>
         </Link>
 
         {/* Navigation */}
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2">
           <NavSection
-            label="Conversations"
+            label={strings.sidebar.sections.conversations}
             href="/conversations"
             items={conversationsNavItems}
             pathname={pathname}
             onNavigate={closeMenu}
           />
           <NavSection
-            label="TaskRouter"
+            label={strings.sidebar.sections.taskrouter}
             href="/taskrouter"
             items={taskrouterNavItems}
             pathname={pathname}
             onNavigate={closeMenu}
           />
           <NavSection
-            label="Configurações"
+            label={strings.sidebar.sections.settings}
             href="/environments"
             items={configNavItems}
             pathname={pathname}
@@ -251,7 +259,7 @@ function SidebarNav() {
         {/* Environment selector */}
         <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
           <p className="px-2 pb-2 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-            Ambiente
+            {strings.sidebar.environment}
           </p>
           <DropdownMenuRoot>
             <DropdownMenuTrigger asChild>
@@ -279,7 +287,7 @@ function SidebarNav() {
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="size-3 shrink-0 text-destructive" />
                     <span className="flex-1 truncate text-xs font-medium text-destructive">
-                      Nenhum ambiente
+                      {strings.sidebar.noEnvironment}
                     </span>
                     <ChevronDown className="size-3 shrink-0 text-destructive/60" />
                   </div>
@@ -295,13 +303,13 @@ function SidebarNav() {
               {environments.length === 0 ? (
                 <>
                   <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    Nenhum ambiente cadastrado
+                    {strings.sidebar.noEnvironmentRegistered}
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href="/environments" onClick={closeMenu}>
                       <Settings2 className="size-3.5 shrink-0" />
-                      Configurar ambientes
+                      {strings.sidebar.configureEnvironments}
                     </Link>
                   </DropdownMenuItem>
                 </>
@@ -338,7 +346,7 @@ function SidebarNav() {
             <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">
               d
             </kbd>{" "}
-            para alternar tema
+            {strings.sidebar.footer.toggleThemeHint}
           </p>
         </div>
       </aside>

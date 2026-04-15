@@ -30,6 +30,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -48,8 +50,8 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:create-workflow-history"
-const WS_SIDS_KEY = "switchboard:workspace-sids"
-const WF_NAMES_KEY = "switchboard:workflow-names"
+const WS_SIDS_KEY = STORED_KEYS.workspaceSids
+const WF_NAMES_KEY = STORED_KEYS.workflowNames
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -130,7 +132,7 @@ export function CreateWorkflowForm() {
     try {
       csvContent = await csvFile.text()
     } catch {
-      addLog("error", "Não foi possível ler o arquivo CSV.")
+      addLog("error", strings.taskrouter.createWorkflow.csvReadError)
       setStatus("error")
       return
     }
@@ -150,7 +152,7 @@ export function CreateWorkflowForm() {
 
       if (!res.ok || !res.body) {
         const text = await res.text()
-        let message = "Erro ao conectar com a API"
+        let message: string = strings.common.apiConnectionError
         try {
           const json = JSON.parse(text) as { error?: string }
           if (json.error) message = json.error
@@ -222,7 +224,7 @@ export function CreateWorkflowForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Erro inesperado"
+      const message = err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     }
@@ -242,10 +244,10 @@ export function CreateWorkflowForm() {
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          TaskRouter
+          {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">Criar Workflow</span>
+        <span className="font-medium text-foreground">{strings.taskrouter.createWorkflow.breadcrumb}</span>
       </nav>
 
       {/* Header */}
@@ -255,11 +257,10 @@ export function CreateWorkflowForm() {
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            Criar Workflow
+            {strings.taskrouter.createWorkflow.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Lê um CSV com regras de negócio e filas Twilio para gerar filtros e
-            criar o workflow no TaskRouter
+            {strings.taskrouter.createWorkflow.subtitle}
           </p>
         </div>
       </div>
@@ -270,15 +271,15 @@ export function CreateWorkflowForm() {
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="text-sm">
             <p className="font-medium text-destructive">
-              Nenhum ambiente selecionado
+              {strings.common.noEnvironmentSelected.title}
             </p>
             <p className="mt-0.5 text-destructive/80">
-              Selecione um ambiente antes de executar operações.{" "}
+              {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
-                Gerenciar ambientes
+                {strings.common.noEnvironmentSelected.link}
               </Link>
             </p>
           </div>
@@ -288,10 +289,11 @@ export function CreateWorkflowForm() {
       <form onSubmit={handleFormSubmit} className="space-y-5">
         {/* Workspace SID */}
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">Workspace SID</Label>
+          <Label htmlFor="workspaceSid">{strings.taskrouter.createWorkflow.workspaceSidLabel}</Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
+            environmentId={activeEnvironment?.id}
             value={workspaceSid}
             onChange={setWorkspaceSid}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -301,10 +303,11 @@ export function CreateWorkflowForm() {
 
         {/* Workflow name */}
         <div className="space-y-2">
-          <Label htmlFor="workflowName">Nome do Workflow</Label>
+          <Label htmlFor="workflowName">{strings.taskrouter.createWorkflow.workflowNameLabel}</Label>
           <StoredInput
             id="workflowName"
             storageKey={WF_NAMES_KEY}
+            environmentId={activeEnvironment?.id}
             value={workflowName}
             onChange={setWorkflowName}
             placeholder="ex: Roteamento Principal"
@@ -315,7 +318,7 @@ export function CreateWorkflowForm() {
 
         {/* CSV file */}
         <div className="space-y-2">
-          <Label htmlFor="csvFile">Arquivo CSV</Label>
+          <Label htmlFor="csvFile">{strings.taskrouter.createWorkflow.csvLabel}</Label>
           <Input
             id="csvFile"
             type="file"
@@ -326,7 +329,7 @@ export function CreateWorkflowForm() {
           />
           {csvFile && (
             <p className="text-xs text-muted-foreground">
-              Arquivo selecionado: {csvFile.name}
+              {strings.taskrouter.createWorkflow.csvSelected(csvFile.name)}
             </p>
           )}
         </div>
@@ -337,12 +340,12 @@ export function CreateWorkflowForm() {
             {status === "running" ? (
               <>
                 <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Processando...
+                {strings.common.processing}
               </>
             ) : (
               <>
                 <Play className="size-3.5" />
-                Criar Workflow
+                {strings.taskrouter.createWorkflow.submit}
               </>
             )}
           </Button>
@@ -356,7 +359,7 @@ export function CreateWorkflowForm() {
               className="gap-2"
             >
               <RotateCcw className="size-3.5" />
-              Limpar
+              {strings.common.clear}
             </Button>
           )}
         </div>
@@ -366,7 +369,7 @@ export function CreateWorkflowForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Criar workflow?</AlertDialogTitle>
+            <AlertDialogTitle>{strings.taskrouter.createWorkflow.confirmTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a criar o workflow{" "}
               <strong>&quot;{workflowName}&quot;</strong> no workspace{" "}
@@ -375,14 +378,14 @@ export function CreateWorkflowForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()
               }}
             >
-              Criar
+              {strings.taskrouter.createWorkflow.confirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -392,7 +395,7 @@ export function CreateWorkflowForm() {
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            Workflow criado: {summary.workflowName}
+            {strings.taskrouter.createWorkflow.summary.created(summary.workflowName)}
           </span>{" "}
           &middot;{" "}
           <span className="font-mono text-muted-foreground">
@@ -400,7 +403,7 @@ export function CreateWorkflowForm() {
           </span>{" "}
           &middot;{" "}
           <span className="text-muted-foreground">
-            {summary.totalFilters} filtro(s)
+            {strings.taskrouter.createWorkflow.summary.filters(summary.totalFilters)}
           </span>
         </div>
       )}
@@ -409,7 +412,7 @@ export function CreateWorkflowForm() {
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
           <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-            Log de Operações
+            {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />
         </div>
@@ -420,14 +423,14 @@ export function CreateWorkflowForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              Últimas criações
+              {strings.taskrouter.createWorkflow.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Limpar
+              {strings.taskrouter.createWorkflow.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">

@@ -1,6 +1,6 @@
-import { getTwilioClient } from "@/lib/twilio-client"
 import { sseEvent } from "@/features/conversations/lib/close"
 import type { CreateWorkflowInput } from "@/features/taskrouter/types"
+import { getTwilioClient } from "@/lib/twilio-client"
 
 const DEFAULT_QUEUE_NAME = "EVERYONE"
 
@@ -60,7 +60,7 @@ function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
     const fila = (cols[filaIdx] ?? "").trim()
 
     if (!regra || !fila) continue
-    if (fila === "Fechar") continue
+    if (fila === "Fechar" || fila === "-" || regra === "-") continue
 
     const key = `${regra}|||${fila}`
     if (seen.has(key)) continue

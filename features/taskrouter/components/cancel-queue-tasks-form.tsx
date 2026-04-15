@@ -3,7 +3,7 @@
 import {
   AlertTriangle,
   ChevronRight,
-  MessageSquareOff,
+  ListX,
   Play,
   RotateCcw,
 } from "lucide-react"
@@ -15,6 +15,8 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
+import { StoredInput } from "@/components/stored-input"
+import { StoredTextarea } from "@/components/stored-textarea"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -27,25 +29,32 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { useEnvironment } from "@/features/environments/context"
+import { DEFAULT_CLOSE_MESSAGE } from "@/features/taskrouter/lib/cancel-queue-tasks"
+import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
 
 interface Summary {
-  totalClosed: number
+  totalSuccess: number
+  totalSkipped: number
   totalErrors: number
 }
 
 interface HistoryEntry {
   ts: number
-  total: number
-  closed: number
+  workspaceSid: string
+  taskQueueName: string
+  success: number
+  skipped: number
   errors: number
 }
 
-const HISTORY_KEY = "switchboard:close-history"
+const HISTORY_KEY = "switchboard:cancel-queue-tasks-history"
+const WS_SIDS_KEY = STORED_KEYS.workspaceSids
+const QUEUE_NAMES_KEY = STORED_KEYS.queueNames
+const CLOSE_MESSAGES_KEY = STORED_KEYS.closeMessages
 const MAX_HISTORY = 5
 
 function readHistory(): HistoryEntry[] {
@@ -77,16 +86,11 @@ function fmtTs(ts: number) {
   })
 }
 
-function parseParticipants(input: string): string[] {
-  return input
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
-export function CloseForm() {
+export function CancelQueueTasksForm() {
   const { activeEnvironment } = useEnvironment()
-  const [input, setInput] = React.useState("")
+  const [workspaceSid, setWorkspaceSid] = React.useState("")
+  const [taskQueueName, setTaskQueueName] = React.useState("")
+  const [closeMessage, setCloseMessage] = React.useState(DEFAULT_CLOSE_MESSAGE)
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
@@ -97,11 +101,10 @@ export function CloseForm() {
     setHistory(readHistory())
   }, [])
 
-  const participants = parseParticipants(input)
-  const MAX_ITEMS = 10
   const canSubmit =
-    participants.length > 0 &&
-    participants.length <= MAX_ITEMS &&
+    workspaceSid.trim().length > 0 &&
+    taskQueueName.trim().length > 0 &&
+    closeMessage.trim().length > 0 &&
     status !== "running" &&
     !!activeEnvironment
 
@@ -129,11 +132,13 @@ export function CloseForm() {
     setStatus("running")
 
     try {
-      const res = await fetch("/api/conversations/close", {
+      const res = await fetch("/api/taskrouter/cancel-queue-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          participants,
+          workspaceSid: workspaceSid.trim(),
+          taskQueueName: taskQueueName.trim(),
+          closeMessage: closeMessage.trim(),
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
@@ -174,21 +179,25 @@ export function CloseForm() {
               level: LogEntry["level"]
               message: string
               done?: boolean
-              totalClosed?: number
+              totalSuccess?: number
+              totalSkipped?: number
               totalErrors?: number
             }
 
             addLog(payload.level, payload.message)
 
             if (payload.done) {
-              const closed = payload.totalClosed ?? 0
+              const success = payload.totalSuccess ?? 0
+              const skipped = payload.totalSkipped ?? 0
               const errors = payload.totalErrors ?? 0
-              setSummary({ totalClosed: closed, totalErrors: errors })
+              setSummary({ totalSuccess: success, totalSkipped: skipped, totalErrors: errors })
               setStatus("done")
               const entry: HistoryEntry = {
                 ts: Date.now(),
-                total: participants.length,
-                closed,
+                workspaceSid: workspaceSid.trim(),
+                taskQueueName: taskQueueName.trim(),
+                success,
+                skipped,
                 errors,
               }
               pushHistory(entry)
@@ -219,26 +228,28 @@ export function CloseForm() {
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
-          href="/conversations"
+          href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
-          {strings.sidebar.sections.conversations}
+          {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.conversations.close.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.taskrouter.cancelQueueTasks.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <MessageSquareOff className="size-4 text-primary" />
+          <ListX className="size-4 text-primary" />
         </div>
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
-            {strings.conversations.close.title}
+            {strings.taskrouter.cancelQueueTasks.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {strings.conversations.close.subtitle}
+            {strings.taskrouter.cancelQueueTasks.subtitle}
           </p>
         </div>
       </div>
@@ -265,34 +276,62 @@ export function CloseForm() {
       )}
 
       <form onSubmit={handleFormSubmit} className="space-y-5">
+        {/* Workspace SID */}
         <div className="space-y-2">
-          <Label htmlFor="participants">
-            {strings.conversations.close.phoneLabel}{" "}
-            <span className="font-normal text-muted-foreground">
-              {strings.conversations.close.phoneLabelHint}
-            </span>
+          <Label htmlFor="workspaceSid">
+            {strings.taskrouter.cancelQueueTasks.workspaceSidLabel}
           </Label>
-          <Textarea
-            id="participants"
-            placeholder={"11987654321\n21987654322\n31987654323"}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="min-h-[120px] font-mono text-xs"
+          <StoredInput
+            id="workspaceSid"
+            storageKey={WS_SIDS_KEY}
+            environmentId={activeEnvironment?.id}
+            value={workspaceSid}
+            onChange={setWorkspaceSid}
+            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={status === "running"}
           />
-          {participants.length > 0 && (
-            <p
-              className={`text-xs ${participants.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {strings.conversations.close.detected(participants.length)}
-              {participants.length > MAX_ITEMS &&
-                strings.conversations.close.maxExceeded(MAX_ITEMS)}
-            </p>
-          )}
         </div>
 
+        {/* Task Queue Name */}
+        <div className="space-y-2">
+          <Label htmlFor="taskQueueName">
+            {strings.taskrouter.cancelQueueTasks.taskQueueNameLabel}
+          </Label>
+          <StoredInput
+            id="taskQueueName"
+            storageKey={QUEUE_NAMES_KEY}
+            environmentId={activeEnvironment?.id}
+            value={taskQueueName}
+            onChange={setTaskQueueName}
+            placeholder="ex: SANTA_LUZIA_WHATSAPP"
+            disabled={status === "running"}
+            className="font-mono"
+          />
+        </div>
+
+        {/* Close message */}
+        <div className="space-y-2">
+          <Label htmlFor="closeMessage">
+            {strings.taskrouter.cancelQueueTasks.closeMessageLabel}
+          </Label>
+          <StoredTextarea
+            id="closeMessage"
+            storageKey={CLOSE_MESSAGES_KEY}
+            value={closeMessage}
+            onChange={setCloseMessage}
+            rows={3}
+            disabled={status === "running"}
+          />
+        </div>
+
+        {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            variant="destructive"
+            className="gap-2"
+          >
             {status === "running" ? (
               <>
                 <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -301,7 +340,7 @@ export function CloseForm() {
             ) : (
               <>
                 <Play className="size-3.5" />
-                {strings.conversations.close.submit}
+                {strings.taskrouter.cancelQueueTasks.submit}
               </>
             )}
           </Button>
@@ -325,24 +364,25 @@ export function CloseForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.conversations.close.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.taskrouter.cancelQueueTasks.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a fechar{" "}
-              <strong>{participants.length} conversa(s)</strong> ativas para{" "}
-              <strong>{participants.length} número(s)</strong>. Esta ação não
-              pode ser desfeita.
+              {strings.taskrouter.cancelQueueTasks.confirmDescription(
+                taskQueueName.trim(),
+                workspaceSid.trim()
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40"
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()
               }}
             >
-              {strings.conversations.close.confirmAction}
+              {strings.taskrouter.cancelQueueTasks.confirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -351,16 +391,19 @@ export function CloseForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium">{strings.conversations.close.summary.prefix}</span>{" "}
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            {strings.conversations.close.summary.closed(summary.totalClosed)}
+            {strings.taskrouter.cancelQueueTasks.summary.success(summary.totalSuccess)}
+          </span>{" "}
+          &middot;{" "}
+          <span className="text-muted-foreground">
+            {strings.taskrouter.cancelQueueTasks.summary.skipped(summary.totalSkipped)}
           </span>
           {summary.totalErrors > 0 && (
             <>
               {" "}
               &middot;{" "}
               <span className="font-medium text-red-600 dark:text-red-400">
-                {strings.conversations.close.summary.errors(summary.totalErrors)}
+                {strings.taskrouter.cancelQueueTasks.summary.errors(summary.totalErrors)}
               </span>
             </>
           )}
@@ -382,14 +425,14 @@ export function CloseForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.conversations.close.history.title}
+              {strings.taskrouter.cancelQueueTasks.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              {strings.conversations.close.history.clear}
+              {strings.taskrouter.cancelQueueTasks.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">
@@ -397,11 +440,15 @@ export function CloseForm() {
               <li key={i} className="text-xs text-muted-foreground">
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
                 {" — "}
-                {h.total} número(s) · {h.closed} fechada(s)
+                <span className="font-mono">{h.workspaceSid.slice(0, 10)}...</span>
+                {" · "}
+                <span className="font-mono">{h.taskQueueName}</span>
+                {" · "}
+                {h.success} encerrada(s)
+                {h.skipped > 0 && <span> · {h.skipped} ignorada(s)</span>}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {" "}
-                    · {h.errors} erro(s)
+                    {" "}· {h.errors} erro(s)
                   </span>
                 )}
               </li>

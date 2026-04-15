@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { strings } from "@/lib/strings"
 
 interface Tool {
   label: string
@@ -20,9 +21,8 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    label: "Gerenciar Ambientes",
-    description:
-      "Cadastre, edite e remova ambientes Twilio com Account SID e Auth Token.",
+    label: strings.environments.page.tools.manage.label,
+    description: strings.environments.page.tools.manage.description,
     href: "/environments/manage",
     icon: Settings2,
     available: true,
@@ -33,9 +33,9 @@ export default function EnvironmentsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Configurações</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{strings.environments.page.title}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Gerencie credenciais e configurações do Switchboard.
+          {strings.environments.page.subtitle}
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export default function EnvironmentsPage() {
                       <Icon className="size-4 text-muted-foreground" />
                     </div>
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                      Em breve
+                      {strings.common.comingSoon}
                     </span>
                   </div>
                   <CardTitle className="mt-3">{tool.label}</CardTitle>

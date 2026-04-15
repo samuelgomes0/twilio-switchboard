@@ -5,6 +5,7 @@ import { ProgressBar } from "@/components/progress-bar"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { ThemeProvider } from "@/components/theme-provider"
 import { EnvironmentProvider } from "@/features/environments/context"
+import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -16,8 +17,8 @@ const fontMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Switchboard",
-  description: "Interface visual para operações Twilio",
+  title: strings.app.title,
+  description: strings.app.description,
   icons: {
     icon: [
       { url: "/favicon.ico" },

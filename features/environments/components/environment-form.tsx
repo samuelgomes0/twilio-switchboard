@@ -6,6 +6,7 @@ import { Eye, EyeOff, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { strings } from "@/lib/strings"
 
 export interface FormState {
   name: string
@@ -18,17 +19,17 @@ const EMPTY_FORM: FormState = { name: "", accountSid: "", authToken: "" }
 function validateForm(form: FormState): Record<string, string> {
   const errors: Record<string, string> = {}
   if (!form.name.trim()) {
-    errors.name = "Nome obrigatório"
+    errors.name = strings.environments.form.nameRequired
   }
   if (!form.accountSid.trim()) {
-    errors.accountSid = "Account SID obrigatório"
+    errors.accountSid = strings.environments.form.accountSidRequired
   } else if (!/^AC[a-f0-9]{32}$/i.test(form.accountSid.trim())) {
-    errors.accountSid = "Deve começar com AC e ter 34 caracteres"
+    errors.accountSid = strings.environments.form.accountSidInvalid
   }
   if (!form.authToken.trim()) {
-    errors.authToken = "Auth Token obrigatório"
+    errors.authToken = strings.environments.form.authTokenRequired
   } else if (form.authToken.trim().length !== 32) {
-    errors.authToken = "Deve ter exatamente 32 caracteres"
+    errors.authToken = strings.environments.form.authTokenInvalid
   }
   return errors
 }
@@ -74,10 +75,10 @@ export function EnvironmentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label htmlFor="env-name">Nome do ambiente</Label>
+        <Label htmlFor="env-name">{strings.environments.form.nameLabel}</Label>
         <Input
           id="env-name"
-          placeholder="ex: Produção, Homologação"
+          placeholder={strings.environments.form.namePlaceholder}
           value={form.name}
           onChange={(e) => handleChange("name", e.target.value)}
           aria-invalid={!!errors.name}
@@ -88,7 +89,7 @@ export function EnvironmentForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="env-sid">Account SID</Label>
+        <Label htmlFor="env-sid">{strings.environments.form.accountSidLabel}</Label>
         <Input
           id="env-sid"
           placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -104,17 +105,17 @@ export function EnvironmentForm({
           <p className="text-xs text-destructive">{errors.accountSid}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Começa com AC, seguido de 32 caracteres hex — total 34 chars
+          {strings.environments.form.accountSidHint}
         </p>
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="env-token">Auth Token</Label>
+        <Label htmlFor="env-token">{strings.environments.form.authTokenLabel}</Label>
         <div className="relative flex items-center">
           <Input
             id="env-token"
             type={showToken ? "text" : "password"}
-            placeholder="32 caracteres"
+            placeholder={strings.environments.form.authTokenPlaceholder}
             value={form.authToken}
             onChange={(e) => handleChange("authToken", e.target.value)}
             className="pr-10 font-mono text-sm"
@@ -127,7 +128,7 @@ export function EnvironmentForm({
             type="button"
             onClick={() => setShowToken((v) => !v)}
             className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={showToken ? "Ocultar token" : "Revelar token"}
+            aria-label={showToken ? strings.environments.form.hideTokenAriaLabel : strings.environments.form.showTokenAriaLabel}
           >
             {showToken ? (
               <EyeOff className="size-4" />
@@ -140,14 +141,14 @@ export function EnvironmentForm({
           <p className="text-xs text-destructive">{errors.authToken}</p>
         )}
         <p className="text-xs text-muted-foreground">
-          Exatamente 32 caracteres
+          {strings.environments.form.authTokenHint}
         </p>
       </div>
 
       <div className="flex gap-2 pt-1">
         <Button type="submit" size="sm" className="gap-1.5">
           <Check className="size-3.5" />
-          Salvar
+          {strings.environments.form.saveButton}
         </Button>
         <Button
           type="button"
@@ -157,7 +158,7 @@ export function EnvironmentForm({
           className="gap-1.5"
         >
           <X className="size-3.5" />
-          Cancelar
+          {strings.environments.form.cancelButton}
         </Button>
       </div>
     </form>
