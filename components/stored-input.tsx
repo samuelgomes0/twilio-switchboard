@@ -49,7 +49,9 @@ export function StoredInput({
   className,
   id,
 }: StoredInputProps) {
-  const effectiveKey = environmentId ? `${storageKey}:${environmentId}` : storageKey
+  const effectiveKey = environmentId
+    ? `${storageKey}:${environmentId}`
+    : storageKey
   const [saved, setSaved] = React.useState<string[]>([])
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)

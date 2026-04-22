@@ -89,7 +89,9 @@ export function EnvironmentForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="env-sid">{strings.environments.form.accountSidLabel}</Label>
+        <Label htmlFor="env-sid">
+          {strings.environments.form.accountSidLabel}
+        </Label>
         <Input
           id="env-sid"
           placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -110,7 +112,9 @@ export function EnvironmentForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="env-token">{strings.environments.form.authTokenLabel}</Label>
+        <Label htmlFor="env-token">
+          {strings.environments.form.authTokenLabel}
+        </Label>
         <div className="relative flex items-center">
           <Input
             id="env-token"
@@ -128,7 +132,11 @@ export function EnvironmentForm({
             type="button"
             onClick={() => setShowToken((v) => !v)}
             className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={showToken ? strings.environments.form.hideTokenAriaLabel : strings.environments.form.showTokenAriaLabel}
+            aria-label={
+              showToken
+                ? strings.environments.form.hideTokenAriaLabel
+                : strings.environments.form.showTokenAriaLabel
+            }
           >
             {showToken ? (
               <EyeOff className="size-4" />

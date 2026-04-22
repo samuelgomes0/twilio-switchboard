@@ -1,4 +1,4 @@
-import { ArrowRight, Settings2 } from "lucide-react"
+import { ArrowRight, BookUser, Settings2 } from "lucide-react"
 import Link from "next/link"
 import type { ElementType } from "react"
 
@@ -23,8 +23,15 @@ const tools: Tool[] = [
   {
     label: strings.environments.page.tools.manage.label,
     description: strings.environments.page.tools.manage.description,
-    href: "/environments/manage",
+    href: "/settings/environments",
     icon: Settings2,
+    available: true,
+  },
+  {
+    label: strings.environments.page.tools.contacts.label,
+    description: strings.environments.page.tools.contacts.description,
+    href: "/settings/contacts",
+    icon: BookUser,
     available: true,
   },
 ]
@@ -33,7 +40,9 @@ export default function EnvironmentsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">{strings.environments.page.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {strings.environments.page.title}
+        </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           {strings.environments.page.subtitle}
         </p>

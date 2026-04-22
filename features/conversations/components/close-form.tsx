@@ -5,11 +5,14 @@ import {
   ChevronRight,
   MessageSquareOff,
   Play,
+  Plus,
   RotateCcw,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
+import { ContactInput } from "@/components/contact-input"
 import {
   LogOutput,
   createLogEntry,
@@ -27,7 +30,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { useEnvironment } from "@/features/environments/context"
 import { strings } from "@/lib/strings"
 
@@ -77,16 +79,9 @@ function fmtTs(ts: number) {
   })
 }
 
-function parseParticipants(input: string): string[] {
-  return input
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 export function CloseForm() {
   const { activeEnvironment } = useEnvironment()
-  const [input, setInput] = React.useState("")
+  const [phones, setPhones] = React.useState<string[]>([""])
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
@@ -97,7 +92,7 @@ export function CloseForm() {
     setHistory(readHistory())
   }, [])
 
-  const participants = parseParticipants(input)
+  const participants = phones.map((p) => p.trim()).filter(Boolean)
   const MAX_ITEMS = 10
   const canSubmit =
     participants.length > 0 &&
@@ -113,6 +108,11 @@ export function CloseForm() {
     setLogs([])
     setStatus("idle")
     setSummary(null)
+  }
+
+  function clearAll() {
+    reset()
+    setPhones([""])
   }
 
   function clearHistory() {
@@ -202,7 +202,8 @@ export function CloseForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
-      const message = err instanceof Error ? err.message : strings.common.unexpectedError
+      const message =
+        err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     }
@@ -225,7 +226,9 @@ export function CloseForm() {
           {strings.sidebar.sections.conversations}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.conversations.close.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.conversations.close.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -254,7 +257,7 @@ export function CloseForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -266,27 +269,52 @@ export function CloseForm() {
 
       <form onSubmit={handleFormSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label htmlFor="participants">
+          <Label>
             {strings.conversations.close.phoneLabel}{" "}
             <span className="font-normal text-muted-foreground">
               {strings.conversations.close.phoneLabelHint}
             </span>
           </Label>
-          <Textarea
-            id="participants"
-            placeholder={"11987654321\n21987654322\n31987654323"}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="min-h-[120px] font-mono text-xs"
-            disabled={status === "running"}
-          />
-          {participants.length > 0 && (
-            <p
-              className={`text-xs ${participants.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {strings.conversations.close.detected(participants.length)}
-              {participants.length > MAX_ITEMS &&
-                strings.conversations.close.maxExceeded(MAX_ITEMS)}
+          <div className="space-y-2">
+            {phones.map((phone, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <ContactInput
+                  value={phone}
+                  onChange={(v) =>
+                    setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
+                  }
+                  placeholder="11987654321"
+                  disabled={status === "running"}
+                  prefix="whatsapp:+55"
+                  containerClassName="flex-1"
+                  className="pl-[7.5rem]"
+                />
+                <button
+                  type="button"
+                  disabled={status === "running" || phones.length === 1}
+                  onClick={() =>
+                    setPhones((prev) => prev.filter((_, j) => j !== i))
+                  }
+                  className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
+                  aria-label="Remover número"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            disabled={status === "running" || phones.length >= MAX_ITEMS}
+            onClick={() => setPhones((prev) => [...prev, ""])}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Plus className="size-3.5" />
+            Adicionar número
+          </button>
+          {participants.length > MAX_ITEMS && (
+            <p className="text-xs text-destructive">
+              {strings.conversations.close.maxExceeded(MAX_ITEMS)}
             </p>
           )}
         </div>
@@ -310,7 +338,7 @@ export function CloseForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={reset}
+              onClick={clearAll}
               disabled={status === "running"}
               className="gap-2"
             >
@@ -325,7 +353,9 @@ export function CloseForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.conversations.close.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.conversations.close.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a fechar{" "}
               <strong>{participants.length} conversa(s)</strong> ativas para{" "}
@@ -351,7 +381,9 @@ export function CloseForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium">{strings.conversations.close.summary.prefix}</span>{" "}
+          <span className="font-medium">
+            {strings.conversations.close.summary.prefix}
+          </span>{" "}
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
             {strings.conversations.close.summary.closed(summary.totalClosed)}
           </span>
@@ -360,7 +392,9 @@ export function CloseForm() {
               {" "}
               &middot;{" "}
               <span className="font-medium text-red-600 dark:text-red-400">
-                {strings.conversations.close.summary.errors(summary.totalErrors)}
+                {strings.conversations.close.summary.errors(
+                  summary.totalErrors
+                )}
               </span>
             </>
           )}

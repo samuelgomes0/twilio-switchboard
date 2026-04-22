@@ -96,7 +96,11 @@ function JsonBlock({ value }: { value: string }) {
     parsed === "" ||
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
   if (isEmpty)
-    return <span className="text-xs text-muted-foreground italic">{strings.common.empty}</span>
+    return (
+      <span className="text-xs text-muted-foreground italic">
+        {strings.common.empty}
+      </span>
+    )
   return (
     <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
@@ -211,7 +215,9 @@ export function FetchWorkerForm() {
           {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.taskrouter.fetchWorker.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.taskrouter.fetchWorker.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -240,7 +246,7 @@ export function FetchWorkerForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -253,7 +259,9 @@ export function FetchWorkerForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">{strings.taskrouter.fetchWorker.workspaceSidLabel}</Label>
+          <Label htmlFor="workspaceSid">
+            {strings.taskrouter.fetchWorker.workspaceSidLabel}
+          </Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
@@ -266,7 +274,9 @@ export function FetchWorkerForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="identifier">{strings.taskrouter.fetchWorker.identifierLabel}</Label>
+          <Label htmlFor="identifier">
+            {strings.taskrouter.fetchWorker.identifierLabel}
+          </Label>
           <div className="flex gap-2">
             <StoredInput
               id="identifier"
@@ -302,7 +312,9 @@ export function FetchWorkerForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.taskrouter.fetchWorker.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.taskrouter.fetchWorker.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Buscar dados do worker{" "}
               <strong className="font-mono">{identifier}</strong> no ambiente{" "}
@@ -356,7 +368,9 @@ export function FetchWorkerForm() {
               {routing?.skills && routing.skills.length > 0 && (
                 <>
                   <div>
-                    <p className="mb-2 text-xs text-muted-foreground">{strings.taskrouter.fetchWorker.result.skills}</p>
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      {strings.taskrouter.fetchWorker.result.skills}
+                    </p>
                     <ul className="space-y-1">
                       {routing.skills.map((skill) => (
                         <li
@@ -366,7 +380,9 @@ export function FetchWorkerForm() {
                           <span className="font-medium">{skill}</span>
                           {routing.levels?.[skill] !== undefined && (
                             <span className="text-muted-foreground">
-                              {strings.taskrouter.fetchWorker.result.level(routing.levels[skill])}
+                              {strings.taskrouter.fetchWorker.result.level(
+                                routing.levels[skill]
+                              )}
                             </span>
                           )}
                         </li>
@@ -380,13 +396,17 @@ export function FetchWorkerForm() {
               {/* Dates */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchWorker.result.dateCreated}</p>
+                  <p className="mb-0.5 text-muted-foreground">
+                    {strings.taskrouter.fetchWorker.result.dateCreated}
+                  </p>
                   <p className="font-medium">
                     {formatDate(data.worker.dateCreated)}
                   </p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchWorker.result.dateUpdated}</p>
+                  <p className="mb-0.5 text-muted-foreground">
+                    {strings.taskrouter.fetchWorker.result.dateUpdated}
+                  </p>
                   <p className="font-medium">
                     {formatDate(data.worker.dateUpdated)}
                   </p>

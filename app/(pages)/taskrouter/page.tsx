@@ -15,7 +15,9 @@ export default function TaskRouterPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">{strings.taskrouter.page.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {strings.taskrouter.page.title}
+        </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           {strings.taskrouter.page.subtitle}
         </p>

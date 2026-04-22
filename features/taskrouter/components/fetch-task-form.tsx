@@ -109,7 +109,11 @@ function JsonBlock({ value }: { value: string }) {
     parsed === "" ||
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
   if (isEmpty)
-    return <span className="text-xs text-muted-foreground italic">{strings.common.empty}</span>
+    return (
+      <span className="text-xs text-muted-foreground italic">
+        {strings.common.empty}
+      </span>
+    )
   return (
     <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
       {JSON.stringify(parsed, null, 2)}
@@ -217,7 +221,9 @@ export function FetchTaskForm() {
           {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.taskrouter.fetchTask.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.taskrouter.fetchTask.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -226,7 +232,9 @@ export function FetchTaskForm() {
           <ClipboardList className="size-4 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">{strings.taskrouter.fetchTask.title}</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {strings.taskrouter.fetchTask.title}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {strings.taskrouter.fetchTask.subtitle}
           </p>
@@ -244,7 +252,7 @@ export function FetchTaskForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -257,7 +265,9 @@ export function FetchTaskForm() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">{strings.taskrouter.fetchTask.workspaceSidLabel}</Label>
+          <Label htmlFor="workspaceSid">
+            {strings.taskrouter.fetchTask.workspaceSidLabel}
+          </Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
@@ -270,7 +280,9 @@ export function FetchTaskForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="taskSid">{strings.taskrouter.fetchTask.taskSidLabel}</Label>
+          <Label htmlFor="taskSid">
+            {strings.taskrouter.fetchTask.taskSidLabel}
+          </Label>
           <div className="flex gap-2">
             <Input
               id="taskSid"
@@ -303,7 +315,9 @@ export function FetchTaskForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.taskrouter.fetchTask.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.taskrouter.fetchTask.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Buscar dados da task{" "}
               <strong className="font-mono">{taskSid}</strong> no ambiente{" "}
@@ -348,16 +362,22 @@ export function FetchTaskForm() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.priority}</p>
+                  <p className="mb-0.5 text-muted-foreground">
+                    {strings.taskrouter.fetchTask.result.priority}
+                  </p>
                   <p className="font-medium">{data.task.priority}</p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.age}</p>
+                  <p className="mb-0.5 text-muted-foreground">
+                    {strings.taskrouter.fetchTask.result.age}
+                  </p>
                   <p className="font-medium">{formatAge(data.task.age)}</p>
                 </div>
                 {data.task.taskChannelUniqueName && (
                   <div>
-                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.channel}</p>
+                    <p className="mb-0.5 text-muted-foreground">
+                      {strings.taskrouter.fetchTask.result.channel}
+                    </p>
                     <p className="font-medium">
                       {data.task.taskChannelUniqueName}
                     </p>
@@ -365,7 +385,9 @@ export function FetchTaskForm() {
                 )}
                 {data.task.workflowFriendlyName && (
                   <div>
-                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.workflow}</p>
+                    <p className="mb-0.5 text-muted-foreground">
+                      {strings.taskrouter.fetchTask.result.workflow}
+                    </p>
                     <p className="font-medium">
                       {data.task.workflowFriendlyName}
                     </p>
@@ -373,7 +395,9 @@ export function FetchTaskForm() {
                 )}
                 {data.task.taskQueueFriendlyName && (
                   <div className="col-span-2">
-                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.queue}</p>
+                    <p className="mb-0.5 text-muted-foreground">
+                      {strings.taskrouter.fetchTask.result.queue}
+                    </p>
                     <p className="font-medium">
                       {data.task.taskQueueFriendlyName}
                     </p>
@@ -381,7 +405,9 @@ export function FetchTaskForm() {
                 )}
                 {data.task.reason && (
                   <div className="col-span-2">
-                    <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.reason}</p>
+                    <p className="mb-0.5 text-muted-foreground">
+                      {strings.taskrouter.fetchTask.result.reason}
+                    </p>
                     <p className="font-medium">{data.task.reason}</p>
                   </div>
                 )}
@@ -391,13 +417,17 @@ export function FetchTaskForm() {
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.dateCreated}</p>
+                  <p className="mb-0.5 text-muted-foreground">
+                    {strings.taskrouter.fetchTask.result.dateCreated}
+                  </p>
                   <p className="font-medium">
                     {formatDate(data.task.dateCreated)}
                   </p>
                 </div>
                 <div>
-                  <p className="mb-0.5 text-muted-foreground">{strings.taskrouter.fetchTask.result.dateUpdated}</p>
+                  <p className="mb-0.5 text-muted-foreground">
+                    {strings.taskrouter.fetchTask.result.dateUpdated}
+                  </p>
                   <p className="font-medium">
                     {formatDate(data.task.dateUpdated)}
                   </p>

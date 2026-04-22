@@ -80,11 +80,15 @@ export function EnvironmentCard({
           </div>
           <div className="space-y-0.5 pl-0">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="w-16 shrink-0">{strings.environments.card.accountSidLabel}</span>
+              <span className="w-16 shrink-0">
+                {strings.environments.card.accountSidLabel}
+              </span>
               <span className="truncate font-mono">{env.accountSid}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="w-16 shrink-0">{strings.environments.card.authTokenLabel}</span>
+              <span className="w-16 shrink-0">
+                {strings.environments.card.authTokenLabel}
+              </span>
               <MaskedToken token={env.authToken} />
             </div>
           </div>

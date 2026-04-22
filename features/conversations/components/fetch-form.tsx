@@ -112,7 +112,11 @@ function JsonBlock({ value }: { value: string }) {
     (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
 
   if (isEmpty) {
-    return <span className="text-xs text-muted-foreground italic">{strings.common.empty}</span>
+    return (
+      <span className="text-xs text-muted-foreground italic">
+        {strings.common.empty}
+      </span>
+    )
   }
 
   return (
@@ -201,7 +205,9 @@ export function FetchForm() {
           {strings.sidebar.sections.conversations}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.conversations.fetch.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.conversations.fetch.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -230,7 +236,7 @@ export function FetchForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -248,7 +254,7 @@ export function FetchForm() {
             <StoredInput
               id="sid"
               storageKey={SIDS_KEY}
-            environmentId={activeEnvironment?.id}
+              environmentId={activeEnvironment?.id}
               value={sid}
               onChange={setSid}
               placeholder="CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
@@ -278,7 +284,9 @@ export function FetchForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.conversations.fetch.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.conversations.fetch.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Buscar dados da conversa <strong>{sid}</strong> no ambiente{" "}
               <strong>{activeEnvironment?.name}</strong>?
@@ -316,7 +324,8 @@ export function FetchForm() {
                     {data.conversation.sid}
                   </CardTitle>
                   <CardDescription className="mt-1">
-                    {data.conversation.friendlyName ?? strings.conversations.fetch.result.noFriendlyName}
+                    {data.conversation.friendlyName ??
+                      strings.conversations.fetch.result.noFriendlyName}
                   </CardDescription>
                 </div>
                 <Badge variant={stateBadgeVariant(data.conversation.state)}>
