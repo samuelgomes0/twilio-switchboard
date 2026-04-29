@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   AtSign,
+  BookUser,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -52,7 +53,8 @@ const conversationsNavItems: NavItem[] = [
     label: strings.sidebar.nav.conversations.fetchByParticipant.label,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
-    description: strings.sidebar.nav.conversations.fetchByParticipant.description,
+    description:
+      strings.sidebar.nav.conversations.fetchByParticipant.description,
   },
   {
     label: strings.sidebar.nav.conversations.close.label,
@@ -98,9 +100,15 @@ const taskrouterNavItems: NavItem[] = [
 const configNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.config.manageEnvironments.label,
-    href: "/environments/manage",
+    href: "/settings/environments",
     icon: Settings2,
     description: strings.sidebar.nav.config.manageEnvironments.description,
+  },
+  {
+    label: strings.sidebar.nav.config.manageContacts.label,
+    href: "/settings/contacts",
+    icon: BookUser,
+    description: strings.sidebar.nav.config.manageContacts.description,
   },
 ]
 
@@ -249,7 +257,7 @@ function SidebarNav() {
           />
           <NavSection
             label={strings.sidebar.sections.settings}
-            href="/environments"
+            href="/settings"
             items={configNavItems}
             pathname={pathname}
             onNavigate={closeMenu}
@@ -307,7 +315,7 @@ function SidebarNav() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/environments" onClick={closeMenu}>
+                    <Link href="/settings" onClick={closeMenu}>
                       <Settings2 className="size-3.5 shrink-0" />
                       {strings.sidebar.configureEnvironments}
                     </Link>

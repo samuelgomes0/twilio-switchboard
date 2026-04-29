@@ -37,7 +37,7 @@ const tools: Tool[] = [
   {
     label: strings.dashboard.tools.settings.label,
     description: strings.dashboard.tools.settings.description,
-    href: "/environments",
+    href: "/settings",
     icon: Settings2,
     available: true,
   },
@@ -47,7 +47,9 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">{strings.dashboard.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {strings.dashboard.title}
+        </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           {strings.dashboard.subtitle}
         </p>

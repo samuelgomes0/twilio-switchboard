@@ -5,7 +5,12 @@ const RETRY_ATTEMPTS = 3
 const RETRY_DELAY_MS = 2000
 const TASK_LIST_LIMIT = 1000
 
-const IGNORE_STATUSES = new Set(["assigned", "wrapping", "completed", "canceled"])
+const IGNORE_STATUSES = new Set([
+  "assigned",
+  "wrapping",
+  "completed",
+  "canceled",
+])
 const CANCEL_STATUSES = new Set(["pending", "reserved"])
 
 export const DEFAULT_CLOSE_MESSAGE =
@@ -33,8 +38,10 @@ function parseTaskAttributes(raw: string | null | undefined): TaskAttributes {
 }
 
 function extractConversationSid(attributes: TaskAttributes): string | null {
-  if (typeof attributes.conversationSid === "string") return attributes.conversationSid
-  if (typeof attributes.conversation_id === "string") return attributes.conversation_id
+  if (typeof attributes.conversationSid === "string")
+    return attributes.conversationSid
+  if (typeof attributes.conversation_id === "string")
+    return attributes.conversation_id
   if (typeof attributes.channelSid === "string") return attributes.channelSid
   return null
 }
@@ -51,7 +58,11 @@ export async function cancelQueueTasks(
   },
   client: ReturnType<typeof getTwilioClient>,
   emit: (event: string) => void
-): Promise<{ totalSuccess: number; totalSkipped: number; totalErrors: number }> {
+): Promise<{
+  totalSuccess: number
+  totalSkipped: number
+  totalErrors: number
+}> {
   const message = closeMessage?.trim() || DEFAULT_CLOSE_MESSAGE
 
   emit(sseEvent("info", `Buscando tasks da fila "${taskQueueName}"...`))
@@ -79,7 +90,12 @@ export async function cancelQueueTasks(
     IGNORE_STATUSES.has(t.assignmentStatus ?? "")
   ).length
 
-  emit(sseEvent("info", `${tasks.length} task(s) encontrada(s) — elegíveis: ${cancellableCount} · ignoradas: ${ignoredCount}`))
+  emit(
+    sseEvent(
+      "info",
+      `${tasks.length} task(s) encontrada(s) — elegíveis: ${cancellableCount} · ignoradas: ${ignoredCount}`
+    )
+  )
 
   let totalSuccess = 0
   let totalSkipped = ignoredCount
@@ -94,7 +110,12 @@ export async function cancelQueueTasks(
     }
 
     if (!CANCEL_STATUSES.has(status)) {
-      emit(sseEvent("warning", `Task ${task.sid}: status inesperado "${status}" — ignorada`))
+      emit(
+        sseEvent(
+          "warning",
+          `Task ${task.sid}: status inesperado "${status}" — ignorada`
+        )
+      )
       totalSkipped++
       continue
     }
@@ -104,7 +125,12 @@ export async function cancelQueueTasks(
     const conversationSid = isValidConversationSid(rawSid) ? rawSid : null
 
     if (!conversationSid) {
-      emit(sseEvent("warning", `Task ${task.sid}: sem conversationSid válido — cancelando apenas a task`))
+      emit(
+        sseEvent(
+          "warning",
+          `Task ${task.sid}: sem conversationSid válido — cancelando apenas a task`
+        )
+      )
 
       const result = await withRetry(
         () =>
@@ -144,7 +170,12 @@ export async function cancelQueueTasks(
       totalErrors++
       continue
     }
-    emit(sseEvent("info", `Task ${task.sid}: mensagem enviada para ${conversationSid}`))
+    emit(
+      sseEvent(
+        "info",
+        `Task ${task.sid}: mensagem enviada para ${conversationSid}`
+      )
+    )
 
     const closeResult = await withRetry(
       () =>
@@ -160,7 +191,9 @@ export async function cancelQueueTasks(
       totalErrors++
       continue
     }
-    emit(sseEvent("info", `Task ${task.sid}: conversa ${conversationSid} fechada`))
+    emit(
+      sseEvent("info", `Task ${task.sid}: conversa ${conversationSid} fechada`)
+    )
 
     const cancelResult = await withRetry(
       () =>
@@ -178,7 +211,12 @@ export async function cancelQueueTasks(
     )
     if (cancelResult !== null) {
       totalSuccess++
-      emit(sseEvent("success", `Task ${task.sid}: cancelada com sucesso (${status} → canceled)`))
+      emit(
+        sseEvent(
+          "success",
+          `Task ${task.sid}: cancelada com sucesso (${status} → canceled)`
+        )
+      )
     } else {
       totalErrors++
     }

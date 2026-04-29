@@ -23,14 +23,18 @@ export async function POST(req: NextRequest) {
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
     return new Response(
-      JSON.stringify({ error: "workspaceSid is required and must be a string" }),
+      JSON.stringify({
+        error: "workspaceSid is required and must be a string",
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     )
   }
 
   if (!body.taskQueueName || typeof body.taskQueueName !== "string") {
     return new Response(
-      JSON.stringify({ error: "taskQueueName is required and must be a string" }),
+      JSON.stringify({
+        error: "taskQueueName is required and must be a string",
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     )
   }
@@ -58,15 +62,16 @@ export async function POST(req: NextRequest) {
         controller.enqueue(encoder.encode(chunk))
       }
 
-      const { totalSuccess, totalSkipped, totalErrors } = await cancelQueueTasks(
-        {
-          workspaceSid: body.workspaceSid as string,
-          taskQueueName: body.taskQueueName as string,
-          closeMessage,
-        },
-        client,
-        emit
-      )
+      const { totalSuccess, totalSkipped, totalErrors } =
+        await cancelQueueTasks(
+          {
+            workspaceSid: body.workspaceSid as string,
+            taskQueueName: body.taskQueueName as string,
+            closeMessage,
+          },
+          client,
+          emit
+        )
 
       emit(
         sseEvent(

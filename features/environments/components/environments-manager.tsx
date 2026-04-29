@@ -49,13 +49,15 @@ export function EnvironmentsManager() {
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
-          href="/environments"
+          href="/settings"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
           {strings.environments.page.title}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.environments.manager.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.environments.manager.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -92,7 +94,9 @@ export function EnvironmentsManager() {
       {/* Add form */}
       {showAddForm && (
         <div className="mb-6 rounded-xl border border-border bg-card px-5 py-5">
-          <h2 className="mb-4 text-sm font-semibold">{strings.environments.manager.addTitle}</h2>
+          <h2 className="mb-4 text-sm font-semibold">
+            {strings.environments.manager.addTitle}
+          </h2>
           <EnvironmentForm
             onSave={handleAdd}
             onCancel={() => setShowAddForm(false)}
@@ -127,7 +131,9 @@ export function EnvironmentsManager() {
                 key={env.id}
                 className="rounded-xl border border-border bg-card px-5 py-5"
               >
-                <h2 className="mb-4 text-sm font-semibold">{strings.environments.manager.editTitle}</h2>
+                <h2 className="mb-4 text-sm font-semibold">
+                  {strings.environments.manager.editTitle}
+                </h2>
                 <EnvironmentForm
                   initial={{
                     name: env.name,

@@ -40,9 +40,9 @@ Acesse [http://localhost:3000](http://localhost:3000) e cadastre suas credenciai
 1. Faça um fork do repositório
 2. Crie uma branch para sua feature ou correção:
    ```bash
-   git checkout -b feat/nome-da-feature
+   git switch -c feat/nome-da-feature
    ```
-3. Faça suas alterações e commite seguindo [Conventional Commits](https://www.conventionalcommits.org/):
+3. Faça as alterações e crie um commit, preferencialmente seguindo o padrão [Conventional Commits](https://www.conventionalcommits.org/).
    ```bash
    git commit -m "feat: adiciona exportação de resultado como CSV"
    ```

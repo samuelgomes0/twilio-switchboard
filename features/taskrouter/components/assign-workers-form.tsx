@@ -211,6 +211,7 @@ export function AssignWorkersForm() {
               })
               setStatus("done")
               const entry: HistoryEntry = {
+                // eslint-disable-next-line react-hooks/purity
                 ts: Date.now(),
                 workspaceSid: workspaceSid.trim(),
                 skill: skill.trim(),
@@ -229,7 +230,8 @@ export function AssignWorkersForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
-      const message = err instanceof Error ? err.message : strings.common.unexpectedError
+      const message =
+        err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     }
@@ -252,7 +254,9 @@ export function AssignWorkersForm() {
           {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.taskrouter.assignWorkers.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.taskrouter.assignWorkers.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -281,7 +285,7 @@ export function AssignWorkersForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -294,7 +298,9 @@ export function AssignWorkersForm() {
       <form onSubmit={handleFormSubmit} className="space-y-5">
         {/* Workspace SID */}
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">{strings.taskrouter.assignWorkers.workspaceSidLabel}</Label>
+          <Label htmlFor="workspaceSid">
+            {strings.taskrouter.assignWorkers.workspaceSidLabel}
+          </Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
@@ -308,7 +314,9 @@ export function AssignWorkersForm() {
 
         {/* Skill name */}
         <div className="space-y-2">
-          <Label htmlFor="skill">{strings.taskrouter.assignWorkers.skillLabel}</Label>
+          <Label htmlFor="skill">
+            {strings.taskrouter.assignWorkers.skillLabel}
+          </Label>
           <StoredInput
             id="skill"
             storageKey={SKILLS_KEY}
@@ -364,7 +372,8 @@ export function AssignWorkersForm() {
               className={`text-xs ${emails.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
             >
               {strings.taskrouter.assignWorkers.detected(emails.length)}
-              {emails.length > MAX_ITEMS && strings.taskrouter.assignWorkers.maxExceeded(MAX_ITEMS)}
+              {emails.length > MAX_ITEMS &&
+                strings.taskrouter.assignWorkers.maxExceeded(MAX_ITEMS)}
             </p>
           )}
         </div>
@@ -404,7 +413,9 @@ export function AssignWorkersForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.taskrouter.assignWorkers.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.taskrouter.assignWorkers.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a adicionar a skill{" "}
               <strong>&quot;{skill}&quot;</strong> a{" "}
@@ -430,18 +441,24 @@ export function AssignWorkersForm() {
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            {strings.taskrouter.assignWorkers.summary.updated(summary.totalUpdated)}
+            {strings.taskrouter.assignWorkers.summary.updated(
+              summary.totalUpdated
+            )}
           </span>{" "}
           &middot;{" "}
           <span className="text-muted-foreground">
-            {strings.taskrouter.assignWorkers.summary.skipped(summary.totalSkipped)}
+            {strings.taskrouter.assignWorkers.summary.skipped(
+              summary.totalSkipped
+            )}
           </span>
           {summary.totalErrors > 0 && (
             <>
               {" "}
               &middot;{" "}
               <span className="font-medium text-red-600 dark:text-red-400">
-                {strings.taskrouter.assignWorkers.summary.errors(summary.totalErrors)}
+                {strings.taskrouter.assignWorkers.summary.errors(
+                  summary.totalErrors
+                )}
               </span>
             </>
           )}

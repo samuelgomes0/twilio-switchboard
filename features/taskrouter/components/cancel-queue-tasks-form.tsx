@@ -190,7 +190,11 @@ export function CancelQueueTasksForm() {
               const success = payload.totalSuccess ?? 0
               const skipped = payload.totalSkipped ?? 0
               const errors = payload.totalErrors ?? 0
-              setSummary({ totalSuccess: success, totalSkipped: skipped, totalErrors: errors })
+              setSummary({
+                totalSuccess: success,
+                totalSkipped: skipped,
+                totalErrors: errors,
+              })
               setStatus("done")
               const entry: HistoryEntry = {
                 ts: Date.now(),
@@ -211,7 +215,8 @@ export function CancelQueueTasksForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
-      const message = err instanceof Error ? err.message : strings.common.unexpectedError
+      const message =
+        err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     }
@@ -265,7 +270,7 @@ export function CancelQueueTasksForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -392,18 +397,24 @@ export function CancelQueueTasksForm() {
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            {strings.taskrouter.cancelQueueTasks.summary.success(summary.totalSuccess)}
+            {strings.taskrouter.cancelQueueTasks.summary.success(
+              summary.totalSuccess
+            )}
           </span>{" "}
           &middot;{" "}
           <span className="text-muted-foreground">
-            {strings.taskrouter.cancelQueueTasks.summary.skipped(summary.totalSkipped)}
+            {strings.taskrouter.cancelQueueTasks.summary.skipped(
+              summary.totalSkipped
+            )}
           </span>
           {summary.totalErrors > 0 && (
             <>
               {" "}
               &middot;{" "}
               <span className="font-medium text-red-600 dark:text-red-400">
-                {strings.taskrouter.cancelQueueTasks.summary.errors(summary.totalErrors)}
+                {strings.taskrouter.cancelQueueTasks.summary.errors(
+                  summary.totalErrors
+                )}
               </span>
             </>
           )}
@@ -440,7 +451,9 @@ export function CancelQueueTasksForm() {
               <li key={i} className="text-xs text-muted-foreground">
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
                 {" — "}
-                <span className="font-mono">{h.workspaceSid.slice(0, 10)}...</span>
+                <span className="font-mono">
+                  {h.workspaceSid.slice(0, 10)}...
+                </span>
                 {" · "}
                 <span className="font-mono">{h.taskQueueName}</span>
                 {" · "}
@@ -448,7 +461,8 @@ export function CancelQueueTasksForm() {
                 {h.skipped > 0 && <span> · {h.skipped} ignorada(s)</span>}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {" "}· {h.errors} erro(s)
+                    {" "}
+                    · {h.errors} erro(s)
                   </span>
                 )}
               </li>

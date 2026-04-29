@@ -15,7 +15,9 @@ export default function ConversationsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">{strings.conversations.page.title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {strings.conversations.page.title}
+        </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
           {strings.conversations.page.subtitle}
         </p>

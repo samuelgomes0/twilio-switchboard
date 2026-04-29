@@ -224,7 +224,8 @@ export function CreateWorkflowForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
-      const message = err instanceof Error ? err.message : strings.common.unexpectedError
+      const message =
+        err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     }
@@ -247,7 +248,9 @@ export function CreateWorkflowForm() {
           {strings.sidebar.sections.taskrouter}
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{strings.taskrouter.createWorkflow.breadcrumb}</span>
+        <span className="font-medium text-foreground">
+          {strings.taskrouter.createWorkflow.breadcrumb}
+        </span>
       </nav>
 
       {/* Header */}
@@ -276,7 +279,7 @@ export function CreateWorkflowForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -289,7 +292,9 @@ export function CreateWorkflowForm() {
       <form onSubmit={handleFormSubmit} className="space-y-5">
         {/* Workspace SID */}
         <div className="space-y-2">
-          <Label htmlFor="workspaceSid">{strings.taskrouter.createWorkflow.workspaceSidLabel}</Label>
+          <Label htmlFor="workspaceSid">
+            {strings.taskrouter.createWorkflow.workspaceSidLabel}
+          </Label>
           <StoredInput
             id="workspaceSid"
             storageKey={WS_SIDS_KEY}
@@ -303,7 +308,9 @@ export function CreateWorkflowForm() {
 
         {/* Workflow name */}
         <div className="space-y-2">
-          <Label htmlFor="workflowName">{strings.taskrouter.createWorkflow.workflowNameLabel}</Label>
+          <Label htmlFor="workflowName">
+            {strings.taskrouter.createWorkflow.workflowNameLabel}
+          </Label>
           <StoredInput
             id="workflowName"
             storageKey={WF_NAMES_KEY}
@@ -318,7 +325,9 @@ export function CreateWorkflowForm() {
 
         {/* CSV file */}
         <div className="space-y-2">
-          <Label htmlFor="csvFile">{strings.taskrouter.createWorkflow.csvLabel}</Label>
+          <Label htmlFor="csvFile">
+            {strings.taskrouter.createWorkflow.csvLabel}
+          </Label>
           <Input
             id="csvFile"
             type="file"
@@ -369,7 +378,9 @@ export function CreateWorkflowForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.taskrouter.createWorkflow.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.taskrouter.createWorkflow.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Você está prestes a criar o workflow{" "}
               <strong>&quot;{workflowName}&quot;</strong> no workspace{" "}
@@ -395,7 +406,9 @@ export function CreateWorkflowForm() {
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            {strings.taskrouter.createWorkflow.summary.created(summary.workflowName)}
+            {strings.taskrouter.createWorkflow.summary.created(
+              summary.workflowName
+            )}
           </span>{" "}
           &middot;{" "}
           <span className="font-mono text-muted-foreground">
@@ -403,7 +416,9 @@ export function CreateWorkflowForm() {
           </span>{" "}
           &middot;{" "}
           <span className="text-muted-foreground">
-            {strings.taskrouter.createWorkflow.summary.filters(summary.totalFilters)}
+            {strings.taskrouter.createWorkflow.summary.filters(
+              summary.totalFilters
+            )}
           </span>
         </div>
       )}

@@ -1,13 +1,9 @@
 "use client"
 
-import * as React from "react"
+import { AlertTriangle, AtSign, ChevronRight, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { AtSign, ChevronRight, Loader2, AlertTriangle } from "lucide-react"
+import * as React from "react"
 
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -18,8 +14,12 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useEnvironment } from "@/features/environments/context"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { ContactInput } from "@/components/contact-input"
 import type { ParticipantConversation } from "@/features/conversations/lib/fetch-by-participant"
+import { useEnvironment } from "@/features/environments/context"
 import { strings } from "@/lib/strings"
 
 type StateFilter = "all" | "active" | "inactive" | "closed"
@@ -85,10 +85,22 @@ function stateVariant(state: string): StateVariant {
 }
 
 const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
-  { value: "all", label: strings.conversations.fetchByParticipant.stateOptions.all },
-  { value: "active", label: strings.conversations.fetchByParticipant.stateOptions.active },
-  { value: "inactive", label: strings.conversations.fetchByParticipant.stateOptions.inactive },
-  { value: "closed", label: strings.conversations.fetchByParticipant.stateOptions.closed },
+  {
+    value: "all",
+    label: strings.conversations.fetchByParticipant.stateOptions.all,
+  },
+  {
+    value: "active",
+    label: strings.conversations.fetchByParticipant.stateOptions.active,
+  },
+  {
+    value: "inactive",
+    label: strings.conversations.fetchByParticipant.stateOptions.inactive,
+  },
+  {
+    value: "closed",
+    label: strings.conversations.fetchByParticipant.stateOptions.closed,
+  },
 ]
 
 export function FetchByParticipantForm() {
@@ -213,7 +225,7 @@ export function FetchByParticipantForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/environments"
+                href="/settings"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -233,19 +245,16 @@ export function FetchByParticipantForm() {
             </span>
           </Label>
           <div className="flex gap-2">
-            <div className="relative flex-1">
-              <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
-                whatsapp:+55
-              </span>
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="1187654321"
-                disabled={loading}
-                className="pl-[7.5rem] font-mono text-sm"
-              />
-            </div>
+            <ContactInput
+              id="phone"
+              value={phone}
+              onChange={setPhone}
+              placeholder="1187654321"
+              disabled={loading}
+              prefix="whatsapp:+55"
+              containerClassName="flex-1"
+              className="pl-[7.5rem]"
+            />
             <Button
               type="submit"
               disabled={!canSubmit}
@@ -288,7 +297,9 @@ export function FetchByParticipantForm() {
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{strings.conversations.fetchByParticipant.confirmTitle}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {strings.conversations.fetchByParticipant.confirmTitle}
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Buscar conversas do participante{" "}
               <strong className="font-mono">{address}</strong>
@@ -329,20 +340,24 @@ export function FetchByParticipantForm() {
             <p className="text-sm text-muted-foreground">
               {results?.length === 0
                 ? strings.conversations.fetchByParticipant.results.none
-                : strings.conversations.fetchByParticipant.results.noneFiltered(stateFilter)}
+                : strings.conversations.fetchByParticipant.results.noneFiltered(
+                    stateFilter
+                  )}
             </p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                {strings.conversations.fetchByParticipant.results.count(filteredResults.length)}
+                {strings.conversations.fetchByParticipant.results.count(
+                  filteredResults.length
+                )}
                 {stateFilter !== "all" &&
                   results &&
                   results.length !== filteredResults.length && (
                     <> · {results.length} total</>
                   )}
               </p>
-              <ul className="space-y-2">
-                {filteredResults.map((pc) => (
+              <ul className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                {filteredResults?.map((pc) => (
                   <li
                     key={pc.conversationSid}
                     className="rounded-lg border border-border bg-card px-4 py-3"
@@ -364,15 +379,26 @@ export function FetchByParticipantForm() {
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
                       <span>
-                        {strings.conversations.fetchByParticipant.results.dateCreated} {formatDate(pc.conversationDateCreated)}
+                        {
+                          strings.conversations.fetchByParticipant.results
+                            .dateCreated
+                        }{" "}
+                        {formatDate(pc.conversationDateCreated)}
                       </span>
                       <span>
-                        {strings.conversations.fetchByParticipant.results.dateUpdated} {formatDate(pc.conversationDateUpdated)}
+                        {
+                          strings.conversations.fetchByParticipant.results
+                            .dateUpdated
+                        }{" "}
+                        {formatDate(pc.conversationDateUpdated)}
                       </span>
                     </div>
                     {pc.participantIdentity && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {strings.conversations.fetchByParticipant.results.identity}{" "}
+                        {
+                          strings.conversations.fetchByParticipant.results
+                            .identity
+                        }{" "}
                         <span className="font-mono">
                           {pc.participantIdentity}
                         </span>
