@@ -1,4 +1,4 @@
-import { ArrowRight, BookUser, Layers, Puzzle, Settings2, ShieldCheck } from "lucide-react"
+import { ArrowRight, BookUser, Layers, Puzzle, Settings2, ShieldCheck, SlidersHorizontal } from "lucide-react"
 import Link from "next/link"
 import type { ElementType } from "react"
 
@@ -32,6 +32,13 @@ const tools: Tool[] = [
     description: strings.environments.page.tools.contacts.description,
     href: "/settings/contacts",
     icon: BookUser,
+    available: true,
+  },
+  {
+    label: strings.environments.page.tools.variables.label,
+    description: strings.environments.page.tools.variables.description,
+    href: "/settings/variables",
+    icon: SlidersHorizontal,
     available: true,
   },
 ]

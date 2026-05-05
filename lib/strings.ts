@@ -85,6 +85,10 @@ export const strings = {
           label: "Gerenciar Contatos",
           description: "Salve números com nomes para autocompletar",
         },
+        manageVariables: {
+          label: "Gerenciar Variáveis",
+          description: "Gerencie valores salvos para autocompletar",
+        },
       },
     },
   },
@@ -410,6 +414,22 @@ export const strings = {
       saveButton: "Salvar",
     },
   },
+  variables: {
+    manager: {
+      breadcrumb: "Gerenciar Variáveis",
+      title: "Variáveis",
+      subtitle: "Valores salvos para autocompletar nos formulários",
+      addButton: "Adicionar",
+      valueLabel: "Valor",
+      valuePlaceholder: "Digite o valor...",
+      saveButton: "Salvar",
+      emptyHint: "Nenhum valor salvo",
+      environmentLabel: "Ambiente ativo:",
+      deleteConfirm: (val: string) =>
+        `Excluir "${val}"? Esta ação não pode ser desfeita.`,
+      deleteButton: "Confirmar exclusão",
+    },
+  },
   environments: {
     page: {
       title: "Configurações",
@@ -435,6 +455,11 @@ export const strings = {
           label: "Gerenciar Contatos",
           description:
             "Salve números de telefone com nomes para autocompletar nos formulários.",
+        },
+        variables: {
+          label: "Gerenciar Variáveis",
+          description:
+            "Adicione, edite e remova valores salvos para autocompletar nos formulários.",
         },
       },
     },

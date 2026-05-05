@@ -15,6 +15,7 @@ import {
   Phone,
   Search,
   Settings2,
+  SlidersHorizontal,
   User,
   UserPlus,
   X,
@@ -109,6 +110,12 @@ const configNavItems: NavItem[] = [
     href: "/settings/contacts",
     icon: BookUser,
     description: strings.sidebar.nav.config.manageContacts.description,
+  },
+  {
+    label: strings.sidebar.nav.config.manageVariables.label,
+    href: "/settings/variables",
+    icon: SlidersHorizontal,
+    description: strings.sidebar.nav.config.manageVariables.description,
   },
 ]
 
