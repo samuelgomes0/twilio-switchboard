@@ -268,6 +268,11 @@ export function CreateWorkflowForm() {
         </div>
       </div>
 
+      {/* About */}
+      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+        {strings.taskrouter.createWorkflow.about}
+      </p>
+
       {/* No environment warning */}
       {!activeEnvironment && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">

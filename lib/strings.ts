@@ -143,6 +143,8 @@ export const strings = {
       title: "Buscar Conversa por SID",
       subtitle:
         "Retorna estado, participantes, atributos e datas de uma conversa",
+      about:
+        "Use quando você tem o SID de uma conversa e quer ver o estado atual, os participantes e os atributos — sem precisar abrir o console Twilio.",
       sidLabel: "Conversation SID",
       sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
       confirmTitle: "Buscar conversa?",
@@ -171,6 +173,8 @@ export const strings = {
       title: "Fechar Conversas Ativas",
       subtitle:
         "Recebe números de telefone e fecha todas as conversas ativas associadas em lote",
+      about:
+        "Informe os números de telefone e o sistema localiza e encerra todas as conversas ativas associadas em lote. Ideal para desativar atendimentos de uma só vez.",
       phoneLabel: "Números de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       detected: (n: number) => `${n} número(s) detectado(s)`,
@@ -194,6 +198,8 @@ export const strings = {
       breadcrumb: "Buscar por Participante",
       title: "Buscar por Participante",
       subtitle: "Retorna todas as conversas WhatsApp associadas a um número",
+      about:
+        "Informe um número de telefone e veja todas as conversas em que ele participou. Útil para entender o histórico de atendimento ou verificar o estado atual.",
       phoneLabel: "Número de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       filterLabel: "Filtrar por estado",
@@ -244,6 +250,8 @@ export const strings = {
       title: "Atribuir Workers à Fila",
       subtitle:
         "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail",
+      about:
+        "Adiciona uma skill a vários workers de uma vez. Ideal para preparar uma equipe antes de ativar uma nova fila ou redistribuir atendimentos entre times.",
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
@@ -272,6 +280,8 @@ export const strings = {
       title: "Criar Workflow",
       subtitle:
         "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter",
+      about:
+        "Lê as regras de negócio e filas de um arquivo e cria o workflow de roteamento automaticamente no TaskRouter — sem precisar configurar manualmente cada filtro.",
       workspaceSidLabel: "Workspace SID",
       workflowNameLabel: "Nome do Workflow",
       csvLabel: "Arquivo CSV",
@@ -300,6 +310,8 @@ export const strings = {
       title: "Buscar Task",
       subtitle:
         "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID",
+      about:
+        "Use quando você tem o SID de uma task e quer inspecionar o estado atual, a fila em que está e os atributos — sem abrir o console Twilio.",
       workspaceSidLabel: "Workspace SID",
       taskSidLabel: "Task SID",
       taskSidHint: "Formato: WT seguido de 32 caracteres hexadecimais",
@@ -327,6 +339,8 @@ export const strings = {
       title: "Buscar Worker",
       subtitle:
         "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail",
+      about:
+        "Use para inspecionar um worker pelo e-mail ou SID. Retorna a atividade atual, as skills atribuídas e todos os atributos configurados.",
       workspaceSidLabel: "Workspace SID",
       identifierLabel: "Worker SID ou e-mail",
       identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
@@ -351,6 +365,8 @@ export const strings = {
       title: "Encerrar Tasks da Fila",
       subtitle:
         "Encerra tasks pendentes/reservadas, envia mensagem de aviso e fecha as conversas associadas",
+      about:
+        "Encerra em lote todas as tasks pendentes ou reservadas de uma fila, notifica os clientes com uma mensagem e fecha as conversas associadas. Ação irreversível — use com cuidado.",
       workspaceSidLabel: "Workspace SID",
       taskQueueNameLabel: "Nome da fila (Task Queue)",
       closeMessageLabel: "Mensagem enviada ao cliente antes de fechar",
