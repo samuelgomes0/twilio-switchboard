@@ -92,6 +92,17 @@ export const strings = {
     title: "Switchboard",
     subtitle:
       "Interface visual para operações Twilio. Selecione uma ferramenta abaixo.",
+    intro: {
+      badge: "Dashboard Twilio",
+      description:
+        "Painel de controle para operações Twilio. Execute ações diretamente pela interface, com resultados em tempo real — sem scripts, sem acesso ao console.",
+      features: {
+        credentials: "Credenciais armazenadas localmente",
+        realtime: "Streaming de resultados em tempo real",
+        multienv: "Suporte a múltiplos ambientes",
+      },
+      toolsHeading: "Ferramentas disponíveis",
+    },
     tools: {
       conversations: {
         label: "Conversations",
@@ -115,6 +126,17 @@ export const strings = {
       title: "Conversations",
       subtitle:
         "Feche conversas ativas em lote e consulte detalhes de conversas por SID.",
+      intro: {
+        badge: "Conversations API",
+        description:
+          "Ferramentas para operar sobre conversas Twilio. Consulte, filtre e execute ações — com resultados em tempo real, sem sair da interface.",
+        features: {
+          channel: "WhatsApp e SMS",
+          batch: "Operações em lote",
+          realtime: "Resultados em tempo real",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
     },
     fetch: {
       breadcrumb: "Buscar Conversa",
@@ -205,6 +227,17 @@ export const strings = {
       title: "TaskRouter",
       subtitle:
         "Atribua workers, crie workflows, consulte tasks e inspecione workers do TaskRouter.",
+      intro: {
+        badge: "TaskRouter API",
+        description:
+          "Ferramentas para gerenciar o TaskRouter. Configure roteamento, opere sobre workers e filas, e automatize processos diretamente pela interface.",
+        features: {
+          routing: "Roteamento de tasks",
+          workers: "Workers e filas",
+          workflows: "Workflows configuráveis",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
     },
     assignWorkers: {
       breadcrumb: "Atribuir Workers",
@@ -365,6 +398,17 @@ export const strings = {
     page: {
       title: "Configurações",
       subtitle: "Gerencie credenciais e configurações do Switchboard.",
+      intro: {
+        badge: "Configurações",
+        description:
+          "Central de configuração do Switchboard. Gerencie credenciais Twilio e recursos auxiliares que potencializam o uso das ferramentas.",
+        features: {
+          multienv: "Múltiplos ambientes",
+          local: "Dados locais e privados",
+          aux: "Recursos auxiliares",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
       tools: {
         manage: {
           label: "Gerenciar Ambientes",
