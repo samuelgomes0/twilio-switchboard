@@ -150,7 +150,7 @@ export const strings = {
       breadcrumb: "Buscar Conversa",
       title: "Buscar Conversa por SID",
       subtitle:
-        "Retorna estado, participantes, atributos e datas de uma conversa",
+        "Consulta os detalhes completos de uma conversa pelo SID",
       about:
         "Busca uma conversa pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar a conversa sem abrir o console Twilio.",
       sidLabel: "Conversation SID",
@@ -181,7 +181,7 @@ export const strings = {
       breadcrumb: "Fechar Conversas",
       title: "Fechar Conversas Ativas",
       subtitle:
-        "Recebe números de telefone e fecha todas as conversas ativas associadas em lote",
+        "Fecha em lote todas as conversas ativas de um ou mais números de telefone",
       about:
         "Localiza e encerra em lote todas as conversas ativas associadas a uma lista de números de telefone. Ideal para desativar atendimentos de vários números de uma só vez.",
       phoneLabel: "Números de telefone",
@@ -208,7 +208,7 @@ export const strings = {
     fetchByParticipant: {
       breadcrumb: "Buscar por Participante",
       title: "Buscar por Participante",
-      subtitle: "Retorna todas as conversas WhatsApp associadas a um número",
+      subtitle: "Lista todas as conversas associadas a um número de telefone",
       about:
         "Lista todas as conversas em que um número de telefone participou. Útil para entender o histórico de atendimento de um cliente ou verificar o estado atual das suas conversas.",
       phoneLabel: "Número de telefone",
@@ -260,7 +260,7 @@ export const strings = {
       breadcrumb: "Atribuir Workers",
       title: "Atribuir Workers à Fila",
       subtitle:
-        "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail",
+        "Adiciona uma skill aos atributos de múltiplos workers de uma vez",
       about:
         "Adiciona uma skill com nível opcional aos atributos de vários workers de uma vez. Ideal para preparar uma equipe antes de ativar uma nova fila ou redistribuir atendimentos entre times.",
       workspaceSidLabel: "Workspace SID",
@@ -290,7 +290,7 @@ export const strings = {
       breadcrumb: "Criar Workflow",
       title: "Criar Workflow",
       subtitle:
-        "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter",
+        "Cria um workflow de roteamento no TaskRouter a partir de um arquivo CSV",
       about:
         "Lê as regras de negócio e filas de um arquivo CSV e cria o workflow de roteamento no TaskRouter. Ideal para automatizar a criação de workflows sem configurar cada filtro manualmente.",
       workspaceSidLabel: "Workspace SID",
@@ -320,7 +320,7 @@ export const strings = {
       breadcrumb: "Buscar Task",
       title: "Buscar Task",
       subtitle:
-        "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID",
+        "Consulta os detalhes completos de uma task pelo SID",
       about:
         "Busca uma task pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar o estado atual da task sem abrir o console Twilio.",
       workspaceSidLabel: "Workspace SID",
@@ -350,7 +350,7 @@ export const strings = {
       breadcrumb: "Buscar Worker",
       title: "Buscar Worker",
       subtitle:
-        "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail",
+        "Consulta os detalhes completos de um worker pelo SID ou e-mail",
       about:
         "Busca um worker pelo SID ou e-mail e exibe suas informações completas. Útil para inspecionar um worker e conferir suas configurações sem acessar o console Twilio.",
       workspaceSidLabel: "Workspace SID",
@@ -376,7 +376,7 @@ export const strings = {
       breadcrumb: "Encerrar Tasks da Fila",
       title: "Encerrar Tasks da Fila",
       subtitle:
-        "Encerra tasks pendentes/reservadas, envia mensagem de aviso e fecha as conversas associadas",
+        "Encerra em lote as tasks de uma fila e fecha as conversas associadas",
       about:
         "Encerra em lote todas as tasks pendentes ou reservadas de uma fila, notifica os clientes e fecha as conversas associadas. Ideal para desativar uma fila inteira de atendimentos — ação irreversível, use com cuidado.",
       workspaceSidLabel: "Workspace SID",
