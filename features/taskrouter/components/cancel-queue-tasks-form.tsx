@@ -16,6 +16,7 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
+import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
 import { StoredTextarea } from "@/components/stored-textarea"
 import {
@@ -288,10 +289,13 @@ export function CancelQueueTasksForm() {
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
           <ListX className="size-4 text-primary" />
         </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.taskrouter.cancelQueueTasks.title}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">
+              {strings.taskrouter.cancelQueueTasks.title}
+            </h1>
+            <WarningBadge />
+          </div>
           <p className="text-sm text-muted-foreground">
             {strings.taskrouter.cancelQueueTasks.subtitle}
           </p>
@@ -547,12 +551,11 @@ export function CancelQueueTasksForm() {
                 {" · "}
                 <span className="font-mono">{h.taskQueueName}</span>
                 {" · "}
-                {h.success} encerrada(s)
-                {h.skipped > 0 && <span> · {h.skipped} ignorada(s)</span>}
+                {strings.taskrouter.cancelQueueTasks.history.item(h.success)}
+                {h.skipped > 0 && <span>{strings.taskrouter.cancelQueueTasks.history.itemSkipped(h.skipped)}</span>}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {" "}
-                    · {h.errors} erro(s)
+                    {strings.taskrouter.cancelQueueTasks.history.itemErrors(h.errors)}
                   </span>
                 )}
               </li>

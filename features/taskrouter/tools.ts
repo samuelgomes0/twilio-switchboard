@@ -1,6 +1,8 @@
 import { ClipboardList, GitBranch, ListX, User, UserPlus } from "lucide-react"
 import { ElementType } from "react"
 
+import { strings } from "@/lib/strings"
+
 interface Tool {
   label: string
   description: string
@@ -11,41 +13,36 @@ interface Tool {
 
 export const taskrouterTools: Tool[] = [
   {
-    label: "Atribuir Workers à Fila",
-    description:
-      "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail.",
+    label: strings.taskrouter.assignWorkers.breadcrumb,
+    description: strings.taskrouter.assignWorkers.subtitle,
     href: "/taskrouter/assign-workers",
     icon: UserPlus,
     available: true,
   },
   {
-    label: "Criar Workflow",
-    description:
-      "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter.",
+    label: strings.taskrouter.createWorkflow.breadcrumb,
+    description: strings.taskrouter.createWorkflow.subtitle,
     href: "/taskrouter/create-workflow",
     icon: GitBranch,
     available: true,
   },
   {
-    label: "Buscar Task",
-    description:
-      "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID.",
+    label: strings.taskrouter.fetchTask.breadcrumb,
+    description: strings.taskrouter.fetchTask.subtitle,
     href: "/taskrouter/fetch-task",
     icon: ClipboardList,
     available: true,
   },
   {
-    label: "Buscar Worker",
-    description:
-      "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail.",
+    label: strings.taskrouter.fetchWorker.breadcrumb,
+    description: strings.taskrouter.fetchWorker.subtitle,
     href: "/taskrouter/fetch-worker",
     icon: User,
     available: true,
   },
   {
-    label: "Encerrar Tasks da Fila",
-    description:
-      "Encerra todas as tasks pendentes/reservadas de uma fila e fecha as conversas associadas com mensagem de aviso.",
+    label: strings.taskrouter.cancelQueueTasks.breadcrumb,
+    description: strings.taskrouter.cancelQueueTasks.subtitle,
     href: "/taskrouter/cancel-queue-tasks",
     icon: ListX,
     available: true,

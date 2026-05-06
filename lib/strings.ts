@@ -27,6 +27,12 @@ export const strings = {
     remove: "Remover",
     workspaceSidInvalid: "Deve começar com WS e ter 34 caracteres",
     phoneDigitsOnly: "Deve conter apenas dígitos",
+    waitingForOperations: "Aguardando operações...",
+    warningBadge: {
+      label: "Atenção",
+      tooltip:
+        "Esta operação modifica dados no Twilio. Revise os campos antes de executar.",
+    },
   },
   sidebar: {
     title: "Switchboard",
@@ -171,6 +177,7 @@ export const strings = {
         proxy: "Proxy",
         added: "Adicionado:",
         updated: "Atualizado:",
+        messagingServiceSid: "Messaging Service SID",
       },
       history: {
         title: "Últimas consultas",
@@ -203,6 +210,9 @@ export const strings = {
       history: {
         title: "Últimas operações",
         clear: "Limpar",
+        item: (total: number, closed: number) =>
+          `${total} número(s) · ${closed} fechada(s)`,
+        itemErrors: (n: number) => ` · ${n} erro(s)`,
       },
     },
     fetchByParticipant: {
@@ -228,6 +238,7 @@ export const strings = {
         noneFiltered: (state: string) =>
           `Nenhuma conversa com estado "${state}" encontrada.`,
         count: (n: number) => `${n} conversa(s) encontrada(s)`,
+        totalSuffix: (n: number) => ` · ${n} total`,
         dateCreated: "Criada:",
         dateUpdated: "Atualizada:",
         identity: "Identidade:",
@@ -236,6 +247,7 @@ export const strings = {
       history: {
         title: "Últimas consultas",
         clear: "Limpar",
+        item: (n: number) => `${n} conversa(s)`,
       },
     },
   },
@@ -284,6 +296,9 @@ export const strings = {
       history: {
         title: "Últimas operações",
         clear: "Limpar",
+        item: (n: number) => `${n} atualizado(s)`,
+        itemSkipped: (n: number) => ` · ${n} ignorado(s)`,
+        itemErrors: (n: number) => ` · ${n} erro(s)`,
       },
     },
     createWorkflow: {
@@ -314,6 +329,7 @@ export const strings = {
       history: {
         title: "Últimas criações",
         clear: "Limpar",
+        itemFilters: (n: number) => `${n} filtro(s)`,
       },
     },
     fetchTask: {
@@ -395,6 +411,9 @@ export const strings = {
       history: {
         title: "Últimas operações",
         clear: "Limpar",
+        item: (n: number) => `${n} encerrada(s)`,
+        itemSkipped: (n: number) => ` · ${n} ignorada(s)`,
+        itemErrors: (n: number) => ` · ${n} erro(s)`,
       },
     },
   },

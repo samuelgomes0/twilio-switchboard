@@ -375,7 +375,7 @@ export function FetchForm() {
                 {data.conversation.messagingServiceSid && (
                   <div className="col-span-2">
                     <p className="mb-0.5 text-xs text-muted-foreground">
-                      Messaging Service SID
+                      {strings.conversations.fetch.result.messagingServiceSid}
                     </p>
                     <p className="font-mono text-xs">
                       {data.conversation.messagingServiceSid}

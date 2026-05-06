@@ -1,6 +1,8 @@
 import { AtSign, MessageSquareOff, Search } from "lucide-react"
 import { ElementType } from "react"
 
+import { strings } from "@/lib/strings"
+
 interface Tool {
   label: string
   description: string
@@ -11,25 +13,22 @@ interface Tool {
 
 export const conversationsTools: Tool[] = [
   {
-    label: "Buscar Conversa",
-    description:
-      "Retorna estado, participantes, atributos e datas de uma conversa a partir do SID.",
+    label: strings.conversations.fetch.breadcrumb,
+    description: strings.conversations.fetch.subtitle,
     href: "/conversations/fetch",
     icon: Search,
     available: true,
   },
   {
-    label: "Buscar por Participante",
-    description:
-      "Lista todas as conversas associadas a um endereço de participante (WhatsApp, SMS, etc.).",
+    label: strings.conversations.fetchByParticipant.breadcrumb,
+    description: strings.conversations.fetchByParticipant.subtitle,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
     available: true,
   },
   {
-    label: "Fechar Conversas",
-    description:
-      "Recebe números de telefone e fecha todas as conversas ativas associadas em lote.",
+    label: strings.conversations.close.breadcrumb,
+    description: strings.conversations.close.subtitle,
     href: "/conversations/close",
     icon: MessageSquareOff,
     available: true,

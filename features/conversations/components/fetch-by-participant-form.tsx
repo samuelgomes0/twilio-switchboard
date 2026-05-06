@@ -368,7 +368,7 @@ export function FetchByParticipantForm() {
                 {stateFilter !== "all" &&
                   results &&
                   results.length !== filteredResults.length && (
-                    <> · {results.length} total</>
+                    <>{strings.conversations.fetchByParticipant.results.totalSuffix(results.length)}</>
                   )}
               </p>
               <ul className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
@@ -450,7 +450,7 @@ export function FetchByParticipantForm() {
                 <span className="font-mono">{h.phone}</span>
                 {h.stateFilter !== "all" && <span> · {h.stateFilter}</span>}
                 {" · "}
-                {h.count} conversa(s)
+                {strings.conversations.fetchByParticipant.history.item(h.count)}
               </li>
             ))}
           </ul>
