@@ -1,9 +1,6 @@
 import { sseEvent, withRetry } from "@/features/conversations/lib/close"
+import { RETRY_ATTEMPTS, RETRY_DELAY_MS, TASK_LIST_LIMIT } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
-
-const RETRY_ATTEMPTS = 3
-const RETRY_DELAY_MS = 2000
-const TASK_LIST_LIMIT = 1000
 
 const IGNORE_STATUSES = new Set([
   "assigned",
@@ -46,6 +43,101 @@ function extractConversationSid(attributes: TaskAttributes): string | null {
   return null
 }
 
+type TaskOutcome = "success" | "skipped" | "error"
+
+async function processSingleTask(
+  task: { sid: string; assignmentStatus: string | null; attributes: string },
+  args: { workspaceSid: string; taskQueueName: string; message: string },
+  client: ReturnType<typeof getTwilioClient>,
+  emit: (event: string) => void
+): Promise<TaskOutcome> {
+  const { workspaceSid, taskQueueName, message } = args
+  const status = task.assignmentStatus ?? ""
+
+  if (!CANCEL_STATUSES.has(status)) return "skipped"
+
+  const attributes = parseTaskAttributes(task.attributes)
+  const rawSid = extractConversationSid(attributes)
+  const conversationSid = isValidConversationSid(rawSid) ? rawSid : null
+
+  // Step 1: cancel task first — if this fails, abort to avoid sending a misleading message
+  const cancelResult = await withRetry(
+    () =>
+      client.taskrouter.v1
+        .workspaces(workspaceSid)
+        .tasks(task.sid)
+        .update({
+          assignmentStatus: "canceled",
+          reason: `Limpeza em massa da fila ${taskQueueName}`,
+        }),
+    RETRY_ATTEMPTS,
+    RETRY_DELAY_MS,
+    `Cancelar task ${task.sid}`,
+    emit
+  )
+
+  if (cancelResult === null) return "error"
+
+  if (!conversationSid) {
+    emit(
+      sseEvent(
+        "success",
+        `Task ${task.sid}: cancelada (sem conversa associada)`
+      )
+    )
+    return "success"
+  }
+
+  // Step 2: send goodbye message while conversation is still open
+  const msgResult = await withRetry(
+    () =>
+      client.conversations.v1
+        .conversations(conversationSid)
+        .messages.create({ body: message }),
+    RETRY_ATTEMPTS,
+    RETRY_DELAY_MS,
+    `Enviar mensagem para conversa ${conversationSid}`,
+    emit
+  )
+  if (msgResult === null) {
+    emit(
+      sseEvent(
+        "warning",
+        `Task ${task.sid}: cancelada, mas falha ao enviar mensagem para ${conversationSid}`
+      )
+    )
+  }
+
+  // Step 3: close conversation
+  const closeResult = await withRetry(
+    () =>
+      client.conversations.v1
+        .conversations(conversationSid)
+        .update({ state: "closed" }),
+    RETRY_ATTEMPTS,
+    RETRY_DELAY_MS,
+    `Fechar conversa ${conversationSid}`,
+    emit
+  )
+  if (closeResult === null) {
+    emit(
+      sseEvent(
+        "warning",
+        `Task ${task.sid}: cancelada, mas falha ao fechar conversa ${conversationSid}`
+      )
+    )
+  } else {
+    emit(
+      sseEvent(
+        "success",
+        `Task ${task.sid}: cancelada, mensagem enviada, conversa fechada (${status} → canceled)`
+      )
+    )
+  }
+
+  return "success"
+}
+
 export async function cancelQueueTasks(
   {
     workspaceSid,
@@ -83,140 +175,57 @@ export async function cancelQueueTasks(
     return { totalSuccess: 0, totalSkipped: 0, totalErrors: 1 }
   }
 
-  const cancellableCount = tasks.filter((t) =>
+  const cancellableTasks = tasks.filter((t) =>
     CANCEL_STATUSES.has(t.assignmentStatus ?? "")
-  ).length
+  )
   const ignoredCount = tasks.filter((t) =>
     IGNORE_STATUSES.has(t.assignmentStatus ?? "")
   ).length
+  const otherCount =
+    tasks.length - cancellableTasks.length - ignoredCount
 
   emit(
     sseEvent(
       "info",
-      `${tasks.length} task(s) encontrada(s) — elegíveis: ${cancellableCount} · ignoradas: ${ignoredCount}`
+      `${tasks.length} task(s) encontrada(s) — elegíveis: ${cancellableTasks.length} · ignoradas: ${ignoredCount}`
     )
   )
 
+  if (cancellableTasks.length === 0) {
+    return {
+      totalSuccess: 0,
+      totalSkipped: ignoredCount + otherCount,
+      totalErrors: 0,
+    }
+  }
+
+  let processed = 0
+  const taskArgs = { workspaceSid, taskQueueName, message }
+
+  const results = await Promise.allSettled(
+    cancellableTasks.map(async (task) => {
+      const outcome = await processSingleTask(task, taskArgs, client, emit)
+      processed++
+      emit(
+        sseEvent(
+          "info",
+          `Progresso: ${processed}/${cancellableTasks.length}`,
+          { progress: { current: processed, total: cancellableTasks.length } }
+        )
+      )
+      return outcome
+    })
+  )
+
   let totalSuccess = 0
-  let totalSkipped = ignoredCount
   let totalErrors = 0
+  let totalSkipped = ignoredCount + otherCount
 
-  for (const task of tasks) {
-    const status = task.assignmentStatus ?? ""
-
-    if (IGNORE_STATUSES.has(status)) {
-      emit(sseEvent("warning", `Task ${task.sid}: ignorada (${status})`))
-      continue
-    }
-
-    if (!CANCEL_STATUSES.has(status)) {
-      emit(
-        sseEvent(
-          "warning",
-          `Task ${task.sid}: status inesperado "${status}" — ignorada`
-        )
-      )
-      totalSkipped++
-      continue
-    }
-
-    const attributes = parseTaskAttributes(task.attributes)
-    const rawSid = extractConversationSid(attributes)
-    const conversationSid = isValidConversationSid(rawSid) ? rawSid : null
-
-    if (!conversationSid) {
-      emit(
-        sseEvent(
-          "warning",
-          `Task ${task.sid}: sem conversationSid válido — cancelando apenas a task`
-        )
-      )
-
-      const result = await withRetry(
-        () =>
-          client.taskrouter.v1
-            .workspaces(workspaceSid)
-            .tasks(task.sid)
-            .update({
-              assignmentStatus: "canceled",
-              reason: `Limpeza em massa da fila ${taskQueueName}`,
-            }),
-        RETRY_ATTEMPTS,
-        RETRY_DELAY_MS,
-        `Cancelar task ${task.sid}`,
-        emit
-      )
-
-      if (result !== null) {
-        totalSuccess++
-        emit(sseEvent("success", `Task ${task.sid}: cancelada com sucesso`))
-      } else {
-        totalErrors++
-      }
-      continue
-    }
-
-    const msgResult = await withRetry(
-      () =>
-        client.conversations.v1
-          .conversations(conversationSid)
-          .messages.create({ body: message }),
-      RETRY_ATTEMPTS,
-      RETRY_DELAY_MS,
-      `Enviar mensagem para conversa ${conversationSid}`,
-      emit
-    )
-    if (msgResult === null) {
-      totalErrors++
-      continue
-    }
-    emit(
-      sseEvent(
-        "info",
-        `Task ${task.sid}: mensagem enviada para ${conversationSid}`
-      )
-    )
-
-    const closeResult = await withRetry(
-      () =>
-        client.conversations.v1
-          .conversations(conversationSid)
-          .update({ state: "closed" }),
-      RETRY_ATTEMPTS,
-      RETRY_DELAY_MS,
-      `Fechar conversa ${conversationSid}`,
-      emit
-    )
-    if (closeResult === null) {
-      totalErrors++
-      continue
-    }
-    emit(
-      sseEvent("info", `Task ${task.sid}: conversa ${conversationSid} fechada`)
-    )
-
-    const cancelResult = await withRetry(
-      () =>
-        client.taskrouter.v1
-          .workspaces(workspaceSid)
-          .tasks(task.sid)
-          .update({
-            assignmentStatus: "canceled",
-            reason: `Limpeza em massa da fila ${taskQueueName}`,
-          }),
-      RETRY_ATTEMPTS,
-      RETRY_DELAY_MS,
-      `Cancelar task ${task.sid}`,
-      emit
-    )
-    if (cancelResult !== null) {
-      totalSuccess++
-      emit(
-        sseEvent(
-          "success",
-          `Task ${task.sid}: cancelada com sucesso (${status} → canceled)`
-        )
-      )
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      if (result.value === "success") totalSuccess++
+      else if (result.value === "skipped") totalSkipped++
+      else totalErrors++
     } else {
       totalErrors++
     }

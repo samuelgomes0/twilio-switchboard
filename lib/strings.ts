@@ -23,6 +23,10 @@ export const strings = {
     networkError: "Erro de rede",
     unexpectedError: "Erro inesperado",
     apiConnectionError: "Erro ao conectar com a API",
+    aborted: "Operação cancelada",
+    remove: "Remover",
+    workspaceSidInvalid: "Deve começar com WS e ter 34 caracteres",
+    phoneDigitsOnly: "Deve conter apenas dígitos",
   },
   sidebar: {
     title: "Switchboard",
@@ -148,9 +152,10 @@ export const strings = {
       subtitle:
         "Retorna estado, participantes, atributos e datas de uma conversa",
       about:
-        "Use quando você tem o SID de uma conversa e quer ver o estado atual, os participantes e os atributos — sem precisar abrir o console Twilio.",
+        "Busca uma conversa pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar a conversa sem abrir o console Twilio.",
       sidLabel: "Conversation SID",
       sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
+      sidInvalid: "Deve começar com CH e ter 34 caracteres",
       confirmTitle: "Buscar conversa?",
       confirmDescription: (sid: string, env: string) =>
         `Buscar dados da conversa ${sid} no ambiente ${env}?`,
@@ -178,11 +183,13 @@ export const strings = {
       subtitle:
         "Recebe números de telefone e fecha todas as conversas ativas associadas em lote",
       about:
-        "Informe os números de telefone e o sistema localiza e encerra todas as conversas ativas associadas em lote. Ideal para desativar atendimentos de uma só vez.",
+        "Localiza e encerra em lote todas as conversas ativas associadas a uma lista de números de telefone. Ideal para desativar atendimentos de vários números de uma só vez.",
       phoneLabel: "Números de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       detected: (n: number) => `${n} número(s) detectado(s)`,
       maxExceeded: (max: number) => ` — máximo ${max} por vez`,
+      addPhone: "Adicionar número",
+      removePhone: "Remover número",
       submit: "Fechar Conversas",
       confirmTitle: "Fechar conversas?",
       confirmDescription: (n: number) =>
@@ -203,7 +210,7 @@ export const strings = {
       title: "Buscar por Participante",
       subtitle: "Retorna todas as conversas WhatsApp associadas a um número",
       about:
-        "Informe um número de telefone e veja todas as conversas em que ele participou. Útil para entender o histórico de atendimento ou verificar o estado atual.",
+        "Lista todas as conversas em que um número de telefone participou. Útil para entender o histórico de atendimento de um cliente ou verificar o estado atual das suas conversas.",
       phoneLabel: "Número de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       filterLabel: "Filtrar por estado",
@@ -255,7 +262,7 @@ export const strings = {
       subtitle:
         "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail",
       about:
-        "Adiciona uma skill a vários workers de uma vez. Ideal para preparar uma equipe antes de ativar uma nova fila ou redistribuir atendimentos entre times.",
+        "Adiciona uma skill com nível opcional aos atributos de vários workers de uma vez. Ideal para preparar uma equipe antes de ativar uma nova fila ou redistribuir atendimentos entre times.",
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
@@ -285,7 +292,7 @@ export const strings = {
       subtitle:
         "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter",
       about:
-        "Lê as regras de negócio e filas de um arquivo e cria o workflow de roteamento automaticamente no TaskRouter — sem precisar configurar manualmente cada filtro.",
+        "Lê as regras de negócio e filas de um arquivo CSV e cria o workflow de roteamento no TaskRouter. Ideal para automatizar a criação de workflows sem configurar cada filtro manualmente.",
       workspaceSidLabel: "Workspace SID",
       workflowNameLabel: "Nome do Workflow",
       csvLabel: "Arquivo CSV",
@@ -315,10 +322,11 @@ export const strings = {
       subtitle:
         "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID",
       about:
-        "Use quando você tem o SID de uma task e quer inspecionar o estado atual, a fila em que está e os atributos — sem abrir o console Twilio.",
+        "Busca uma task pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar o estado atual da task sem abrir o console Twilio.",
       workspaceSidLabel: "Workspace SID",
       taskSidLabel: "Task SID",
       taskSidHint: "Formato: WT seguido de 32 caracteres hexadecimais",
+      taskSidInvalid: "Deve começar com WT e ter 34 caracteres",
       confirmTitle: "Buscar task?",
       confirmDescription: (taskSid: string, env: string) =>
         `Buscar dados da task ${taskSid} no ambiente ${env}?`,
@@ -344,7 +352,7 @@ export const strings = {
       subtitle:
         "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail",
       about:
-        "Use para inspecionar um worker pelo e-mail ou SID. Retorna a atividade atual, as skills atribuídas e todos os atributos configurados.",
+        "Busca um worker pelo SID ou e-mail e exibe suas informações completas. Útil para inspecionar um worker e conferir suas configurações sem acessar o console Twilio.",
       workspaceSidLabel: "Workspace SID",
       identifierLabel: "Worker SID ou e-mail",
       identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
@@ -370,7 +378,7 @@ export const strings = {
       subtitle:
         "Encerra tasks pendentes/reservadas, envia mensagem de aviso e fecha as conversas associadas",
       about:
-        "Encerra em lote todas as tasks pendentes ou reservadas de uma fila, notifica os clientes com uma mensagem e fecha as conversas associadas. Ação irreversível — use com cuidado.",
+        "Encerra em lote todas as tasks pendentes ou reservadas de uma fila, notifica os clientes e fecha as conversas associadas. Ideal para desativar uma fila inteira de atendimentos — ação irreversível, use com cuidado.",
       workspaceSidLabel: "Workspace SID",
       taskQueueNameLabel: "Nome da fila (Task Queue)",
       closeMessageLabel: "Mensagem enviada ao cliente antes de fechar",
@@ -504,6 +512,10 @@ export const strings = {
       hideTokenAriaLabel: "Ocultar token",
       saveButton: "Salvar",
       cancelButton: "Cancelar",
+      testButton: "Testar conexão",
+      testingButton: "Testando...",
+      testSuccess: "Conexão bem-sucedida",
+      testError: "Credenciais inválidas ou sem permissão",
     },
   },
 } as const

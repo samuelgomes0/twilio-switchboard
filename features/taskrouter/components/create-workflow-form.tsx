@@ -6,6 +6,7 @@ import {
   GitBranch,
   Play,
   RotateCcw,
+  Square,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -30,6 +31,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
+import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -52,7 +54,7 @@ interface HistoryEntry {
 const HISTORY_KEY = "switchboard:create-workflow-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const WF_NAMES_KEY = STORED_KEYS.workflowNames
-const MAX_HISTORY = 5
+const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -93,6 +95,8 @@ export function CreateWorkflowForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [wsSidError, setWsSidError] = React.useState<string | null>(null)
+  const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     setHistory(readHistory())
@@ -113,6 +117,11 @@ export function CreateWorkflowForm() {
     setLogs([])
     setStatus("idle")
     setSummary(null)
+    setWsSidError(null)
+  }
+
+  function handleAbort() {
+    abortRef.current?.abort()
   }
 
   function clearHistory() {
@@ -137,9 +146,13 @@ export function CreateWorkflowForm() {
       return
     }
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const res = await fetch("/api/taskrouter/create-workflow", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceSid: workspaceSid.trim(),
@@ -224,16 +237,28 @@ export function CreateWorkflowForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        addLog("warning", strings.common.aborted)
+        setStatus("idle")
+        return
+      }
       const message =
         err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
+    } finally {
+      abortRef.current = null
     }
   }
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    if (!WS_SID_RE.test(workspaceSid.trim())) {
+      setWsSidError(strings.common.workspaceSidInvalid)
+      return
+    }
+    setWsSidError(null)
     setConfirmOpen(true)
   }
 
@@ -305,10 +330,16 @@ export function CreateWorkflowForm() {
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
-            onChange={setWorkspaceSid}
+            onChange={(v) => {
+              setWorkspaceSid(v)
+              if (wsSidError) setWsSidError(null)
+            }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={status === "running"}
           />
+          {wsSidError && (
+            <p className="text-xs text-destructive">{wsSidError}</p>
+          )}
         </div>
 
         {/* Workflow name */}
@@ -364,12 +395,23 @@ export function CreateWorkflowForm() {
             )}
           </Button>
 
-          {(logs.length > 0 || status !== "idle") && (
+          {status === "running" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAbort}
+              className="gap-2"
+            >
+              <Square className="size-3.5" />
+              {strings.common.cancel}
+            </Button>
+          )}
+
+          {(logs.length > 0 || status !== "idle") && status !== "running" && (
             <Button
               type="button"
               variant="outline"
               onClick={reset}
-              disabled={status === "running"}
               className="gap-2"
             >
               <RotateCcw className="size-3.5" />
@@ -387,10 +429,11 @@ export function CreateWorkflowForm() {
               {strings.taskrouter.createWorkflow.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a criar o workflow{" "}
-              <strong>&quot;{workflowName}&quot;</strong> no workspace{" "}
-              <strong className="font-mono">{workspaceSid}</strong>. Os filtros
-              serão lidos do arquivo: <strong>{csvFile?.name ?? ""}</strong>.
+              {strings.taskrouter.createWorkflow.confirmDescription(
+                workflowName.trim(),
+                workspaceSid.trim(),
+                csvFile?.name ?? ""
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

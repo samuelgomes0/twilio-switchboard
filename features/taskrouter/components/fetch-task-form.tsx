@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { TaskData } from "@/features/taskrouter/types"
+import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -41,7 +42,8 @@ interface HistoryEntry {
 
 const HISTORY_KEY = "switchboard:fetch-task-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
-const MAX_HISTORY = 5
+const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
+const TASK_SID_RE = /^WT[a-fA-F0-9]{32}$/i
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -145,6 +147,7 @@ export function FetchTaskForm() {
   const [taskSid, setTaskSid] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
   const [data, setData] = React.useState<{ task: TaskData } | null>(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
   const [confirmOpen, setConfirmOpen] = React.useState(false)
@@ -200,6 +203,16 @@ export function FetchTaskForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    const errs: Record<string, string> = {}
+    if (!WS_SID_RE.test(workspaceSid.trim()))
+      errs.workspaceSid = strings.common.workspaceSidInvalid
+    if (!TASK_SID_RE.test(taskSid.trim()))
+      errs.taskSid = strings.taskrouter.fetchTask.taskSidInvalid
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors({})
     setConfirmOpen(true)
   }
 
@@ -278,10 +291,17 @@ export function FetchTaskForm() {
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
-            onChange={setWorkspaceSid}
+            onChange={(v) => {
+              setWorkspaceSid(v)
+              if (fieldErrors.workspaceSid)
+                setFieldErrors((p) => { const n = { ...p }; delete n.workspaceSid; return n })
+            }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={loading}
           />
+          {fieldErrors.workspaceSid && (
+            <p className="text-xs text-destructive">{fieldErrors.workspaceSid}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -292,10 +312,15 @@ export function FetchTaskForm() {
             <Input
               id="taskSid"
               value={taskSid}
-              onChange={(e) => setTaskSid(e.target.value)}
+              onChange={(e) => {
+                setTaskSid(e.target.value)
+                if (fieldErrors.taskSid)
+                  setFieldErrors((p) => { const n = { ...p }; delete n.taskSid; return n })
+              }}
               placeholder="WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               disabled={loading}
               className="flex-1 font-mono text-sm"
+              aria-invalid={!!fieldErrors.taskSid}
             />
             <Button
               type="submit"
@@ -310,9 +335,13 @@ export function FetchTaskForm() {
               {strings.common.search}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {strings.taskrouter.fetchTask.taskSidHint}
-          </p>
+          {fieldErrors.taskSid ? (
+            <p className="text-xs text-destructive">{fieldErrors.taskSid}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {strings.taskrouter.fetchTask.taskSidHint}
+            </p>
+          )}
         </div>
       </form>
 
@@ -324,9 +353,10 @@ export function FetchTaskForm() {
               {strings.taskrouter.fetchTask.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Buscar dados da task{" "}
-              <strong className="font-mono">{taskSid}</strong> no ambiente{" "}
-              <strong>{activeEnvironment?.name}</strong>?
+              {strings.taskrouter.fetchTask.confirmDescription(
+                taskSid.trim(),
+                activeEnvironment?.name ?? ""
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

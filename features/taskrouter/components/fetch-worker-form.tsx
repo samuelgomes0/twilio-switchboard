@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
+import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -37,7 +38,7 @@ interface HistoryEntry {
 const HISTORY_KEY = "switchboard:fetch-worker-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const WORKER_IDS_KEY = STORED_KEYS.workerIdentifiers
-const MAX_HISTORY = 5
+const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -136,6 +137,7 @@ export function FetchWorkerForm() {
   const [identifier, setIdentifier] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const [data, setData] = React.useState<{ worker: WorkerData } | null>(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
   const [confirmOpen, setConfirmOpen] = React.useState(false)
@@ -192,6 +194,11 @@ export function FetchWorkerForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    if (!WS_SID_RE.test(workspaceSid.trim())) {
+      setWsSidError(strings.common.workspaceSidInvalid)
+      return
+    }
+    setWsSidError(null)
     setConfirmOpen(true)
   }
 
@@ -272,10 +279,16 @@ export function FetchWorkerForm() {
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
-            onChange={setWorkspaceSid}
+            onChange={(v) => {
+              setWorkspaceSid(v)
+              if (wsSidError) setWsSidError(null)
+            }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={loading}
           />
+          {wsSidError && (
+            <p className="text-xs text-destructive">{wsSidError}</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -321,9 +334,10 @@ export function FetchWorkerForm() {
               {strings.taskrouter.fetchWorker.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Buscar dados do worker{" "}
-              <strong className="font-mono">{identifier}</strong> no ambiente{" "}
-              <strong>{activeEnvironment?.name}</strong>?
+              {strings.taskrouter.fetchWorker.confirmDescription(
+                identifier.trim(),
+                activeEnvironment?.name ?? ""
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

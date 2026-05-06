@@ -6,6 +6,7 @@ import {
   ListX,
   Play,
   RotateCcw,
+  Square,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -31,6 +32,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { DEFAULT_CLOSE_MESSAGE } from "@/features/taskrouter/lib/cancel-queue-tasks"
+import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -51,11 +53,16 @@ interface HistoryEntry {
   errors: number
 }
 
+interface Progress {
+  current: number
+  total: number
+}
+
 const HISTORY_KEY = "switchboard:cancel-queue-tasks-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const QUEUE_NAMES_KEY = STORED_KEYS.queueNames
 const CLOSE_MESSAGES_KEY = STORED_KEYS.closeMessages
-const MAX_HISTORY = 5
+const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -96,6 +103,9 @@ export function CancelQueueTasksForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
+  const [progress, setProgress] = React.useState<Progress | null>(null)
+  const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     setHistory(readHistory())
@@ -116,6 +126,8 @@ export function CancelQueueTasksForm() {
     setLogs([])
     setStatus("idle")
     setSummary(null)
+    setProgress(null)
+    setFieldErrors({})
   }
 
   function clearHistory() {
@@ -125,15 +137,23 @@ export function CancelQueueTasksForm() {
     setHistory([])
   }
 
+  function handleAbort() {
+    abortRef.current?.abort()
+  }
+
   async function runSubmit() {
     if (!canSubmit || !activeEnvironment) return
 
     reset()
     setStatus("running")
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const res = await fetch("/api/taskrouter/cancel-queue-tasks", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceSid: workspaceSid.trim(),
@@ -182,8 +202,10 @@ export function CancelQueueTasksForm() {
               totalSuccess?: number
               totalSkipped?: number
               totalErrors?: number
+              progress?: Progress
             }
 
+            if (payload.progress) setProgress(payload.progress)
             addLog(payload.level, payload.message)
 
             if (payload.done) {
@@ -215,16 +237,33 @@ export function CancelQueueTasksForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        addLog("warning", strings.common.aborted)
+        setStatus("idle")
+        return
+      }
       const message =
         err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
+    } finally {
+      abortRef.current = null
     }
   }
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+
+    const errs: Record<string, string> = {}
+    if (!WS_SID_RE.test(workspaceSid.trim())) {
+      errs.workspaceSid = strings.common.workspaceSidInvalid
+    }
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors({})
     setConfirmOpen(true)
   }
 
@@ -296,10 +335,23 @@ export function CancelQueueTasksForm() {
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
-            onChange={setWorkspaceSid}
+            onChange={(v) => {
+              setWorkspaceSid(v)
+              if (fieldErrors.workspaceSid)
+                setFieldErrors((prev) => {
+                  const next = { ...prev }
+                  delete next.workspaceSid
+                  return next
+                })
+            }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={status === "running"}
           />
+          {fieldErrors.workspaceSid && (
+            <p className="text-xs text-destructive">
+              {fieldErrors.workspaceSid}
+            </p>
+          )}
         </div>
 
         {/* Task Queue Name */}
@@ -355,12 +407,23 @@ export function CancelQueueTasksForm() {
             )}
           </Button>
 
-          {(logs.length > 0 || status !== "idle") && (
+          {status === "running" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAbort}
+              className="gap-2"
+            >
+              <Square className="size-3.5" />
+              {strings.common.cancel}
+            </Button>
+          )}
+
+          {(logs.length > 0 || status !== "idle") && status !== "running" && (
             <Button
               type="button"
               variant="outline"
               onClick={reset}
-              disabled={status === "running"}
               className="gap-2"
             >
               <RotateCcw className="size-3.5" />
@@ -397,6 +460,28 @@ export function CancelQueueTasksForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogRoot>
+
+      {/* Progress bar */}
+      {progress && status === "running" && (
+        <div className="mt-5 space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>
+              {progress.current} / {progress.total}
+            </span>
+            <span>
+              {Math.round((progress.current / progress.total) * 100)}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{
+                width: `${(progress.current / progress.total) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Summary banner */}
       {summary && status === "done" && (

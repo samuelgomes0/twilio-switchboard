@@ -1,7 +1,5 @@
+import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
-
-const RETRY_ATTEMPTS = 3
-const RETRY_DELAY_MS = 2000
 
 export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -50,9 +48,7 @@ export async function withRetry<T>(
 }
 
 export function formatPhoneNumber(raw: string): string {
-  // Strip whitespace
   const cleaned = raw.trim().replace(/\s+/g, "")
-  // Format as whatsapp:+55{number}
   return `whatsapp:+55${cleaned}`
 }
 
@@ -64,9 +60,15 @@ export async function closeConversations(
   let totalClosed = 0
   let totalErrors = 0
 
-  for (const raw of participants) {
+  for (let idx = 0; idx < participants.length; idx++) {
+    const raw = participants[idx]
     const address = formatPhoneNumber(raw)
-    emit(sseEvent("info", `Buscando conversas para ${address}...`))
+
+    emit(
+      sseEvent("info", `Buscando conversas para ${address}...`, {
+        progress: { current: idx + 1, total: participants.length },
+      })
+    )
 
     const conversations = await withRetry(
       () =>

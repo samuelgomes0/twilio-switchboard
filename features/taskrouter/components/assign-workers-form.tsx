@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Play,
   RotateCcw,
+  Square,
   UserPlus,
 } from "lucide-react"
 import Link from "next/link"
@@ -31,6 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useEnvironment } from "@/features/environments/context"
+import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -51,10 +53,15 @@ interface HistoryEntry {
   errors: number
 }
 
+interface Progress {
+  current: number
+  total: number
+}
+
 const HISTORY_KEY = "switchboard:assign-workers-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const SKILLS_KEY = STORED_KEYS.skillNames
-const MAX_HISTORY = 5
+const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -103,13 +110,15 @@ export function AssignWorkersForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
+  const [progress, setProgress] = React.useState<Progress | null>(null)
+  const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     setHistory(readHistory())
   }, [])
 
   const emails = parseEmails(emailsInput)
-  const MAX_ITEMS = 10
   const canSubmit =
     workspaceSid.trim().length > 0 &&
     skill.trim().length > 0 &&
@@ -126,6 +135,8 @@ export function AssignWorkersForm() {
     setLogs([])
     setStatus("idle")
     setSummary(null)
+    setProgress(null)
+    setFieldErrors({})
   }
 
   function clearHistory() {
@@ -133,6 +144,10 @@ export function AssignWorkersForm() {
       localStorage.removeItem(HISTORY_KEY)
     } catch {}
     setHistory([])
+  }
+
+  function handleAbort() {
+    abortRef.current?.abort()
   }
 
   async function runSubmit() {
@@ -144,9 +159,13 @@ export function AssignWorkersForm() {
     const rawLevel = levelInput.trim() !== "" ? Number(levelInput.trim()) : null
     const level = rawLevel !== null ? Math.min(5, Math.max(0, rawLevel)) : null
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const res = await fetch("/api/taskrouter/assign-workers", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceSid: workspaceSid.trim(),
@@ -196,8 +215,10 @@ export function AssignWorkersForm() {
               totalUpdated?: number
               totalSkipped?: number
               totalErrors?: number
+              progress?: Progress
             }
 
+            if (payload.progress) setProgress(payload.progress)
             addLog(payload.level, payload.message)
 
             if (payload.done) {
@@ -211,7 +232,6 @@ export function AssignWorkersForm() {
               })
               setStatus("done")
               const entry: HistoryEntry = {
-                // eslint-disable-next-line react-hooks/purity
                 ts: Date.now(),
                 workspaceSid: workspaceSid.trim(),
                 skill: skill.trim(),
@@ -230,16 +250,33 @@ export function AssignWorkersForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        addLog("warning", strings.common.aborted)
+        setStatus("idle")
+        return
+      }
       const message =
         err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
+    } finally {
+      abortRef.current = null
     }
   }
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+
+    const errs: Record<string, string> = {}
+    if (!WS_SID_RE.test(workspaceSid.trim())) {
+      errs.workspaceSid = strings.common.workspaceSidInvalid
+    }
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors({})
     setConfirmOpen(true)
   }
 
@@ -311,10 +348,23 @@ export function AssignWorkersForm() {
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
-            onChange={setWorkspaceSid}
+            onChange={(v) => {
+              setWorkspaceSid(v)
+              if (fieldErrors.workspaceSid)
+                setFieldErrors((prev) => {
+                  const next = { ...prev }
+                  delete next.workspaceSid
+                  return next
+                })
+            }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={status === "running"}
           />
+          {fieldErrors.workspaceSid && (
+            <p className="text-xs text-destructive">
+              {fieldErrors.workspaceSid}
+            </p>
+          )}
         </div>
 
         {/* Skill name */}
@@ -399,12 +449,23 @@ export function AssignWorkersForm() {
             )}
           </Button>
 
-          {(logs.length > 0 || status !== "idle") && (
+          {status === "running" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAbort}
+              className="gap-2"
+            >
+              <Square className="size-3.5" />
+              {strings.common.cancel}
+            </Button>
+          )}
+
+          {(logs.length > 0 || status !== "idle") && status !== "running" && (
             <Button
               type="button"
               variant="outline"
               onClick={reset}
-              disabled={status === "running"}
               className="gap-2"
             >
               <RotateCcw className="size-3.5" />
@@ -422,10 +483,11 @@ export function AssignWorkersForm() {
               {strings.taskrouter.assignWorkers.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a adicionar a skill{" "}
-              <strong>&quot;{skill}&quot;</strong> a{" "}
-              <strong>{emails.length} worker(s)</strong> no workspace{" "}
-              <strong className="font-mono">{workspaceSid}</strong>.
+              {strings.taskrouter.assignWorkers.confirmDescription(
+                skill.trim(),
+                emails.length,
+                workspaceSid.trim()
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -441,6 +503,28 @@ export function AssignWorkersForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogRoot>
+
+      {/* Progress bar */}
+      {progress && status === "running" && (
+        <div className="mt-5 space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>
+              {progress.current} / {progress.total}
+            </span>
+            <span>
+              {Math.round((progress.current / progress.total) * 100)}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{
+                width: `${(progress.current / progress.total) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Summary banner */}
       {summary && status === "done" && (
