@@ -31,6 +31,7 @@ import {
   type MessagingBinding,
 } from "@/features/conversations/types"
 import { useEnvironment } from "@/features/environments/context"
+import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -45,7 +46,7 @@ interface HistoryEntry {
 
 const HISTORY_KEY = "switchboard:fetch-history"
 const SIDS_KEY = STORED_KEYS.conversationSids
-const MAX_HISTORY = 5
+const SID_RE = /^CH[a-fA-F0-9]{32}$/i
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -131,6 +132,7 @@ export function FetchForm() {
   const [sid, setSid] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [sidError, setSidError] = React.useState<string | null>(null)
   const [data, setData] = React.useState<FetchResponse | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
@@ -184,6 +186,11 @@ export function FetchForm() {
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    if (!SID_RE.test(sid.trim())) {
+      setSidError(strings.conversations.fetch.sidInvalid)
+      return
+    }
+    setSidError(null)
     setConfirmOpen(true)
   }
 
@@ -225,6 +232,11 @@ export function FetchForm() {
         </div>
       </div>
 
+      {/* About */}
+      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+        {strings.conversations.fetch.about}
+      </p>
+
       {/* No environment warning */}
       {!activeEnvironment && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
@@ -256,7 +268,10 @@ export function FetchForm() {
               storageKey={SIDS_KEY}
               environmentId={activeEnvironment?.id}
               value={sid}
-              onChange={setSid}
+              onChange={(v) => {
+                setSid(v)
+                if (sidError) setSidError(null)
+              }}
               placeholder="CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               disabled={loading}
               containerClassName="flex-1"
@@ -274,9 +289,13 @@ export function FetchForm() {
               {strings.common.search}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {strings.conversations.fetch.sidHint}
-          </p>
+          {sidError ? (
+            <p className="text-xs text-destructive">{sidError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {strings.conversations.fetch.sidHint}
+            </p>
+          )}
         </div>
       </form>
 
@@ -288,8 +307,10 @@ export function FetchForm() {
               {strings.conversations.fetch.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Buscar dados da conversa <strong>{sid}</strong> no ambiente{" "}
-              <strong>{activeEnvironment?.name}</strong>?
+              {strings.conversations.fetch.confirmDescription(
+                sid.trim(),
+                activeEnvironment?.name ?? ""
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

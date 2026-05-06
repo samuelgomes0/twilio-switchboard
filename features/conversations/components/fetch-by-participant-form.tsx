@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { ContactInput } from "@/components/contact-input"
 import type { ParticipantConversation } from "@/features/conversations/lib/fetch-by-participant"
 import { useEnvironment } from "@/features/environments/context"
+import { MAX_HISTORY } from "@/lib/constants"
 import { strings } from "@/lib/strings"
 
 type StateFilter = "all" | "active" | "inactive" | "closed"
@@ -32,7 +33,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:fetch-by-participant-history"
-const MAX_HISTORY = 5
+const PHONE_RE = /^\d+$/
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -106,6 +107,7 @@ const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
 export function FetchByParticipantForm() {
   const { activeEnvironment } = useEnvironment()
   const [phone, setPhone] = React.useState("")
+  const [phoneError, setPhoneError] = React.useState<string | null>(null)
   const [stateFilter, setStateFilter] = React.useState<StateFilter>("all")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -166,6 +168,11 @@ export function FetchByParticipantForm() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+    if (!PHONE_RE.test(phone.trim())) {
+      setPhoneError(strings.common.phoneDigitsOnly)
+      return
+    }
+    setPhoneError(null)
     setConfirmOpen(true)
   }
 
@@ -214,6 +221,11 @@ export function FetchByParticipantForm() {
         </div>
       </div>
 
+      {/* About */}
+      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+        {strings.conversations.fetchByParticipant.about}
+      </p>
+
       {/* No environment warning */}
       {!activeEnvironment && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
@@ -248,7 +260,10 @@ export function FetchByParticipantForm() {
             <ContactInput
               id="phone"
               value={phone}
-              onChange={setPhone}
+              onChange={(v) => {
+                setPhone(v)
+                if (phoneError) setPhoneError(null)
+              }}
               placeholder="1187654321"
               disabled={loading}
               prefix="whatsapp:+55"
@@ -269,6 +284,10 @@ export function FetchByParticipantForm() {
             </Button>
           </div>
         </div>
+
+        {phoneError && (
+          <p className="text-xs text-destructive">{phoneError}</p>
+        )}
 
         {/* State filter */}
         <div className="space-y-2">
@@ -301,15 +320,11 @@ export function FetchByParticipantForm() {
               {strings.conversations.fetchByParticipant.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Buscar conversas do participante{" "}
-              <strong className="font-mono">{address}</strong>
-              {stateFilter !== "all" && (
-                <>
-                  {" "}
-                  com estado <strong>{stateFilter}</strong>
-                </>
-              )}{" "}
-              no ambiente <strong>{activeEnvironment?.name}</strong>?
+              {strings.conversations.fetchByParticipant.confirmDescription(
+                address,
+                activeEnvironment?.name ?? "",
+                stateFilter !== "all" ? stateFilter : undefined
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

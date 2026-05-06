@@ -7,6 +7,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Square,
   Trash2,
 } from "lucide-react"
 import Link from "next/link"
@@ -31,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
+import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
@@ -47,8 +49,13 @@ interface HistoryEntry {
   errors: number
 }
 
+interface Progress {
+  current: number
+  total: number
+}
+
 const HISTORY_KEY = "switchboard:close-history"
-const MAX_HISTORY = 5
+const PHONE_RE = /^\d+$/
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -87,13 +94,15 @@ export function CloseForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [fieldErrors, setFieldErrors] = React.useState<string[]>([])
+  const [progress, setProgress] = React.useState<Progress | null>(null)
+  const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     setHistory(readHistory())
   }, [])
 
   const participants = phones.map((p) => p.trim()).filter(Boolean)
-  const MAX_ITEMS = 10
   const canSubmit =
     participants.length > 0 &&
     participants.length <= MAX_ITEMS &&
@@ -108,6 +117,8 @@ export function CloseForm() {
     setLogs([])
     setStatus("idle")
     setSummary(null)
+    setProgress(null)
+    setFieldErrors([])
   }
 
   function clearAll() {
@@ -122,15 +133,23 @@ export function CloseForm() {
     setHistory([])
   }
 
+  function handleAbort() {
+    abortRef.current?.abort()
+  }
+
   async function runSubmit() {
     if (!canSubmit || !activeEnvironment) return
 
     reset()
     setStatus("running")
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
       const res = await fetch("/api/conversations/close", {
         method: "POST",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           participants,
@@ -176,8 +195,10 @@ export function CloseForm() {
               done?: boolean
               totalClosed?: number
               totalErrors?: number
+              progress?: Progress
             }
 
+            if (payload.progress) setProgress(payload.progress)
             addLog(payload.level, payload.message)
 
             if (payload.done) {
@@ -202,16 +223,35 @@ export function CloseForm() {
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        addLog("warning", strings.common.aborted)
+        setStatus("idle")
+        return
+      }
       const message =
         err instanceof Error ? err.message : strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
+    } finally {
+      abortRef.current = null
     }
   }
 
   function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
+
+    const errs: string[] = []
+    for (const phone of participants) {
+      if (!PHONE_RE.test(phone)) {
+        errs.push(phone)
+      }
+    }
+    if (errs.length > 0) {
+      setFieldErrors(errs)
+      return
+    }
+    setFieldErrors([])
     setConfirmOpen(true)
   }
 
@@ -245,6 +285,11 @@ export function CloseForm() {
           </p>
         </div>
       </div>
+
+      {/* About */}
+      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+        {strings.conversations.close.about}
+      </p>
 
       {/* No environment warning */}
       {!activeEnvironment && (
@@ -280,9 +325,12 @@ export function CloseForm() {
               <div key={i} className="flex items-center gap-2">
                 <ContactInput
                   value={phone}
-                  onChange={(v) =>
+                  onChange={(v) => {
                     setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
-                  }
+                    if (fieldErrors.includes(v.trim())) {
+                      setFieldErrors((prev) => prev.filter((e) => e !== v.trim()))
+                    }
+                  }}
                   placeholder="11987654321"
                   disabled={status === "running"}
                   prefix="whatsapp:+55"
@@ -296,7 +344,7 @@ export function CloseForm() {
                     setPhones((prev) => prev.filter((_, j) => j !== i))
                   }
                   className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
-                  aria-label="Remover número"
+                  aria-label={strings.conversations.close.removePhone}
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -310,8 +358,14 @@ export function CloseForm() {
             className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           >
             <Plus className="size-3.5" />
-            Adicionar número
+            {strings.conversations.close.addPhone}
           </button>
+          {fieldErrors.length > 0 && (
+            <p className="text-xs text-destructive">
+              {strings.common.phoneDigitsOnly}:{" "}
+              {fieldErrors.join(", ")}
+            </p>
+          )}
           {participants.length > MAX_ITEMS && (
             <p className="text-xs text-destructive">
               {strings.conversations.close.maxExceeded(MAX_ITEMS)}
@@ -334,12 +388,23 @@ export function CloseForm() {
             )}
           </Button>
 
-          {(logs.length > 0 || status !== "idle") && (
+          {status === "running" && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAbort}
+              className="gap-2"
+            >
+              <Square className="size-3.5" />
+              {strings.common.cancel}
+            </Button>
+          )}
+
+          {(logs.length > 0 || status !== "idle") && status !== "running" && (
             <Button
               type="button"
               variant="outline"
               onClick={clearAll}
-              disabled={status === "running"}
               className="gap-2"
             >
               <RotateCcw className="size-3.5" />
@@ -357,10 +422,9 @@ export function CloseForm() {
               {strings.conversations.close.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a fechar{" "}
-              <strong>{participants.length} conversa(s)</strong> ativas para{" "}
-              <strong>{participants.length} número(s)</strong>. Esta ação não
-              pode ser desfeita.
+              {strings.conversations.close.confirmDescription(
+                participants.length
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -377,6 +441,28 @@ export function CloseForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogRoot>
+
+      {/* Progress bar */}
+      {progress && status === "running" && (
+        <div className="mt-5 space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>
+              {progress.current} / {progress.total}
+            </span>
+            <span>
+              {Math.round((progress.current / progress.total) * 100)}%
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{
+                width: `${(progress.current / progress.total) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Summary banner */}
       {summary && status === "done" && (

@@ -5,47 +5,65 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-bun dev          # Start dev server with Turbopack
-bun run build    # Production build
+bun dev          # Start dev server with Turbopack (http://localhost:3000)
+bun build        # Production build
 bun lint         # ESLint
-bun run format   # Prettier (writes in place)
-bun run typecheck # tsc --noEmit
+bun format       # Prettier (writes in place)
+bun typecheck    # tsc --noEmit
 ```
 
-Requires Node.js 22+. Use Bun as the package manager (bun.lock is present).
+No test suite exists in this project.
 
 ## Architecture
 
-Switchboard is a Next.js App Router dashboard for Twilio API operations. It has no database — all state is either fetched live from Twilio or stored in browser localStorage.
+Switchboard is a Next.js 16 (App Router) dashboard for Twilio API operations. Users configure Twilio credentials in the browser; credentials are stored in `localStorage` only and are never persisted server-side.
 
-### Feature modules
+### Directory layout
 
-Three domain modules live under `/features/`, each self-contained with `components/`, `lib/`, `types.ts`, and `tools.ts`:
+```
+app/
+  (pages)/<feature>/<action>/page.tsx   # Thin page wrappers
+  api/<feature>/<action>/route.ts       # API routes (server-side Twilio calls)
+features/
+  <feature>/
+    components/<action>-form.tsx        # All UI + local state
+    lib/<action>.ts                     # Twilio SDK logic (called from API routes)
+    types.ts
+    tools.ts                            # Tool card metadata for feature index pages
+components/                             # Shared UI components
+lib/
+  strings.ts                            # All UI copy (Portuguese, as const)
+  twilio-client.ts                      # getTwilioClient(accountSid, authToken)
+  stored-keys.ts                        # localStorage key constants
+  contacts.ts
+  utils.ts                              # cn() + misc
+```
 
-- **conversations** — fetch, list, and batch-close Twilio Conversations
-- **taskrouter** — manage workers, workflows, tasks, and queue cancellation
-- **environments** — store and switch between multiple Twilio credential sets
+### Data flow
 
-### Request flow
+1. `EnvironmentProvider` (wraps the whole app in `app/layout.tsx`) reads environments from `localStorage` and exposes `activeEnvironment` via `useEnvironment()`.
+2. A form component reads `activeEnvironment` and passes `accountSid`/`authToken` in the POST body to the API route.
+3. The API route calls `getTwilioClient(accountSid, authToken)` and executes Twilio SDK calls.
 
-1. User fills a form in a feature component
-2. Form POSTs to a Next.js API route under `/app/api/`
-3. The API route initializes a Twilio client from credentials passed in the request body (via `lib/twilio-client.ts`)
-4. The route streams progress back using **Server-Sent Events (SSE)** — `Content-Type: text/event-stream`, JSON messages `{level, message, done}`
-5. The `<LogOutput>` component in the UI consumes the SSE stream and renders color-coded log entries
+### SSE streaming pattern
 
-### Credential management
+Long-running operations (bulk close, assign workers, cancel queue tasks) stream progress via Server-Sent Events:
 
-Twilio Account SID and Auth Token are stored in browser localStorage under constants defined in `lib/stored-keys.ts`. The active environment is provided via React Context (`features/environments/context.tsx` → `useEnvironment()` hook). Credentials are sent from the client to API routes in the POST body on every request — they are never persisted server-side.
+- **API route** creates a `ReadableStream`, emits `data: <JSON>\n\n` events (including a final `{ done: true }` event), and returns it with `Content-Type: text/event-stream`.
+- **Form component** calls `res.body.getReader()`, splits chunks on `"\n\n"`, parses `data:` lines, and appends entries to a `LogOutput` component. The final `done` event triggers summary state.
 
-### UI strings
+### localStorage conventions
 
-All user-facing text is in Portuguese (pt-BR). Strings are centralized in `lib/strings.ts`. Date formatting uses the `pt-BR` locale throughout.
+- Twilio environments: `twilio-environments` / `twilio-active-env`
+- Operation history per form: `switchboard:<action>-history` (last 5 entries)
+- `StoredInput` / `StoredTextarea`: autocomplete inputs that persist up to 10 recent values under a key from `lib/stored-keys.ts` (optionally scoped to `${key}:${environmentId}`)
+- Contacts: managed via `lib/contacts.ts`
 
-### Component library
+### Adding a new feature/action
 
-shadcn/ui components live in `components/ui/`. `StoredInput` and `StoredTextarea` are wrappers that automatically sync their value to localStorage.
-
-### Error handling / retries
-
-Long operations use a `withRetry` utility (3 attempts, 2-second exponential backoff). Errors are emitted as SSE messages with `level: "error"` rather than thrown HTTP errors, so partial progress is still visible to the user.
+1. Add Twilio logic to `features/<feature>/lib/<action>.ts`
+2. Add API route at `app/api/<feature>/<action>/route.ts` (call `getTwilioClient` and stream or return JSON)
+3. Add page at `app/(pages)/<feature>/<action>/page.tsx` (render form component)
+4. Add form component at `features/<feature>/components/<action>-form.tsx`
+5. Add strings to `lib/strings.ts`
+6. Register the tool in `features/<feature>/tools.ts` and the sidebar in `components/sidebar-nav.tsx`

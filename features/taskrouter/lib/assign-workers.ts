@@ -1,9 +1,7 @@
 import { sleep, sseEvent, withRetry } from "@/features/conversations/lib/close"
 import type { AssignWorkersInput } from "@/features/taskrouter/types"
+import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
-
-const RETRY_ATTEMPTS = 3
-const RETRY_DELAY_MS = 2000
 const WORKER_SID_RE = /^WK[a-f0-9]{32}$/i
 
 interface WorkerAttributes {
@@ -74,8 +72,13 @@ export async function assignWorkersToQueue(
   let totalSkipped = 0
   let totalErrors = 0
 
-  for (const identifier of input.emails) {
-    emit(sseEvent("info", `Buscando worker: ${identifier}...`))
+  for (let idx = 0; idx < input.emails.length; idx++) {
+    const identifier = input.emails[idx]
+    emit(
+      sseEvent("info", `Buscando worker: ${identifier}...`, {
+        progress: { current: idx + 1, total: input.emails.length },
+      })
+    )
 
     const worker = await withRetry(
       () => getWorker(client, input.workspaceSid, identifier),

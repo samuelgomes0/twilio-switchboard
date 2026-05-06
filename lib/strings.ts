@@ -23,6 +23,10 @@ export const strings = {
     networkError: "Erro de rede",
     unexpectedError: "Erro inesperado",
     apiConnectionError: "Erro ao conectar com a API",
+    aborted: "Operação cancelada",
+    remove: "Remover",
+    workspaceSidInvalid: "Deve começar com WS e ter 34 caracteres",
+    phoneDigitsOnly: "Deve conter apenas dígitos",
   },
   sidebar: {
     title: "Switchboard",
@@ -85,6 +89,10 @@ export const strings = {
           label: "Gerenciar Contatos",
           description: "Salve números com nomes para autocompletar",
         },
+        manageVariables: {
+          label: "Gerenciar Variáveis",
+          description: "Gerencie valores salvos para autocompletar",
+        },
       },
     },
   },
@@ -92,6 +100,17 @@ export const strings = {
     title: "Switchboard",
     subtitle:
       "Interface visual para operações Twilio. Selecione uma ferramenta abaixo.",
+    intro: {
+      badge: "Dashboard Twilio",
+      description:
+        "Painel de controle para operações Twilio. Execute ações diretamente pela interface, com resultados em tempo real — sem scripts, sem acesso ao console.",
+      features: {
+        credentials: "Credenciais armazenadas localmente",
+        realtime: "Streaming de resultados em tempo real",
+        multienv: "Suporte a múltiplos ambientes",
+      },
+      toolsHeading: "Ferramentas disponíveis",
+    },
     tools: {
       conversations: {
         label: "Conversations",
@@ -115,14 +134,28 @@ export const strings = {
       title: "Conversations",
       subtitle:
         "Feche conversas ativas em lote e consulte detalhes de conversas por SID.",
+      intro: {
+        badge: "Conversations API",
+        description:
+          "Ferramentas para operar sobre conversas Twilio. Consulte, filtre e execute ações — com resultados em tempo real, sem sair da interface.",
+        features: {
+          channel: "WhatsApp e SMS",
+          batch: "Operações em lote",
+          realtime: "Resultados em tempo real",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
     },
     fetch: {
       breadcrumb: "Buscar Conversa",
       title: "Buscar Conversa por SID",
       subtitle:
-        "Retorna estado, participantes, atributos e datas de uma conversa",
+        "Consulta os detalhes completos de uma conversa pelo SID",
+      about:
+        "Busca uma conversa pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar a conversa sem abrir o console Twilio.",
       sidLabel: "Conversation SID",
       sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
+      sidInvalid: "Deve começar com CH e ter 34 caracteres",
       confirmTitle: "Buscar conversa?",
       confirmDescription: (sid: string, env: string) =>
         `Buscar dados da conversa ${sid} no ambiente ${env}?`,
@@ -148,11 +181,15 @@ export const strings = {
       breadcrumb: "Fechar Conversas",
       title: "Fechar Conversas Ativas",
       subtitle:
-        "Recebe números de telefone e fecha todas as conversas ativas associadas em lote",
+        "Fecha em lote todas as conversas ativas de um ou mais números de telefone",
+      about:
+        "Localiza e encerra em lote todas as conversas ativas associadas a uma lista de números de telefone. Ideal para desativar atendimentos de vários números de uma só vez.",
       phoneLabel: "Números de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       detected: (n: number) => `${n} número(s) detectado(s)`,
       maxExceeded: (max: number) => ` — máximo ${max} por vez`,
+      addPhone: "Adicionar número",
+      removePhone: "Remover número",
       submit: "Fechar Conversas",
       confirmTitle: "Fechar conversas?",
       confirmDescription: (n: number) =>
@@ -171,7 +208,9 @@ export const strings = {
     fetchByParticipant: {
       breadcrumb: "Buscar por Participante",
       title: "Buscar por Participante",
-      subtitle: "Retorna todas as conversas WhatsApp associadas a um número",
+      subtitle: "Lista todas as conversas associadas a um número de telefone",
+      about:
+        "Lista todas as conversas em que um número de telefone participou. Útil para entender o histórico de atendimento de um cliente ou verificar o estado atual das suas conversas.",
       phoneLabel: "Número de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       filterLabel: "Filtrar por estado",
@@ -205,12 +244,25 @@ export const strings = {
       title: "TaskRouter",
       subtitle:
         "Atribua workers, crie workflows, consulte tasks e inspecione workers do TaskRouter.",
+      intro: {
+        badge: "TaskRouter API",
+        description:
+          "Ferramentas para gerenciar o TaskRouter. Configure roteamento, opere sobre workers e filas, e automatize processos diretamente pela interface.",
+        features: {
+          routing: "Roteamento de tasks",
+          workers: "Workers e filas",
+          workflows: "Workflows configuráveis",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
     },
     assignWorkers: {
       breadcrumb: "Atribuir Workers",
       title: "Atribuir Workers à Fila",
       subtitle:
-        "Adiciona uma skill com nível opcional aos attributes de workers identificados por e-mail",
+        "Adiciona uma skill aos atributos de múltiplos workers de uma vez",
+      about:
+        "Adiciona uma skill com nível opcional aos atributos de vários workers de uma vez. Ideal para preparar uma equipe antes de ativar uma nova fila ou redistribuir atendimentos entre times.",
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
@@ -238,7 +290,9 @@ export const strings = {
       breadcrumb: "Criar Workflow",
       title: "Criar Workflow",
       subtitle:
-        "Lê um CSV com regras de negócio e filas Twilio para gerar filtros e criar o workflow no TaskRouter",
+        "Cria um workflow de roteamento no TaskRouter a partir de um arquivo CSV",
+      about:
+        "Lê as regras de negócio e filas de um arquivo CSV e cria o workflow de roteamento no TaskRouter. Ideal para automatizar a criação de workflows sem configurar cada filtro manualmente.",
       workspaceSidLabel: "Workspace SID",
       workflowNameLabel: "Nome do Workflow",
       csvLabel: "Arquivo CSV",
@@ -266,10 +320,13 @@ export const strings = {
       breadcrumb: "Buscar Task",
       title: "Buscar Task",
       subtitle:
-        "Retorna status, fila, prioridade, atributos e datas de uma task pelo SID",
+        "Consulta os detalhes completos de uma task pelo SID",
+      about:
+        "Busca uma task pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar o estado atual da task sem abrir o console Twilio.",
       workspaceSidLabel: "Workspace SID",
       taskSidLabel: "Task SID",
       taskSidHint: "Formato: WT seguido de 32 caracteres hexadecimais",
+      taskSidInvalid: "Deve começar com WT e ter 34 caracteres",
       confirmTitle: "Buscar task?",
       confirmDescription: (taskSid: string, env: string) =>
         `Buscar dados da task ${taskSid} no ambiente ${env}?`,
@@ -293,7 +350,9 @@ export const strings = {
       breadcrumb: "Buscar Worker",
       title: "Buscar Worker",
       subtitle:
-        "Retorna atividade, skills, atributos e datas de um worker pelo SID ou e-mail",
+        "Consulta os detalhes completos de um worker pelo SID ou e-mail",
+      about:
+        "Busca um worker pelo SID ou e-mail e exibe suas informações completas. Útil para inspecionar um worker e conferir suas configurações sem acessar o console Twilio.",
       workspaceSidLabel: "Workspace SID",
       identifierLabel: "Worker SID ou e-mail",
       identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
@@ -317,7 +376,9 @@ export const strings = {
       breadcrumb: "Encerrar Tasks da Fila",
       title: "Encerrar Tasks da Fila",
       subtitle:
-        "Encerra tasks pendentes/reservadas, envia mensagem de aviso e fecha as conversas associadas",
+        "Encerra em lote as tasks de uma fila e fecha as conversas associadas",
+      about:
+        "Encerra em lote todas as tasks pendentes ou reservadas de uma fila, notifica os clientes e fecha as conversas associadas. Ideal para desativar uma fila inteira de atendimentos — ação irreversível, use com cuidado.",
       workspaceSidLabel: "Workspace SID",
       taskQueueNameLabel: "Nome da fila (Task Queue)",
       closeMessageLabel: "Mensagem enviada ao cliente antes de fechar",
@@ -361,10 +422,37 @@ export const strings = {
       saveButton: "Salvar",
     },
   },
+  variables: {
+    manager: {
+      breadcrumb: "Gerenciar Variáveis",
+      title: "Variáveis",
+      subtitle: "Valores salvos para autocompletar nos formulários",
+      addButton: "Adicionar",
+      valueLabel: "Valor",
+      valuePlaceholder: "Digite o valor...",
+      saveButton: "Salvar",
+      emptyHint: "Nenhum valor salvo",
+      environmentLabel: "Ambiente ativo:",
+      deleteConfirm: (val: string) =>
+        `Excluir "${val}"? Esta ação não pode ser desfeita.`,
+      deleteButton: "Confirmar exclusão",
+    },
+  },
   environments: {
     page: {
       title: "Configurações",
       subtitle: "Gerencie credenciais e configurações do Switchboard.",
+      intro: {
+        badge: "Configurações",
+        description:
+          "Central de configuração do Switchboard. Gerencie credenciais Twilio e recursos auxiliares que potencializam o uso das ferramentas.",
+        features: {
+          multienv: "Múltiplos ambientes",
+          local: "Dados locais e privados",
+          aux: "Recursos auxiliares",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
       tools: {
         manage: {
           label: "Gerenciar Ambientes",
@@ -375,6 +463,11 @@ export const strings = {
           label: "Gerenciar Contatos",
           description:
             "Salve números de telefone com nomes para autocompletar nos formulários.",
+        },
+        variables: {
+          label: "Gerenciar Variáveis",
+          description:
+            "Adicione, edite e remova valores salvos para autocompletar nos formulários.",
         },
       },
     },
@@ -419,6 +512,10 @@ export const strings = {
       hideTokenAriaLabel: "Ocultar token",
       saveButton: "Salvar",
       cancelButton: "Cancelar",
+      testButton: "Testar conexão",
+      testingButton: "Testando...",
+      testSuccess: "Conexão bem-sucedida",
+      testError: "Credenciais inválidas ou sem permissão",
     },
   },
 } as const

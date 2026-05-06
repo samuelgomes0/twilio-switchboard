@@ -3,6 +3,7 @@
 import * as React from "react"
 import { X } from "lucide-react"
 
+import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
 interface StoredInputProps {
@@ -139,7 +140,7 @@ export function StoredInput({
               <button
                 type="button"
                 tabIndex={-1}
-                aria-label="Remover"
+                aria-label={strings.common.remove}
                 className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
                 onMouseDown={(e) => {
                   e.preventDefault()
