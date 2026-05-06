@@ -16,6 +16,7 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
+import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
 import {
   AlertDialogAction,
@@ -283,10 +284,13 @@ export function CreateWorkflowForm() {
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
           <GitBranch className="size-4 text-primary" />
         </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.taskrouter.createWorkflow.title}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">
+              {strings.taskrouter.createWorkflow.title}
+            </h1>
+            <WarningBadge />
+          </div>
           <p className="text-sm text-muted-foreground">
             {strings.taskrouter.createWorkflow.subtitle}
           </p>
@@ -507,7 +511,7 @@ export function CreateWorkflowForm() {
                   {h.workflowSid.slice(0, 10)}...
                 </span>
                 {" · "}
-                {h.totalFilters} filtro(s)
+                {strings.taskrouter.createWorkflow.history.itemFilters(h.totalFilters)}
               </li>
             ))}
           </ul>

@@ -14,6 +14,7 @@ import Link from "next/link"
 import * as React from "react"
 
 import { ContactInput } from "@/components/contact-input"
+import { WarningBadge } from "@/components/warning-badge"
 import {
   LogOutput,
   createLogEntry,
@@ -276,10 +277,13 @@ export function CloseForm() {
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
           <MessageSquareOff className="size-4 text-primary" />
         </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.conversations.close.title}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">
+              {strings.conversations.close.title}
+            </h1>
+            <WarningBadge />
+          </div>
           <p className="text-sm text-muted-foreground">
             {strings.conversations.close.subtitle}
           </p>
@@ -517,11 +521,10 @@ export function CloseForm() {
               <li key={i} className="text-xs text-muted-foreground">
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
                 {" — "}
-                {h.total} número(s) · {h.closed} fechada(s)
+                {strings.conversations.close.history.item(h.total, h.closed)}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {" "}
-                    · {h.errors} erro(s)
+                    {strings.conversations.close.history.itemErrors(h.errors)}
                   </span>
                 )}
               </li>

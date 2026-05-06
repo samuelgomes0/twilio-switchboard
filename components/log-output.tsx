@@ -1,5 +1,6 @@
 "use client"
 
+import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import * as React from "react"
 
@@ -44,7 +45,7 @@ function formatTime(date: Date) {
 function LogOutput({
   entries,
   className,
-  emptyMessage = "Waiting for operations...",
+  emptyMessage = strings.common.waitingForOperations,
 }: LogOutputProps) {
   const bottomRef = React.useRef<HTMLDivElement>(null)
 

@@ -16,6 +16,7 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
+import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
 import {
   AlertDialogAction,
@@ -301,10 +302,13 @@ export function AssignWorkersForm() {
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
           <UserPlus className="size-4 text-primary" />
         </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.taskrouter.assignWorkers.title}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">
+              {strings.taskrouter.assignWorkers.title}
+            </h1>
+            <WarningBadge />
+          </div>
           <p className="text-sm text-muted-foreground">
             {strings.taskrouter.assignWorkers.subtitle}
           </p>
@@ -590,12 +594,11 @@ export function AssignWorkersForm() {
                 {" · "}
                 <span>{h.skill}</span>
                 {" · "}
-                {h.updated} atualizado(s)
-                {h.skipped > 0 && <span> · {h.skipped} ignorado(s)</span>}
+                {strings.taskrouter.assignWorkers.history.item(h.updated)}
+                {h.skipped > 0 && <span>{strings.taskrouter.assignWorkers.history.itemSkipped(h.skipped)}</span>}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {" "}
-                    · {h.errors} erro(s)
+                    {strings.taskrouter.assignWorkers.history.itemErrors(h.errors)}
                   </span>
                 )}
               </li>

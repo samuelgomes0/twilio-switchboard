@@ -5,65 +5,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-bun dev          # Start dev server with Turbopack (http://localhost:3000)
-bun build        # Production build
-bun lint         # ESLint
-bun format       # Prettier (writes in place)
-bun typecheck    # tsc --noEmit
+npm run dev        # Start dev server (Next.js + Turbopack)
+npm run build      # Production build
+npm run lint       # ESLint
+npm run format     # Prettier (all .ts/.tsx)
+npm run typecheck  # tsc --noEmit
 ```
 
-No test suite exists in this project.
+No test runner is configured.
 
 ## Architecture
 
-Switchboard is a Next.js 16 (App Router) dashboard for Twilio API operations. Users configure Twilio credentials in the browser; credentials are stored in `localStorage` only and are never persisted server-side.
+Switchboard is a Next.js 16 (App Router) dashboard for Twilio operations. It has no database — all user data (credentials, contacts, autocomplete history) lives in `localStorage`. The Twilio SDK runs server-side in API routes; credentials are forwarded from the client via request headers.
 
-### Directory layout
+### Feature-based structure
+
+Each Twilio API section follows a consistent layout under `features/[feature]/`:
 
 ```
-app/
-  (pages)/<feature>/<action>/page.tsx   # Thin page wrappers
-  api/<feature>/<action>/route.ts       # API routes (server-side Twilio calls)
-features/
-  <feature>/
-    components/<action>-form.tsx        # All UI + local state
-    lib/<action>.ts                     # Twilio SDK logic (called from API routes)
-    types.ts
-    tools.ts                            # Tool card metadata for feature index pages
-components/                             # Shared UI components
-lib/
-  strings.ts                            # All UI copy (Portuguese, as const)
-  twilio-client.ts                      # getTwilioClient(accountSid, authToken)
-  stored-keys.ts                        # localStorage key constants
-  contacts.ts
-  utils.ts                              # cn() + misc
+features/[feature]/
+  types.ts                     # TypeScript types for this API domain
+  tools.ts                     # Tool list shown on the feature index page
+  lib/[operation].ts           # Business logic calling the Twilio SDK
+  components/[operation]-form.tsx  # Form + result display (client component)
 ```
 
-### Data flow
+Corresponding Next.js files:
+- `app/(pages)/[feature]/[operation]/page.tsx` — page shell that renders the form component
+- `app/api/[feature]/[operation]/route.ts` — API route that reads credentials from headers, calls `features/[feature]/lib/[operation].ts`
 
-1. `EnvironmentProvider` (wraps the whole app in `app/layout.tsx`) reads environments from `localStorage` and exposes `activeEnvironment` via `useEnvironment()`.
-2. A form component reads `activeEnvironment` and passes `accountSid`/`authToken` in the POST body to the API route.
-3. The API route calls `getTwilioClient(accountSid, authToken)` and executes Twilio SDK calls.
+### Credential flow
 
-### SSE streaming pattern
+1. The user selects an environment (Account SID + Auth Token) in the sidebar.
+2. `EnvironmentProvider` (`features/environments/context.tsx`) stores it in React context, backed by `localStorage` via `features/environments/storage.ts`.
+3. Form components read `activeEnvironment` from `useEnvironment()` and send credentials as `x-twilio-account-sid` / `x-twilio-auth-token` headers on every API call.
+4. API routes extract those headers and pass them to `getTwilioClient()` (`lib/twilio-client.ts`), which falls back to `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` env vars if headers are absent.
 
-Long-running operations (bulk close, assign workers, cancel queue tasks) stream progress via Server-Sent Events:
+### Strings
 
-- **API route** creates a `ReadableStream`, emits `data: <JSON>\n\n` events (including a final `{ done: true }` event), and returns it with `Content-Type: text/event-stream`.
-- **Form component** calls `res.body.getReader()`, splits chunks on `"\n\n"`, parses `data:` lines, and appends entries to a `LogOutput` component. The final `done` event triggers summary state.
+All user-facing text lives in `lib/strings.ts` as a single typed `const`. Never hardcode text in components — always reference `strings.*`.
 
-### localStorage conventions
+### Autocomplete inputs
 
-- Twilio environments: `twilio-environments` / `twilio-active-env`
-- Operation history per form: `switchboard:<action>-history` (last 5 entries)
-- `StoredInput` / `StoredTextarea`: autocomplete inputs that persist up to 10 recent values under a key from `lib/stored-keys.ts` (optionally scoped to `${key}:${environmentId}`)
-- Contacts: managed via `lib/contacts.ts`
+- `StoredInput` / `StoredTextarea` — inputs that save and recall previously typed values from `localStorage`. Storage keys are defined in `lib/stored-keys.ts` as `STORED_KEYS.*`.
+- `ContactInput` — phone number field with autocomplete from the contacts saved in `/settings/contacts` (`lib/contacts.ts`).
+- `VARIABLE_GROUPS` in `lib/variables.ts` maps storage keys to the labels shown in `/settings/variables`.
 
-### Adding a new feature/action
+### Adding a new tool
 
-1. Add Twilio logic to `features/<feature>/lib/<action>.ts`
-2. Add API route at `app/api/<feature>/<action>/route.ts` (call `getTwilioClient` and stream or return JSON)
-3. Add page at `app/(pages)/<feature>/<action>/page.tsx` (render form component)
-4. Add form component at `features/<feature>/components/<action>-form.tsx`
-5. Add strings to `lib/strings.ts`
-6. Register the tool in `features/<feature>/tools.ts` and the sidebar in `components/sidebar-nav.tsx`
+1. Add types to `features/[feature]/types.ts`
+2. Add business logic to `features/[feature]/lib/[operation].ts`
+3. Add API route at `app/api/[feature]/[operation]/route.ts`
+4. Add form component at `features/[feature]/components/[operation]-form.tsx`
+5. Add page at `app/(pages)/[feature]/[operation]/page.tsx`
+6. Register the tool in `features/[feature]/tools.ts`
+7. Add a nav item in `components/sidebar-nav.tsx`
+8. Add all strings to `lib/strings.ts`
+
+### Key constants
+
+`lib/constants.ts` defines shared limits: `MAX_HISTORY` (5), `MAX_ITEMS` (10), `RETRY_ATTEMPTS` (3), `RETRY_DELAY_MS` (2000), `TASK_LIST_LIMIT` (1000).
+
+### UI
+
+shadcn/ui components live under `components/ui/`. Tailwind CSS v4 is used with `tw-animate-css`. Icons come from `lucide-react`. The theme is toggled by pressing `d`.
