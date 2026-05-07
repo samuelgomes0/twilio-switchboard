@@ -1,7 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Check, CheckCircle2, Eye, EyeOff, Loader2, WifiOff, X } from "lucide-react"
+import {
+  Check,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
+  WifiOff,
+  X,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

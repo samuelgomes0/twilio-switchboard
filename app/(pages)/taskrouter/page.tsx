@@ -47,7 +47,7 @@ export default function TaskRouterPage() {
       </div>
 
       <div>
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="mb-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">
           {s.intro.toolsHeading}
         </p>
 

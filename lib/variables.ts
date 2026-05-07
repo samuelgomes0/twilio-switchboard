@@ -22,14 +22,18 @@ function writeVariables(key: string, values: string[]) {
   } catch {}
 }
 
-export function addVariable(key: string, value: string, environmentId?: string): string[] {
+export function addVariable(
+  key: string,
+  value: string,
+  environmentId?: string
+): string[] {
   const eKey = effectiveKey(key, environmentId)
   const t = value.trim()
   if (!t) return readVariables(key, environmentId)
-  const next = [t, ...readVariables(key, environmentId).filter((v) => v !== t)].slice(
-    0,
-    MAX_SAVED
-  )
+  const next = [
+    t,
+    ...readVariables(key, environmentId).filter((v) => v !== t),
+  ].slice(0, MAX_SAVED)
   writeVariables(eKey, next)
   return next
 }
@@ -43,12 +47,18 @@ export function updateVariable(
   const eKey = effectiveKey(key, environmentId)
   const t = newValue.trim()
   if (!t) return readVariables(key, environmentId)
-  const next = readVariables(key, environmentId).map((v) => (v === oldValue ? t : v))
+  const next = readVariables(key, environmentId).map((v) =>
+    v === oldValue ? t : v
+  )
   writeVariables(eKey, next)
   return next
 }
 
-export function deleteVariable(key: string, value: string, environmentId?: string): string[] {
+export function deleteVariable(
+  key: string,
+  value: string,
+  environmentId?: string
+): string[] {
   const eKey = effectiveKey(key, environmentId)
   const next = readVariables(key, environmentId).filter((v) => v !== value)
   writeVariables(eKey, next)

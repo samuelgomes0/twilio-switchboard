@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ClipboardList,
   GitBranch,
+  Hash,
   ListX,
   Menu,
   MessageSquareOff,
@@ -73,12 +74,6 @@ const taskrouterNavItems: NavItem[] = [
     description: strings.sidebar.nav.taskrouter.assignWorkers.description,
   },
   {
-    label: strings.sidebar.nav.taskrouter.createWorkflow.label,
-    href: "/taskrouter/create-workflow",
-    icon: GitBranch,
-    description: strings.sidebar.nav.taskrouter.createWorkflow.description,
-  },
-  {
     label: strings.sidebar.nav.taskrouter.fetchTask.label,
     href: "/taskrouter/fetch-task",
     icon: ClipboardList,
@@ -91,10 +86,25 @@ const taskrouterNavItems: NavItem[] = [
     description: strings.sidebar.nav.taskrouter.fetchWorker.description,
   },
   {
+    label: strings.sidebar.nav.taskrouter.createWorkflow.label,
+    href: "/taskrouter/create-workflow",
+    icon: GitBranch,
+    description: strings.sidebar.nav.taskrouter.createWorkflow.description,
+  },
+  {
     label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
     href: "/taskrouter/cancel-queue-tasks",
     icon: ListX,
     description: strings.sidebar.nav.taskrouter.cancelQueueTasks.description,
+  },
+]
+
+const numbersNavItems: NavItem[] = [
+  {
+    label: strings.sidebar.nav.numbers.listNumbers.label,
+    href: "/numbers/list",
+    icon: Hash,
+    description: strings.sidebar.nav.numbers.listNumbers.description,
   },
 ]
 
@@ -123,6 +133,7 @@ const configNavItems: NavItem[] = [
 const navItems: NavItem[] = [
   ...conversationsNavItems,
   ...taskrouterNavItems,
+  ...numbersNavItems,
   ...configNavItems,
 ]
 
@@ -252,6 +263,13 @@ function SidebarNav() {
             label={strings.sidebar.sections.conversations}
             href="/conversations"
             items={conversationsNavItems}
+            pathname={pathname}
+            onNavigate={closeMenu}
+          />
+          <NavSection
+            label={strings.sidebar.sections.numbers}
+            href="/numbers"
+            items={numbersNavItems}
             pathname={pathname}
             onNavigate={closeMenu}
           />

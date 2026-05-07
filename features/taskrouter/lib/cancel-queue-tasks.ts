@@ -1,5 +1,9 @@
 import { sseEvent, withRetry } from "@/features/conversations/lib/close"
-import { RETRY_ATTEMPTS, RETRY_DELAY_MS, TASK_LIST_LIMIT } from "@/lib/constants"
+import {
+  RETRY_ATTEMPTS,
+  RETRY_DELAY_MS,
+  TASK_LIST_LIMIT,
+} from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
 
 const IGNORE_STATUSES = new Set([
@@ -181,8 +185,7 @@ export async function cancelQueueTasks(
   const ignoredCount = tasks.filter((t) =>
     IGNORE_STATUSES.has(t.assignmentStatus ?? "")
   ).length
-  const otherCount =
-    tasks.length - cancellableTasks.length - ignoredCount
+  const otherCount = tasks.length - cancellableTasks.length - ignoredCount
 
   emit(
     sseEvent(
@@ -207,11 +210,9 @@ export async function cancelQueueTasks(
       const outcome = await processSingleTask(task, taskArgs, client, emit)
       processed++
       emit(
-        sseEvent(
-          "info",
-          `Progresso: ${processed}/${cancellableTasks.length}`,
-          { progress: { current: processed, total: cancellableTasks.length } }
-        )
+        sseEvent("info", `Progresso: ${processed}/${cancellableTasks.length}`, {
+          progress: { current: processed, total: cancellableTasks.length },
+        })
       )
       return outcome
     })

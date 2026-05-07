@@ -47,9 +47,17 @@ export const strings = {
     sections: {
       conversations: "Conversations",
       taskrouter: "TaskRouter",
+      numbers: "Números",
       settings: "Configurações",
     },
     nav: {
+      numbers: {
+        listNumbers: {
+          label: "WhatsApp Senders",
+          description:
+            "Lista senders e identifica Conversations ou Programmable Chat",
+        },
+      },
       conversations: {
         fetch: {
           label: "Buscar Conversa",
@@ -133,6 +141,11 @@ export const strings = {
         description:
           "Cadastre e gerencie credenciais Twilio (Account SID e Auth Token) para múltiplos ambientes.",
       },
+      numbers: {
+        label: "Números",
+        description:
+          "Consulte e classifique os números WhatsApp da conta entre Conversations e Programmable Chat.",
+      },
     },
   },
   conversations: {
@@ -155,8 +168,7 @@ export const strings = {
     fetch: {
       breadcrumb: "Buscar Conversa",
       title: "Buscar Conversa por SID",
-      subtitle:
-        "Consulta os detalhes completos de uma conversa pelo SID",
+      subtitle: "Consulta os detalhes completos de uma conversa pelo SID",
       about:
         "Busca uma conversa pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar a conversa sem abrir o console Twilio.",
       sidLabel: "Conversation SID",
@@ -335,8 +347,7 @@ export const strings = {
     fetchTask: {
       breadcrumb: "Buscar Task",
       title: "Buscar Task",
-      subtitle:
-        "Consulta os detalhes completos de uma task pelo SID",
+      subtitle: "Consulta os detalhes completos de uma task pelo SID",
       about:
         "Busca uma task pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar o estado atual da task sem abrir o console Twilio.",
       workspaceSidLabel: "Workspace SID",
@@ -535,6 +546,50 @@ export const strings = {
       testingButton: "Testando...",
       testSuccess: "Conexão bem-sucedida",
       testError: "Credenciais inválidas ou sem permissão",
+    },
+  },
+  numbers: {
+    page: {
+      title: "Números",
+      subtitle:
+        "Consulte e classifique os números WhatsApp da conta Twilio por serviço.",
+      intro: {
+        badge: "Numbers API",
+        description:
+          "Ferramentas para consultar e classificar os números WhatsApp da conta. Identifique qual serviço opera cada número — sem precisar acessar o console Twilio.",
+        features: {
+          classification: "Classificação por serviço",
+          filtering: "Filtros e ordenação",
+          realtime: "Dados em tempo real",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
+    },
+    list: {
+      breadcrumb: "WhatsApp Senders",
+      title: "WhatsApp Senders",
+      subtitle:
+        "Lista todos os WhatsApp senders da conta e identifica o serviço de cada um",
+      about:
+        "Lista todos os WhatsApp senders registrados na conta e identifica se cada um opera via Conversations ou Programmable Chat. Útil para mapear rapidamente qual serviço está por trás de cada número sem precisar acessar o console Twilio.",
+      submit: "Listar Senders",
+      confirmTitle: "Listar senders?",
+      confirmDescription: (env: string) =>
+        `Listar todos os WhatsApp senders da conta no ambiente ${env}?`,
+      table: {
+        colMark: "Marca / Identificação",
+        colNumber: "Número",
+        colService: "Serviço",
+        filterAll: "Todos",
+        filterConversations: "Conversations",
+        filterPchat: "Programmable Chat",
+        searchPlaceholder: "Buscar por nome ou número...",
+        empty: "Nenhum número encontrado.",
+        emptyFiltered: "Nenhum número corresponde ao filtro.",
+        count: (n: number) => `${n} número(s) encontrado(s)`,
+        countFiltered: (n: number, total: number) =>
+          `${n} de ${total} número(s)`,
+      },
     },
   },
 } as const
