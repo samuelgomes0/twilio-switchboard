@@ -191,7 +191,7 @@ export function FetchByParticipantForm() {
         : results.filter((pc) => pc.conversationState === stateFilter)
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
@@ -285,9 +285,7 @@ export function FetchByParticipantForm() {
           </div>
         </div>
 
-        {phoneError && (
-          <p className="text-xs text-destructive">{phoneError}</p>
-        )}
+        {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
 
         {/* State filter */}
         <div className="space-y-2">
@@ -368,7 +366,11 @@ export function FetchByParticipantForm() {
                 {stateFilter !== "all" &&
                   results &&
                   results.length !== filteredResults.length && (
-                    <>{strings.conversations.fetchByParticipant.results.totalSuffix(results.length)}</>
+                    <>
+                      {strings.conversations.fetchByParticipant.results.totalSuffix(
+                        results.length
+                      )}
+                    </>
                   )}
               </p>
               <ul className="max-h-[420px] space-y-2 overflow-y-auto pr-1">

@@ -111,7 +111,9 @@ export function AssignWorkersForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
-  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
+    {}
+  )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
 
@@ -282,7 +284,7 @@ export function AssignWorkersForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
@@ -595,10 +597,18 @@ export function AssignWorkersForm() {
                 <span>{h.skill}</span>
                 {" · "}
                 {strings.taskrouter.assignWorkers.history.item(h.updated)}
-                {h.skipped > 0 && <span>{strings.taskrouter.assignWorkers.history.itemSkipped(h.skipped)}</span>}
+                {h.skipped > 0 && (
+                  <span>
+                    {strings.taskrouter.assignWorkers.history.itemSkipped(
+                      h.skipped
+                    )}
+                  </span>
+                )}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {strings.taskrouter.assignWorkers.history.itemErrors(h.errors)}
+                    {strings.taskrouter.assignWorkers.history.itemErrors(
+                      h.errors
+                    )}
                   </span>
                 )}
               </li>

@@ -257,7 +257,7 @@ export function CloseForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
@@ -332,7 +332,9 @@ export function CloseForm() {
                   onChange={(v) => {
                     setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
                     if (fieldErrors.includes(v.trim())) {
-                      setFieldErrors((prev) => prev.filter((e) => e !== v.trim()))
+                      setFieldErrors((prev) =>
+                        prev.filter((e) => e !== v.trim())
+                      )
                     }
                   }}
                   placeholder="11987654321"
@@ -366,8 +368,7 @@ export function CloseForm() {
           </button>
           {fieldErrors.length > 0 && (
             <p className="text-xs text-destructive">
-              {strings.common.phoneDigitsOnly}:{" "}
-              {fieldErrors.join(", ")}
+              {strings.common.phoneDigitsOnly}: {fieldErrors.join(", ")}
             </p>
           )}
           {participants.length > MAX_ITEMS && (

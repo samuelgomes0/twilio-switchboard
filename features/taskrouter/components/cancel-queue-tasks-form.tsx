@@ -104,7 +104,9 @@ export function CancelQueueTasksForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
-  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
+    {}
+  )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
 
@@ -269,7 +271,7 @@ export function CancelQueueTasksForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
@@ -552,10 +554,18 @@ export function CancelQueueTasksForm() {
                 <span className="font-mono">{h.taskQueueName}</span>
                 {" · "}
                 {strings.taskrouter.cancelQueueTasks.history.item(h.success)}
-                {h.skipped > 0 && <span>{strings.taskrouter.cancelQueueTasks.history.itemSkipped(h.skipped)}</span>}
+                {h.skipped > 0 && (
+                  <span>
+                    {strings.taskrouter.cancelQueueTasks.history.itemSkipped(
+                      h.skipped
+                    )}
+                  </span>
+                )}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">
-                    {strings.taskrouter.cancelQueueTasks.history.itemErrors(h.errors)}
+                    {strings.taskrouter.cancelQueueTasks.history.itemErrors(
+                      h.errors
+                    )}
                   </span>
                 )}
               </li>

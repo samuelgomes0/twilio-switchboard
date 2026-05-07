@@ -147,7 +147,9 @@ export function FetchTaskForm() {
   const [taskSid, setTaskSid] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({})
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
+    {}
+  )
   const [data, setData] = React.useState<{ task: TaskData } | null>(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
   const [confirmOpen, setConfirmOpen] = React.useState(false)
@@ -224,7 +226,7 @@ export function FetchTaskForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
@@ -294,13 +296,19 @@ export function FetchTaskForm() {
             onChange={(v) => {
               setWorkspaceSid(v)
               if (fieldErrors.workspaceSid)
-                setFieldErrors((p) => { const n = { ...p }; delete n.workspaceSid; return n })
+                setFieldErrors((p) => {
+                  const n = { ...p }
+                  delete n.workspaceSid
+                  return n
+                })
             }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={loading}
           />
           {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">{fieldErrors.workspaceSid}</p>
+            <p className="text-xs text-destructive">
+              {fieldErrors.workspaceSid}
+            </p>
           )}
         </div>
 
@@ -315,7 +323,11 @@ export function FetchTaskForm() {
               onChange={(e) => {
                 setTaskSid(e.target.value)
                 if (fieldErrors.taskSid)
-                  setFieldErrors((p) => { const n = { ...p }; delete n.taskSid; return n })
+                  setFieldErrors((p) => {
+                    const n = { ...p }
+                    delete n.taskSid
+                    return n
+                  })
               }}
               placeholder="WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               disabled={loading}

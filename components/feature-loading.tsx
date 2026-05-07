@@ -1,6 +1,6 @@
 export function FeatureLoading() {
   return (
-    <div className="mx-auto max-w-2xl animate-pulse">
+    <div className="mx-auto max-w-3xl animate-pulse">
       {/* Breadcrumb */}
       <div className="mb-5 flex items-center gap-2">
         <div className="h-3.5 w-24 rounded-md bg-muted" />

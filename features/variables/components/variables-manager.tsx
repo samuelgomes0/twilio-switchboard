@@ -1,7 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { ChevronRight, Pencil, Plus, Settings2, SlidersHorizontal, Trash2 } from "lucide-react"
+import {
+  ChevronRight,
+  Pencil,
+  Plus,
+  Settings2,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -88,7 +95,11 @@ function VariableGroupSection({
             variant="ghost"
             className="h-7 gap-1 px-2 text-xs"
             onClick={() =>
-              set({ showAdd: true, editingIndex: null, confirmDeleteIndex: null })
+              set({
+                showAdd: true,
+                editingIndex: null,
+                confirmDeleteIndex: null,
+              })
             }
           >
             <Plus className="size-3" />
@@ -245,7 +256,7 @@ export function VariablesManager() {
   const { activeEnvironment } = useEnvironment()
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link

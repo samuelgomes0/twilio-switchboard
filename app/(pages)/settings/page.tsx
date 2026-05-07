@@ -1,4 +1,12 @@
-import { ArrowRight, BookUser, Layers, Puzzle, Settings2, ShieldCheck, SlidersHorizontal } from "lucide-react"
+import {
+  ArrowRight,
+  BookUser,
+  Layers,
+  Puzzle,
+  Settings2,
+  ShieldCheck,
+  SlidersHorizontal,
+} from "lucide-react"
 import Link from "next/link"
 import type { ElementType } from "react"
 
@@ -79,7 +87,7 @@ export default function EnvironmentsPage() {
       </div>
 
       <div>
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="mb-4 text-xs font-medium tracking-wider text-muted-foreground uppercase">
           {s.intro.toolsHeading}
         </p>
 

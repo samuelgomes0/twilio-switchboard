@@ -264,7 +264,7 @@ export function CreateWorkflowForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
@@ -511,7 +511,9 @@ export function CreateWorkflowForm() {
                   {h.workflowSid.slice(0, 10)}...
                 </span>
                 {" · "}
-                {strings.taskrouter.createWorkflow.history.itemFilters(h.totalFilters)}
+                {strings.taskrouter.createWorkflow.history.itemFilters(
+                  h.totalFilters
+                )}
               </li>
             ))}
           </ul>
