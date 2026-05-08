@@ -93,6 +93,11 @@ export const strings = {
           label: "Encerrar Tasks da Fila",
           description: "Encerra tasks pendentes/reservadas e fecha conversas",
         },
+        searchTasks: {
+          label: "Buscar Tasks",
+          description:
+            "Localiza tasks por número de telefone (WhatsApp ou Voz)",
+        },
       },
       config: {
         manageEnvironments: {
@@ -397,6 +402,52 @@ export const strings = {
       history: {
         title: "Últimas consultas",
         clear: "Limpar",
+      },
+    },
+    searchTasks: {
+      breadcrumb: "Buscar Task",
+      title: "Buscar Task",
+      subtitle:
+        "Consulte por SID ou localize tasks pelo número de telefone do contato",
+      about:
+        "Busca tasks no TaskRouter por SID exato ou pelo campo 'from' do contato — considerando voz e WhatsApp. Alterne o modo de busca conforme o que você tem disponível.",
+      workspaceSidLabel: "Workspace SID",
+      modeSid: "Por SID",
+      modePhone: "Por Telefone",
+      taskSidLabel: "Task SID",
+      taskSidHint: "Formato: WT seguido de 32 caracteres hexadecimais",
+      taskSidInvalid: "Deve começar com WT e ter 34 caracteres",
+      phoneLabel: "Número de telefone",
+      phoneLabelHint:
+        "Aceita +5511999999999, 5511999999999 ou whatsapp:+5511999999999",
+      submit: "Buscar",
+      confirmSidTitle: "Buscar task?",
+      confirmSidDescription: (sid: string, env: string) =>
+        `Buscar dados da task ${sid} no ambiente ${env}?`,
+      confirmPhoneTitle: "Buscar tasks?",
+      confirmPhoneDescription: (phone: string, env: string) =>
+        `Buscar tasks do número ${phone} no ambiente ${env}?`,
+      result: {
+        count: (n: number) => `${n} task(s) encontrada(s)`,
+        none: "Nenhuma task encontrada para esse número.",
+        channel: "Canal",
+        workflow: "Workflow",
+        queue: "Fila",
+        status: "Status",
+        priority: "Prioridade",
+        age: "Idade",
+        dateCreated: "Criada em",
+        attributes: "Atributos",
+        channelVoice: "Voz",
+        channelWhatsapp: "WhatsApp",
+        channelUnknown: "—",
+        copySid: "Copiar SID",
+        sidCopied: "Copiado!",
+      },
+      history: {
+        title: "Últimas consultas",
+        clear: "Limpar",
+        itemPhone: (n: number) => `${n} task(s)`,
       },
     },
     cancelQueueTasks: {

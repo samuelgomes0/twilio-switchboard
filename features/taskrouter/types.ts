@@ -32,6 +32,24 @@ export interface TaskData {
   taskChannelUniqueName: string | null
 }
 
+export interface SearchTaskResult {
+  sid: string
+  workspaceSid: string
+  workflowSid: string | null
+  workflowFriendlyName: string | null
+  taskQueueSid: string | null
+  taskQueueFriendlyName: string | null
+  assignmentStatus: string
+  reason: string | null
+  priority: number
+  age: number
+  attributes: string
+  dateCreated: Date | null
+  dateUpdated: Date | null
+  taskChannelUniqueName: string | null
+  channel: "whatsapp" | "voice" | "unknown"
+}
+
 export interface WorkerData {
   sid: string
   workspaceSid: string

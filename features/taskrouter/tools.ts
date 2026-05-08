@@ -1,4 +1,4 @@
-import { ClipboardList, GitBranch, ListX, User, UserPlus } from "lucide-react"
+import { GitBranch, ListX, Search, User, UserPlus } from "lucide-react"
 import { ElementType } from "react"
 
 import { strings } from "@/lib/strings"
@@ -13,6 +13,13 @@ interface Tool {
 
 export const taskrouterTools: Tool[] = [
   {
+    label: strings.taskrouter.searchTasks.breadcrumb,
+    description: strings.taskrouter.searchTasks.subtitle,
+    href: "/taskrouter/search-tasks",
+    icon: Search,
+    available: true,
+  },
+  {
     label: strings.taskrouter.assignWorkers.breadcrumb,
     description: strings.taskrouter.assignWorkers.subtitle,
     href: "/taskrouter/assign-workers",
@@ -20,24 +27,17 @@ export const taskrouterTools: Tool[] = [
     available: true,
   },
   {
-    label: strings.taskrouter.createWorkflow.breadcrumb,
-    description: strings.taskrouter.createWorkflow.subtitle,
-    href: "/taskrouter/create-workflow",
-    icon: GitBranch,
-    available: true,
-  },
-  {
-    label: strings.taskrouter.fetchTask.breadcrumb,
-    description: strings.taskrouter.fetchTask.subtitle,
-    href: "/taskrouter/fetch-task",
-    icon: ClipboardList,
-    available: true,
-  },
-  {
     label: strings.taskrouter.fetchWorker.breadcrumb,
     description: strings.taskrouter.fetchWorker.subtitle,
     href: "/taskrouter/fetch-worker",
     icon: User,
+    available: true,
+  },
+  {
+    label: strings.taskrouter.createWorkflow.breadcrumb,
+    description: strings.taskrouter.createWorkflow.subtitle,
+    href: "/taskrouter/create-workflow",
+    icon: GitBranch,
     available: true,
   },
   {

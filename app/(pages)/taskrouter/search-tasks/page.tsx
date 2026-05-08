@@ -1,5 +1,5 @@
 import { SearchTasksForm } from "@/features/taskrouter/components/search-tasks-form"
 
-export default function FetchTaskPage() {
+export default function SearchTasksPage() {
   return <SearchTasksForm />
 }

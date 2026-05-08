@@ -7,7 +7,6 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  ClipboardList,
   GitBranch,
   Hash,
   ListX,
@@ -68,16 +67,16 @@ const conversationsNavItems: NavItem[] = [
 
 const taskrouterNavItems: NavItem[] = [
   {
+    label: strings.sidebar.nav.taskrouter.searchTasks.label,
+    href: "/taskrouter/search-tasks",
+    icon: Search,
+    description: strings.sidebar.nav.taskrouter.searchTasks.description,
+  },
+  {
     label: strings.sidebar.nav.taskrouter.assignWorkers.label,
     href: "/taskrouter/assign-workers",
     icon: UserPlus,
     description: strings.sidebar.nav.taskrouter.assignWorkers.description,
-  },
-  {
-    label: strings.sidebar.nav.taskrouter.fetchTask.label,
-    href: "/taskrouter/fetch-task",
-    icon: ClipboardList,
-    description: strings.sidebar.nav.taskrouter.fetchTask.description,
   },
   {
     label: strings.sidebar.nav.taskrouter.fetchWorker.label,
