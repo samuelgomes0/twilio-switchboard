@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronsUpDown,
+  Download,
   Hash,
   Loader2,
   Search,
@@ -98,6 +99,25 @@ export function ListNumbersForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function exportCsv() {
+    if (!results) return
+    const header = [s.table.colMark, s.table.colNumber, s.table.colService, "SID"]
+    const rows = results.map((r) => [
+      `"${r.friendlyName.replace(/"/g, '""')}"`,
+      r.phoneNumber,
+      r.service,
+      r.id,
+    ])
+    const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${s.table.exportFilename}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function toggleSort(field: SortField) {
@@ -261,15 +281,27 @@ export function ListNumbersForm() {
               ))}
             </div>
 
-            <div className="relative sm:w-56">
-              <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={s.table.searchPlaceholder}
-                className="pl-8"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative sm:w-56">
+                <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={s.table.searchPlaceholder}
+                  className="pl-8"
+                />
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={exportCsv}
+                className="shrink-0 gap-1.5"
+              >
+                <Download className="size-3.5" />
+                {s.table.exportCsv}
+              </Button>
             </div>
           </div>
 

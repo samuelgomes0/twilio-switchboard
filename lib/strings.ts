@@ -640,6 +640,8 @@ export const strings = {
         count: (n: number) => `${n} número(s) encontrado(s)`,
         countFiltered: (n: number, total: number) =>
           `${n} de ${total} número(s)`,
+        exportCsv: "Exportar CSV",
+        exportFilename: "whatsapp-senders",
       },
     },
   },
