@@ -1,33 +1,33 @@
 import { fetchConversationsByParticipant } from "@/features/conversations/lib/fetch-by-participant"
+import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
-export async function GET(req: NextRequest) {
-  const address = req.nextUrl.searchParams.get("address")?.trim()
-
-  if (!address) {
-    return Response.json(
-      { error: "Query param 'address' é obrigatório" },
-      { status: 400 }
-    )
+export async function POST(req: NextRequest) {
+  let body: { address?: unknown; accountSid?: string; authToken?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
   }
 
-  const accountSid = req.headers.get("x-twilio-account-sid") ?? undefined
-  const authToken = req.headers.get("x-twilio-auth-token") ?? undefined
+  const address = typeof body.address === "string" ? body.address.trim() : ""
+
+  if (!address) {
+    return Response.json({ error: "O campo 'address' é obrigatório" }, { status: 400 })
+  }
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(accountSid, authToken)
+    client = getTwilioClient(body.accountSid, body.authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(err)
   }
 
   try {
     const conversations = await fetchConversationsByParticipant(address, client)
     return Response.json({ conversations })
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(fromTwilioError(err, "conversations/fetch-by-participant"))
   }
 }

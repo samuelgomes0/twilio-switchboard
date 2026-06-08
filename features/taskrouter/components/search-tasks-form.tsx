@@ -363,15 +363,16 @@ export function SearchTasksForm() {
 
     try {
       if (mode === "sid") {
-        const res = await fetch(
-          `/api/taskrouter/fetch-task?workspaceSid=${encodeURIComponent(workspaceSid.trim())}&taskSid=${encodeURIComponent(taskSid.trim())}`,
-          {
-            headers: {
-              "x-twilio-account-sid": activeEnvironment.accountSid,
-              "x-twilio-auth-token": activeEnvironment.authToken,
-            },
-          }
-        )
+        const res = await fetch("/api/taskrouter/fetch-task", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceSid: workspaceSid.trim(),
+            taskSid: taskSid.trim(),
+            accountSid: activeEnvironment.accountSid,
+            authToken: activeEnvironment.authToken,
+          }),
+        })
         const json = (await res.json()) as { task: TaskData; error?: string }
         if (!res.ok || json.error) {
           setError(json.error ?? strings.common.unknown)
@@ -389,15 +390,16 @@ export function SearchTasksForm() {
         pushHistory(entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       } else {
-        const res = await fetch(
-          `/api/taskrouter/search-tasks?workspaceSid=${encodeURIComponent(workspaceSid.trim())}&phoneNumber=${encodeURIComponent(phone.trim())}`,
-          {
-            headers: {
-              "x-twilio-account-sid": activeEnvironment.accountSid,
-              "x-twilio-auth-token": activeEnvironment.authToken,
-            },
-          }
-        )
+        const res = await fetch("/api/taskrouter/search-tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceSid: workspaceSid.trim(),
+            phoneNumber: phone.trim(),
+            accountSid: activeEnvironment.accountSid,
+            authToken: activeEnvironment.authToken,
+          }),
+        })
         const json = (await res.json()) as {
           tasks: SearchTaskResult[]
           phone: string

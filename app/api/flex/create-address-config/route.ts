@@ -1,4 +1,5 @@
 import { createAddressConfig } from "@/features/flex/lib/create-address-config"
+import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
@@ -20,15 +21,16 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "O campo 'type' é obrigatório" }, { status: 400 })
   }
 
-  const accountSid = req.headers.get("x-twilio-account-sid") ?? undefined
-  const authToken = req.headers.get("x-twilio-auth-token") ?? undefined
+  const accountSid =
+    typeof body.accountSid === "string" ? body.accountSid : undefined
+  const authToken =
+    typeof body.authToken === "string" ? body.authToken : undefined
 
   let client: ReturnType<typeof getTwilioClient>
   try {
     client = getTwilioClient(accountSid, authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(err)
   }
 
   try {
@@ -38,18 +40,13 @@ export async function POST(req: NextRequest) {
     )
     return Response.json(data)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-
-    if (message.includes("409") || message.toLowerCase().includes("already exists")) {
+    const appErr = fromTwilioError(err, "flex/create-address-config")
+    if (appErr.kind === "conflict") {
       return Response.json(
         { error: `Endereço já configurado: ${address}` },
         { status: 409 }
       )
     }
-    if (message.includes("400") || message.toLowerCase().includes("invalid")) {
-      return Response.json({ error: message }, { status: 400 })
-    }
-
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(appErr)
   }
 }

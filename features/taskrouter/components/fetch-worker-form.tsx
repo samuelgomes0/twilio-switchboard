@@ -159,15 +159,16 @@ export function FetchWorkerForm() {
     setData(null)
 
     try {
-      const res = await fetch(
-        `/api/taskrouter/fetch-worker?workspaceSid=${encodeURIComponent(workspaceSid.trim())}&identifier=${encodeURIComponent(identifier.trim())}`,
-        {
-          headers: {
-            "x-twilio-account-sid": activeEnvironment.accountSid,
-            "x-twilio-auth-token": activeEnvironment.authToken,
-          },
-        }
-      )
+      const res = await fetch("/api/taskrouter/fetch-worker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceSid: workspaceSid.trim(),
+          identifier: identifier.trim(),
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
+      })
       const json = (await res.json()) as { worker: WorkerData; error?: string }
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)

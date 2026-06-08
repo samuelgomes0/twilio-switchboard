@@ -2,6 +2,7 @@ import {
   closeConversations,
   sseEvent,
 } from "@/features/conversations/lib/close"
+import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
@@ -10,19 +11,14 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    })
+    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
   }
 
   const raw = body.participants
   if (!Array.isArray(raw) || raw.length === 0) {
-    return new Response(
-      JSON.stringify({
-        error: "participants must be a non-empty array of strings",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "O campo 'participants' deve ser um array não vazio" },
+      { status: 400 }
     )
   }
 
@@ -31,9 +27,9 @@ export async function POST(req: NextRequest) {
     .filter(Boolean)
 
   if (participants.length === 0) {
-    return new Response(
-      JSON.stringify({ error: "No valid participants provided" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "Nenhum participante válido informado" },
+      { status: 400 }
     )
   }
 
@@ -41,11 +37,7 @@ export async function POST(req: NextRequest) {
   try {
     client = getTwilioClient(body.accountSid, body.authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    return toApiResponse(err)
   }
 
   const encoder = new TextEncoder()

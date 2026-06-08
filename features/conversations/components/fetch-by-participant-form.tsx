@@ -132,15 +132,15 @@ export function FetchByParticipantForm() {
     setResults(null)
 
     try {
-      const res = await fetch(
-        `/api/conversations/fetch-by-participant?address=${encodeURIComponent(address)}`,
-        {
-          headers: {
-            "x-twilio-account-sid": activeEnvironment.accountSid,
-            "x-twilio-auth-token": activeEnvironment.authToken,
-          },
-        }
-      )
+      const res = await fetch("/api/conversations/fetch-by-participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
+      })
       const json = (await res.json()) as {
         conversations: ParticipantConversation[]
         error?: string

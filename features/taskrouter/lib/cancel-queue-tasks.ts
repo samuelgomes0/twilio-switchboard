@@ -1,5 +1,6 @@
 import { sseEvent, withRetry } from "@/features/conversations/lib/close"
 import {
+  CONCURRENCY_LIMIT,
   RETRY_ATTEMPTS,
   RETRY_DELAY_MS,
   TASK_LIST_LIMIT,
@@ -48,6 +49,20 @@ function extractConversationSid(attributes: TaskAttributes): string | null {
 }
 
 type TaskOutcome = "success" | "skipped" | "error"
+
+async function processInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  fn: (item: T) => Promise<R>
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize)
+    const batchResults = await Promise.allSettled(batch.map(fn))
+    results.push(...batchResults)
+  }
+  return results
+}
 
 async function processSingleTask(
   task: { sid: string; assignmentStatus: string | null; attributes: string },
@@ -205,8 +220,10 @@ export async function cancelQueueTasks(
   let processed = 0
   const taskArgs = { workspaceSid, taskQueueName, message }
 
-  const results = await Promise.allSettled(
-    cancellableTasks.map(async (task) => {
+  const results = await processInBatches(
+    cancellableTasks,
+    CONCURRENCY_LIMIT,
+    async (task) => {
       const outcome = await processSingleTask(task, taskArgs, client, emit)
       processed++
       emit(
@@ -215,7 +232,7 @@ export async function cancelQueueTasks(
         })
       )
       return outcome
-    })
+    }
   )
 
   let totalSuccess = 0

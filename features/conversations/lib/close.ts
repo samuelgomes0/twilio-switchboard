@@ -1,4 +1,5 @@
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
+import { sanitizeExternalError } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 
 export async function sleep(ms: number) {
@@ -25,20 +26,21 @@ export async function withRetry<T>(
     try {
       return await fn()
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const safeMessage = sanitizeExternalError(err)
       if (attempt < attempts) {
         emit(
           sseEvent(
             "warning",
-            `${label} — tentativa ${attempt} falhou: ${message}. Tentando novamente...`
+            `${label} — tentativa ${attempt} falhou: ${safeMessage}. Tentando novamente...`
           )
         )
         await sleep(delayMs)
       } else {
+        console.error(`[withRetry] ${label}: falhou após ${attempts} tentativas`, err)
         emit(
           sseEvent(
             "error",
-            `${label} — falhou após ${attempts} tentativas: ${message}`
+            `${label} — falhou após ${attempts} tentativas: ${safeMessage}`
           )
         )
       }

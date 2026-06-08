@@ -186,14 +186,13 @@ export function CreateAddressConfigForm() {
       body.autoCreationWebhookMethod = webhookMethod
     }
 
+    body.accountSid = activeEnvironment.accountSid
+    body.authToken = activeEnvironment.authToken
+
     try {
       const res = await fetch("/api/flex/create-address-config", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-twilio-account-sid": activeEnvironment.accountSid,
-          "x-twilio-auth-token": activeEnvironment.authToken,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
 

@@ -151,15 +151,15 @@ export function FetchForm() {
     setData(null)
 
     try {
-      const res = await fetch(
-        `/api/conversations/fetch?sid=${encodeURIComponent(sid.trim())}`,
-        {
-          headers: {
-            "x-twilio-account-sid": activeEnvironment.accountSid,
-            "x-twilio-auth-token": activeEnvironment.authToken,
-          },
-        }
-      )
+      const res = await fetch("/api/conversations/fetch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sid: sid.trim(),
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
+      })
       const json = (await res.json()) as FetchResponse & { error?: string }
 
       if (!res.ok || json.error) {

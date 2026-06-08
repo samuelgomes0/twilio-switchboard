@@ -1,5 +1,6 @@
 import { createWorkflow } from "@/features/taskrouter/lib/create-workflow"
 import { sseEvent } from "@/features/conversations/lib/close"
+import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
@@ -15,36 +16,27 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    })
+    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
-    return new Response(
-      JSON.stringify({
-        error: "workspaceSid is required and must be a string",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "O campo 'workspaceSid' é obrigatório" },
+      { status: 400 }
     )
   }
 
   if (!body.workflowName || typeof body.workflowName !== "string") {
-    return new Response(
-      JSON.stringify({
-        error: "workflowName is required and must be a string",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "O campo 'workflowName' é obrigatório" },
+      { status: 400 }
     )
   }
 
   if (!body.csvContent || typeof body.csvContent !== "string") {
-    return new Response(
-      JSON.stringify({
-        error: "csvContent is required and must be a string",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "O campo 'csvContent' é obrigatório" },
+      { status: 400 }
     )
   }
 
@@ -52,11 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     client = getTwilioClient(body.accountSid, body.authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    return toApiResponse(err)
   }
 
   const encoder = new TextEncoder()
@@ -88,8 +76,19 @@ export async function POST(req: NextRequest) {
           )
         )
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err)
-        emit(sseEvent("error", message, { done: true }))
+        // Twilio API errors have a numeric .status; CSV/logic errors do not.
+        const isTwilioError =
+          typeof (err as Record<string, unknown>).status === "number"
+        if (isTwilioError) {
+          const appErr = fromTwilioError(err, "taskrouter/create-workflow")
+          emit(sseEvent("error", appErr.safeMessage, { done: true }))
+        } else {
+          const message =
+            err instanceof Error
+              ? err.message
+              : "Erro inesperado ao criar workflow."
+          emit(sseEvent("error", message, { done: true }))
+        }
       }
 
       controller.close()

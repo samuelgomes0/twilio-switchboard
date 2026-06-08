@@ -87,10 +87,12 @@ export function ListNumbersForm() {
 
     try {
       const res = await fetch("/api/numbers/list", {
-        headers: {
-          "x-twilio-account-sid": activeEnvironment.accountSid,
-          "x-twilio-auth-token": activeEnvironment.authToken,
-        },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
       })
       const json = (await res.json()) as {
         numbers: NumberRecord[]
