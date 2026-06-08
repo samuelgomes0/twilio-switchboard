@@ -31,3 +31,4 @@ export interface FetchResponse {
   conversation: ConversationData
   participants: Participant[]
 }
+

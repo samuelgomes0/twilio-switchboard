@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
+import * as XLSX from "xlsx"
 
 import {
   AlertDialogAction,
@@ -26,6 +27,12 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRoot,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import type { NumberRecord, PhoneNumberService } from "@/features/numbers/types"
 import { useEnvironment } from "@/features/environments/context"
@@ -120,6 +127,29 @@ export function ListNumbersForm() {
     URL.revokeObjectURL(url)
   }
 
+  function exportExcel() {
+    if (!results) return
+    const data = results.map((r) => ({
+      [s.table.colMark]: r.friendlyName,
+      [s.table.colNumber]: r.phoneNumber,
+      [s.table.colService]: r.service,
+      SID: r.id,
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Senders")
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer
+    const blob = new Blob([wbout], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${s.table.exportFilename}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function toggleSort(field: SortField) {
     if (sortField === field) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"))
@@ -198,7 +228,7 @@ export function ListNumbersForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/settings"
+                href="/settings/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -292,16 +322,28 @@ export function ListNumbersForm() {
                   className="pl-8"
                 />
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={exportCsv}
-                className="shrink-0 gap-1.5"
-              >
-                <Download className="size-3.5" />
-                {s.table.exportCsv}
-              </Button>
+              <DropdownMenuRoot>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                  >
+                    <Download className="size-3.5" />
+                    {s.table.export}
+                    <ChevronDown className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={exportCsv}>
+                    {s.table.exportCsv}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={exportExcel}>
+                    {s.table.exportExcel}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenuRoot>
             </div>
           </div>
 

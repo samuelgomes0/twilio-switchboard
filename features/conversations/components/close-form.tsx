@@ -306,7 +306,7 @@ export function CloseForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/settings"
+                href="/settings/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
