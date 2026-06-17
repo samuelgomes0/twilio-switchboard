@@ -107,6 +107,11 @@ export const strings = {
           description:
             "Localiza tasks por número de telefone (WhatsApp ou Voz)",
         },
+        addParticularFilter: {
+          label: "Adicionar Filtro",
+          description:
+            "Insere um filtro de roteamento customizado em workflows",
+        },
       },
       config: {
         manageEnvironments: {
@@ -580,6 +585,47 @@ export const strings = {
         clear: "Limpar",
         item: (n: number) => `${n} encerrada(s)`,
         itemSkipped: (n: number) => ` · ${n} ignorada(s)`,
+        itemErrors: (n: number) => ` · ${n} erro(s)`,
+      },
+    },
+    addParticularFilter: {
+      breadcrumb: "Adicionar Filtro",
+      title: "Adicionar Filtro de Roteamento",
+      subtitle:
+        "Insere um filtro de roteamento customizado nos workflows indicados",
+      about:
+        "Insere um filtro de roteamento nos workflows indicados, direcionando tasks com a regra de negócio especificada para a fila correspondente. Workflows que já possuem um filtro com o mesmo nome são automaticamente ignorados.",
+      workspaceSidLabel: "Workspace SID",
+      filterNameLabel: "Nome da regra de negócio",
+      filterNamePlaceholder: "ex: PARTICULAR",
+      filterNameRequired: "Informe o nome da regra de negócio",
+      workflowSidColLabel: "Workflow SID",
+      taskQueueSidColLabel: "Task Queue SID",
+      workflowSidInvalid: "Deve começar com WW e ter 34 caracteres",
+      workflowSidRequired: "Informe o Workflow SID",
+      taskQueueSidInvalid: "Deve começar com WQ e ter 34 caracteres",
+      taskQueueSidRequired: "Informe o Task Queue SID",
+      addEntry: "Adicionar par",
+      submit: "Adicionar Filtro",
+      confirmTitle: "Adicionar filtro?",
+      confirmDescription: (
+        filterName: string,
+        n: number,
+        workspaceSid: string
+      ) =>
+        `Você está prestes a adicionar o filtro "${filterName}" em ${n} workflow(s) no workspace ${workspaceSid}. Workflows que já possuem um filtro com esse nome serão ignorados.`,
+      confirmAction: "Adicionar",
+      summary: {
+        added: (n: number) => `${n} adicionado(s)`,
+        skipped: (n: number) => `${n} já existia(m)`,
+        errors: (n: number) => `${n} erro(s)`,
+      },
+      history: {
+        title: "Últimas operações",
+        clear: "Limpar",
+        item: (filterName: string, n: number) =>
+          `${filterName} · ${n} adicionado(s)`,
+        itemSkipped: (n: number) => ` · ${n} já existia(m)`,
         itemErrors: (n: number) => ` · ${n} erro(s)`,
       },
     },

@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   FileSearch2,
+  Filter,
   GitBranch,
   Hash,
   ListX,
@@ -20,7 +21,6 @@ import {
   SlidersHorizontal,
   User,
   UserPlus,
-  X,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -94,6 +94,11 @@ const taskrouterNavItems: NavItem[] = [
     label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
     href: "/taskrouter/cancel-queue-tasks",
     icon: ListX,
+  },
+  {
+    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
+    href: "/taskrouter/add-particular-filter",
+    icon: Filter,
   },
 ]
 
