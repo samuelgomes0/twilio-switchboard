@@ -1,21 +1,35 @@
 import { fetchTask } from "@/features/taskrouter/lib/fetch-task"
+import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
-export async function GET(req: NextRequest) {
-  const workspaceSid = req.nextUrl.searchParams.get("workspaceSid")?.trim()
-  const taskSid = req.nextUrl.searchParams.get("taskSid")?.trim()
+export async function POST(req: NextRequest) {
+  let body: {
+    workspaceSid?: unknown
+    taskSid?: unknown
+    accountSid?: string
+    authToken?: string
+  }
+  try {
+    body = await req.json()
+  } catch {
+    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+  }
+
+  const workspaceSid =
+    typeof body.workspaceSid === "string" ? body.workspaceSid.trim() : ""
+  const taskSid = typeof body.taskSid === "string" ? body.taskSid.trim() : ""
 
   if (!workspaceSid) {
     return Response.json(
-      { error: "Query param 'workspaceSid' é obrigatório" },
+      { error: "O campo 'workspaceSid' é obrigatório" },
       { status: 400 }
     )
   }
 
   if (!taskSid) {
     return Response.json(
-      { error: "Query param 'taskSid' é obrigatório" },
+      { error: "O campo 'taskSid' é obrigatório" },
       { status: 400 }
     )
   }
@@ -27,31 +41,21 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const accountSid = req.headers.get("x-twilio-account-sid") ?? undefined
-  const authToken = req.headers.get("x-twilio-auth-token") ?? undefined
-
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(accountSid, authToken)
+    client = getTwilioClient(body.accountSid, body.authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(err)
   }
 
   try {
     const data = await fetchTask(workspaceSid, taskSid, client)
     return Response.json(data)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    if (
-      message.includes("404") ||
-      message.toLowerCase().includes("not found")
-    ) {
-      return Response.json(
-        { error: `Task não encontrada: ${taskSid}` },
-        { status: 404 }
-      )
+    const appErr = fromTwilioError(err, "taskrouter/fetch-task")
+    if (appErr.kind === "not_found") {
+      return Response.json({ error: `Task não encontrada: ${taskSid}` }, { status: 404 })
     }
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(appErr)
   }
 }

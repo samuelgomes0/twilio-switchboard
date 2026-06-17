@@ -1,24 +1,27 @@
 import { listNumbers } from "@/features/numbers/lib/list-numbers"
+import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
-export async function GET(req: NextRequest) {
-  const accountSid = req.headers.get("x-twilio-account-sid") ?? undefined
-  const authToken = req.headers.get("x-twilio-auth-token") ?? undefined
+export async function POST(req: NextRequest) {
+  let body: { accountSid?: string; authToken?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+  }
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(accountSid, authToken)
+    client = getTwilioClient(body.accountSid, body.authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(err)
   }
 
   try {
     const numbers = await listNumbers(client)
     return Response.json({ numbers })
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return Response.json({ error: message }, { status: 500 })
+    return toApiResponse(fromTwilioError(err, "numbers/list"))
   }
 }

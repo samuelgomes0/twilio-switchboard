@@ -6,12 +6,14 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronsUpDown,
+  Download,
   Hash,
   Loader2,
   Search,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
+import * as XLSX from "xlsx"
 
 import {
   AlertDialogAction,
@@ -25,6 +27,12 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRoot,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import type { NumberRecord, PhoneNumberService } from "@/features/numbers/types"
 import { useEnvironment } from "@/features/environments/context"
@@ -79,10 +87,12 @@ export function ListNumbersForm() {
 
     try {
       const res = await fetch("/api/numbers/list", {
-        headers: {
-          "x-twilio-account-sid": activeEnvironment.accountSid,
-          "x-twilio-auth-token": activeEnvironment.authToken,
-        },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
       })
       const json = (await res.json()) as {
         numbers: NumberRecord[]
@@ -98,6 +108,48 @@ export function ListNumbersForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  function exportCsv() {
+    if (!results) return
+    const header = [s.table.colMark, s.table.colNumber, s.table.colService, "SID"]
+    const rows = results.map((r) => [
+      `"${r.friendlyName.replace(/"/g, '""')}"`,
+      r.phoneNumber,
+      r.service,
+      r.id,
+    ])
+    const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${s.table.exportFilename}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportExcel() {
+    if (!results) return
+    const data = results.map((r) => ({
+      [s.table.colMark]: r.friendlyName,
+      [s.table.colNumber]: r.phoneNumber,
+      [s.table.colService]: r.service,
+      SID: r.id,
+    }))
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Senders")
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer
+    const blob = new Blob([wbout], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${s.table.exportFilename}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   function toggleSort(field: SortField) {
@@ -178,7 +230,7 @@ export function ListNumbersForm() {
             <p className="mt-0.5 text-destructive/80">
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
-                href="/settings"
+                href="/settings/environments"
                 className="underline underline-offset-2 hover:text-destructive"
               >
                 {strings.common.noEnvironmentSelected.link}
@@ -261,15 +313,39 @@ export function ListNumbersForm() {
               ))}
             </div>
 
-            <div className="relative sm:w-56">
-              <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={s.table.searchPlaceholder}
-                className="pl-8"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative sm:w-56">
+                <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={s.table.searchPlaceholder}
+                  className="pl-8"
+                />
+              </div>
+              <DropdownMenuRoot>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 gap-1.5"
+                  >
+                    <Download className="size-3.5" />
+                    {s.table.export}
+                    <ChevronDown className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={exportCsv}>
+                    {s.table.exportCsv}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={exportExcel}>
+                    {s.table.exportExcel}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenuRoot>
             </div>
           </div>
 

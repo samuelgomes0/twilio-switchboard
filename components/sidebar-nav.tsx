@@ -7,9 +7,12 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  FileSearch2,
+  Filter,
   GitBranch,
   Hash,
   ListX,
+  MapPin,
   Menu,
   MessageSquareOff,
   Phone,
@@ -18,7 +21,6 @@ import {
   SlidersHorizontal,
   User,
   UserPlus,
-  X,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -39,29 +41,31 @@ interface NavItem {
   label: string
   href: string
   icon: React.ElementType
-  description: string
-  badge?: string
 }
 
 const conversationsNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.conversations.fetch.label,
     href: "/conversations/fetch",
-    icon: Search,
-    description: strings.sidebar.nav.conversations.fetch.description,
+    icon: FileSearch2,
   },
   {
     label: strings.sidebar.nav.conversations.fetchByParticipant.label,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
-    description:
-      strings.sidebar.nav.conversations.fetchByParticipant.description,
   },
   {
     label: strings.sidebar.nav.conversations.close.label,
     href: "/conversations/close",
     icon: MessageSquareOff,
-    description: strings.sidebar.nav.conversations.close.description,
+  },
+]
+
+const flexNavItems: NavItem[] = [
+  {
+    label: strings.sidebar.nav.flex.createAddressConfig.label,
+    href: "/flex/create-address-config",
+    icon: MapPin,
   },
 ]
 
@@ -70,31 +74,31 @@ const taskrouterNavItems: NavItem[] = [
     label: strings.sidebar.nav.taskrouter.searchTasks.label,
     href: "/taskrouter/search-tasks",
     icon: Search,
-    description: strings.sidebar.nav.taskrouter.searchTasks.description,
   },
   {
     label: strings.sidebar.nav.taskrouter.assignWorkers.label,
     href: "/taskrouter/assign-workers",
     icon: UserPlus,
-    description: strings.sidebar.nav.taskrouter.assignWorkers.description,
   },
   {
     label: strings.sidebar.nav.taskrouter.fetchWorker.label,
     href: "/taskrouter/fetch-worker",
     icon: User,
-    description: strings.sidebar.nav.taskrouter.fetchWorker.description,
   },
   {
     label: strings.sidebar.nav.taskrouter.createWorkflow.label,
     href: "/taskrouter/create-workflow",
     icon: GitBranch,
-    description: strings.sidebar.nav.taskrouter.createWorkflow.description,
   },
   {
     label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
     href: "/taskrouter/cancel-queue-tasks",
     icon: ListX,
-    description: strings.sidebar.nav.taskrouter.cancelQueueTasks.description,
+  },
+  {
+    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
+    href: "/taskrouter/add-particular-filter",
+    icon: Filter,
   },
 ]
 
@@ -103,7 +107,6 @@ const numbersNavItems: NavItem[] = [
     label: strings.sidebar.nav.numbers.listNumbers.label,
     href: "/numbers/list",
     icon: Hash,
-    description: strings.sidebar.nav.numbers.listNumbers.description,
   },
 ]
 
@@ -112,29 +115,23 @@ const configNavItems: NavItem[] = [
     label: strings.sidebar.nav.config.manageEnvironments.label,
     href: "/settings/environments",
     icon: Settings2,
-    description: strings.sidebar.nav.config.manageEnvironments.description,
   },
   {
     label: strings.sidebar.nav.config.manageContacts.label,
     href: "/settings/contacts",
     icon: BookUser,
-    description: strings.sidebar.nav.config.manageContacts.description,
   },
   {
     label: strings.sidebar.nav.config.manageVariables.label,
     href: "/settings/variables",
     icon: SlidersHorizontal,
-    description: strings.sidebar.nav.config.manageVariables.description,
   },
 ]
 
-// keep legacy export for compatibility
-const navItems: NavItem[] = [
-  ...conversationsNavItems,
-  ...taskrouterNavItems,
-  ...numbersNavItems,
-  ...configNavItems,
-]
+function isPathActive(pathname: string, href: string, exact = false) {
+  if (exact) return pathname === href
+  return pathname === href || pathname.startsWith(href + "/")
+}
 
 function NavSection({
   label,
@@ -149,13 +146,16 @@ function NavSection({
   pathname: string
   onNavigate: () => void
 }) {
+  const sectionActive = href ? isPathActive(pathname, href) : false
+
   const header = href ? (
     <Link
       href={href}
       onClick={onNavigate}
+      aria-current={sectionActive ? "page" : undefined}
       className={cn(
         "group mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-        pathname === href
+        sectionActive
           ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
@@ -177,12 +177,13 @@ function NavSection({
       {header}
       {items.map((item) => {
         const Icon = item.icon
-        const isActive = pathname === item.href
+        const isActive = isPathActive(pathname, item.href, true)
         return (
           <Link
             key={item.href}
             href={item.href}
             onClick={onNavigate}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               isActive
@@ -217,19 +218,23 @@ function SidebarNav() {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button
-        type="button"
-        className="fixed top-4 left-4 z-50 flex size-9 items-center justify-center rounded-lg border border-border bg-card shadow-sm md:hidden"
-        onClick={() => setMobileOpen((v) => !v)}
-        aria-label={strings.sidebar.toggleLabel}
-      >
-        {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
-      </button>
+      {/* Mobile toggle — hidden while sidebar is open (backdrop handles close) */}
+      {!mobileOpen && (
+        <button
+          type="button"
+          className="fixed top-4 left-4 z-50 flex size-9 items-center justify-center rounded-lg border border-border bg-card shadow-sm md:hidden"
+          onClick={() => setMobileOpen(true)}
+          aria-label={strings.sidebar.toggleLabel}
+          aria-expanded={false}
+        >
+          <Menu className="size-4" />
+        </button>
+      )}
 
       {/* Backdrop */}
       {mobileOpen && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm md:hidden"
           onClick={closeMenu}
         />
@@ -257,11 +262,18 @@ function SidebarNav() {
         </Link>
 
         {/* Navigation */}
-        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2">
+        <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2">
           <NavSection
             label={strings.sidebar.sections.conversations}
             href="/conversations"
             items={conversationsNavItems}
+            pathname={pathname}
+            onNavigate={closeMenu}
+          />
+          <NavSection
+            label={strings.sidebar.sections.flex}
+            href="/flex"
+            items={flexNavItems}
             pathname={pathname}
             onNavigate={closeMenu}
           />
@@ -339,7 +351,7 @@ function SidebarNav() {
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" onClick={closeMenu}>
+                    <Link href="/settings/environments" onClick={closeMenu}>
                       <Settings2 className="size-3.5 shrink-0" />
                       {strings.sidebar.configureEnvironments}
                     </Link>
@@ -374,9 +386,9 @@ function SidebarNav() {
         {/* Footer */}
         <div className="shrink-0 border-t border-sidebar-border px-4 py-3">
           <p className="text-[11px] text-muted-foreground">
-            Pressione{" "}
+            {strings.sidebar.footer.toggleThemePress}{" "}
             <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">
-              d
+              {strings.sidebar.footer.toggleThemeKey}
             </kbd>{" "}
             {strings.sidebar.footer.toggleThemeHint}
           </p>
@@ -386,4 +398,4 @@ function SidebarNav() {
   )
 }
 
-export { navItems, SidebarNav }
+export { SidebarNav }

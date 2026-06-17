@@ -42,6 +42,8 @@ export const strings = {
     noEnvironmentRegistered: "Nenhum ambiente cadastrado",
     configureEnvironments: "Configurar ambientes",
     footer: {
+      toggleThemePress: "Pressione",
+      toggleThemeKey: "d",
       toggleThemeHint: "para alternar tema",
     },
     sections: {
@@ -49,6 +51,7 @@ export const strings = {
       taskrouter: "TaskRouter",
       numbers: "Números",
       settings: "Configurações",
+      flex: "Flex",
     },
     nav: {
       numbers: {
@@ -60,16 +63,22 @@ export const strings = {
       },
       conversations: {
         fetch: {
-          label: "Buscar Conversa",
+          label: "Buscar por SID",
           description: "Retorna detalhes por SID",
         },
         fetchByParticipant: {
-          label: "Buscar por Participante",
+          label: "Buscar por Número",
           description: "Lista conversas de um endereço",
         },
         close: {
-          label: "Fechar Conversas",
-          description: "Fecha conversas ativas por número",
+          label: "Encerrar Conversation",
+          description: "Encerra conversations ativas por número",
+        },
+      },
+      flex: {
+        createAddressConfig: {
+          label: "Criar Endereço Flex",
+          description: "Configura endereço para auto-criação de conversas",
         },
       },
       taskrouter: {
@@ -97,6 +106,11 @@ export const strings = {
           label: "Buscar Tasks",
           description:
             "Localiza tasks por número de telefone (WhatsApp ou Voz)",
+        },
+        addParticularFilter: {
+          label: "Adicionar Filtro",
+          description:
+            "Insere um filtro de roteamento customizado em workflows",
         },
       },
       config: {
@@ -171,8 +185,8 @@ export const strings = {
       },
     },
     fetch: {
-      breadcrumb: "Buscar Conversa",
-      title: "Buscar Conversa por SID",
+      breadcrumb: "Buscar por SID",
+      title: "Buscar por SID",
       subtitle: "Consulta os detalhes completos de uma conversa pelo SID",
       about:
         "Busca uma conversa pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar a conversa sem abrir o console Twilio.",
@@ -202,39 +216,39 @@ export const strings = {
       },
     },
     close: {
-      breadcrumb: "Fechar Conversas",
-      title: "Fechar Conversas Ativas",
+      breadcrumb: "Encerrar Conversation",
+      title: "Encerrar Conversations Ativas",
       subtitle:
-        "Fecha em lote todas as conversas ativas de um ou mais números de telefone",
+        "Encerra em lote todas as conversations ativas de um ou mais números de telefone",
       about:
-        "Localiza e encerra em lote todas as conversas ativas associadas a uma lista de números de telefone. Ideal para desativar atendimentos de vários números de uma só vez.",
+        "Localiza e encerra em lote todas as conversations ativas associadas a uma lista de números de telefone. Ideal para desativar atendimentos de vários números de uma só vez.",
       phoneLabel: "Números de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       detected: (n: number) => `${n} número(s) detectado(s)`,
       maxExceeded: (max: number) => ` — máximo ${max} por vez`,
       addPhone: "Adicionar número",
       removePhone: "Remover número",
-      submit: "Fechar Conversas",
-      confirmTitle: "Fechar conversas?",
+      submit: "Encerrar Conversations",
+      confirmTitle: "Encerrar conversations?",
       confirmDescription: (n: number) =>
-        `Você está prestes a fechar ${n} conversa(s) ativas para ${n} número(s). Esta ação não pode ser desfeita.`,
-      confirmAction: "Sim, fechar",
+        `Você está prestes a encerrar ${n} conversation(s) ativa(s) para ${n} número(s). Esta ação não pode ser desfeita.`,
+      confirmAction: "Sim, encerrar",
       summary: {
         prefix: "Concluído:",
-        closed: (n: number) => `${n} conversa(s) fechada(s)`,
+        closed: (n: number) => `${n} conversation(s) encerrada(s)`,
         errors: (n: number) => `${n} erro(s)`,
       },
       history: {
         title: "Últimas operações",
         clear: "Limpar",
         item: (total: number, closed: number) =>
-          `${total} número(s) · ${closed} fechada(s)`,
+          `${total} número(s) · ${closed} encerrada(s)`,
         itemErrors: (n: number) => ` · ${n} erro(s)`,
       },
     },
     fetchByParticipant: {
-      breadcrumb: "Buscar por Participante",
-      title: "Buscar por Participante",
+      breadcrumb: "Buscar por Número",
+      title: "Buscar por Número",
       subtitle: "Lista todas as conversas associadas a um número de telefone",
       about:
         "Lista todas as conversas em que um número de telefone participou. Útil para entender o histórico de atendimento de um cliente ou verificar o estado atual das suas conversas.",
@@ -265,6 +279,102 @@ export const strings = {
         title: "Últimas consultas",
         clear: "Limpar",
         item: (n: number) => `${n} conversa(s)`,
+      },
+    },
+  },
+  flex: {
+    page: {
+      title: "Flex",
+      subtitle: "Configure endereços e integrações do Twilio Flex.",
+      intro: {
+        badge: "Flex API",
+        description:
+          "Ferramentas para configurar o Twilio Flex. Gerencie endereços de canal e integrações com Studio diretamente pela interface.",
+        features: {
+          channels: "WhatsApp e SMS",
+          studio: "Integração Studio",
+          autocreation: "Auto-criação de conversas",
+        },
+        toolsHeading: "Ferramentas disponíveis",
+      },
+    },
+    createAddressConfig: {
+      breadcrumb: "Criar Endereço Flex",
+      title: "Criar novo Endereço",
+      subtitle: "Configura um endereço para criação automática de conversas no Flex",
+      addressTypeLabel: "Tipo de endereço",
+      addressTypes: {
+        sms: "SMS",
+        whatsapp: "WhatsApp",
+        messenger: "Messenger",
+        gbm: "Google Business Messages",
+        email: "E-mail",
+        rcs: "RCS",
+        apple: "Apple Business Chat",
+        chat: "Chat",
+      },
+      addressFieldLabel: {
+        whatsapp: "Número WhatsApp",
+        sms: "Número de telefone",
+        messenger: "ID do Messenger",
+        gbm: "ID Google Business Messages",
+        email: "E-mail",
+        rcs: "Número RCS",
+        apple: "ID Apple Business Chat",
+        chat: "ID do Chat",
+      },
+      addressCapabilities: {
+        whatsapp:
+          "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens e anexos via WhatsApp.",
+        sms: "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens SMS.",
+        messenger:
+          "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens via Facebook Messenger.",
+        gbm: "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens via Google Business Messages.",
+        email:
+          "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de e-mails.",
+        rcs: "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens RCS.",
+        apple:
+          "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens via Apple Business Chat.",
+        chat: "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens de chat.",
+      },
+      friendlyNameLabel: "Nome amigável do endereço",
+      flexIntegrationSection: "Flex integration",
+      flexIntegrationInfo:
+        "Define como o Flex processa mensagens recebidas neste endereço.",
+      integrationTypeLabel: "Tipo de integração",
+      integrationTypes: {
+        studio: "Studio",
+        webhook: "Webhook",
+        default: "Padrão",
+      },
+      studioFlowLabel: "Studio Flow",
+      studioFlowPlaceholder: "Selecionar um Flow",
+      studioFlowHint: "FW seguido de 32 caracteres hexadecimais",
+      webhookUrlLabel: "Webhook URL",
+      webhookMethodLabel: "Método HTTP",
+      submit: "Criar Endereço",
+      cancel: "Cancelar",
+      confirmTitle: "Criar configuração de endereço?",
+      confirmDescription: (address: string, env: string) =>
+        `Criar configuração para o endereço ${address} no ambiente ${env}?`,
+      confirmAction: "Sim, criar",
+      result: {
+        sid: "SID da configuração",
+        address: "Endereço",
+        type: "Tipo",
+        friendlyName: "Nome amigável",
+        noFriendlyName: "Sem nome amigável",
+        addressCountry: "País",
+        noCountry: "—",
+        dateCreated: "Criada em",
+        dateUpdated: "Atualizada em",
+        autoCreation: "Integração Flex",
+        autoCreationEnabled: "Habilitada",
+        autoCreationDisabled: "Desabilitada",
+      },
+      history: {
+        title: "Últimas criações",
+        clear: "Limpar",
       },
     },
   },
@@ -478,6 +588,47 @@ export const strings = {
         itemErrors: (n: number) => ` · ${n} erro(s)`,
       },
     },
+    addParticularFilter: {
+      breadcrumb: "Adicionar Filtro",
+      title: "Adicionar Filtro de Roteamento",
+      subtitle:
+        "Insere um filtro de roteamento customizado nos workflows indicados",
+      about:
+        "Insere um filtro de roteamento nos workflows indicados, direcionando tasks com a regra de negócio especificada para a fila correspondente. Workflows que já possuem um filtro com o mesmo nome são automaticamente ignorados.",
+      workspaceSidLabel: "Workspace SID",
+      filterNameLabel: "Nome da regra de negócio",
+      filterNamePlaceholder: "ex: PARTICULAR",
+      filterNameRequired: "Informe o nome da regra de negócio",
+      workflowSidColLabel: "Workflow SID",
+      taskQueueSidColLabel: "Task Queue SID",
+      workflowSidInvalid: "Deve começar com WW e ter 34 caracteres",
+      workflowSidRequired: "Informe o Workflow SID",
+      taskQueueSidInvalid: "Deve começar com WQ e ter 34 caracteres",
+      taskQueueSidRequired: "Informe o Task Queue SID",
+      addEntry: "Adicionar par",
+      submit: "Adicionar Filtro",
+      confirmTitle: "Adicionar filtro?",
+      confirmDescription: (
+        filterName: string,
+        n: number,
+        workspaceSid: string
+      ) =>
+        `Você está prestes a adicionar o filtro "${filterName}" em ${n} workflow(s) no workspace ${workspaceSid}. Workflows que já possuem um filtro com esse nome serão ignorados.`,
+      confirmAction: "Adicionar",
+      summary: {
+        added: (n: number) => `${n} adicionado(s)`,
+        skipped: (n: number) => `${n} já existia(m)`,
+        errors: (n: number) => `${n} erro(s)`,
+      },
+      history: {
+        title: "Últimas operações",
+        clear: "Limpar",
+        item: (filterName: string, n: number) =>
+          `${filterName} · ${n} adicionado(s)`,
+        itemSkipped: (n: number) => ` · ${n} já existia(m)`,
+        itemErrors: (n: number) => ` · ${n} erro(s)`,
+      },
+    },
   },
   contacts: {
     manager: {
@@ -640,6 +791,10 @@ export const strings = {
         count: (n: number) => `${n} número(s) encontrado(s)`,
         countFiltered: (n: number, total: number) =>
           `${n} de ${total} número(s)`,
+        export: "Exportar",
+        exportCsv: "CSV",
+        exportExcel: "Excel",
+        exportFilename: "whatsapp-senders",
       },
     },
   },

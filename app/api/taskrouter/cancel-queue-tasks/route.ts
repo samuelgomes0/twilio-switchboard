@@ -1,5 +1,6 @@
 import { sseEvent } from "@/features/conversations/lib/close"
 import { cancelQueueTasks } from "@/features/taskrouter/lib/cancel-queue-tasks"
+import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
@@ -15,27 +16,20 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    })
+    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
-    return new Response(
-      JSON.stringify({
-        error: "workspaceSid is required and must be a string",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "O campo 'workspaceSid' é obrigatório" },
+      { status: 400 }
     )
   }
 
   if (!body.taskQueueName || typeof body.taskQueueName !== "string") {
-    return new Response(
-      JSON.stringify({
-        error: "taskQueueName is required and must be a string",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { error: "O campo 'taskQueueName' é obrigatório" },
+      { status: 400 }
     )
   }
 
@@ -48,11 +42,7 @@ export async function POST(req: NextRequest) {
   try {
     client = getTwilioClient(body.accountSid, body.authToken)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    return toApiResponse(err)
   }
 
   const encoder = new TextEncoder()

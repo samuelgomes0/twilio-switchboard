@@ -3,10 +3,12 @@
 import {
   AlertTriangle,
   ChevronRight,
-  ListX,
+  Filter,
   Play,
+  Plus,
   RotateCcw,
   Square,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -16,9 +18,8 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
-import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
-import { StoredTextarea } from "@/components/stored-textarea"
+import { WarningBadge } from "@/components/warning-badge"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,17 +31,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
-import { DEFAULT_CLOSE_MESSAGE } from "@/features/taskrouter/lib/cancel-queue-tasks"
-import { MAX_HISTORY } from "@/lib/constants"
+import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
+import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
+import { cn } from "@/lib/utils"
 
 type Status = "idle" | "running" | "done" | "error"
 
+interface EntryRow {
+  workflowSid: string
+  taskQueueSid: string
+}
+
+interface EntryError {
+  workflowSid: string | null
+  taskQueueSid: string | null
+}
+
 interface Summary {
-  totalSuccess: number
+  totalAdded: number
   totalSkipped: number
   totalErrors: number
 }
@@ -48,22 +61,20 @@ interface Summary {
 interface HistoryEntry {
   ts: number
   workspaceSid: string
-  taskQueueName: string
-  success: number
-  skipped: number
-  errors: number
+  filterName: string
+  totalEntries: number
+  totalAdded: number
+  totalSkipped: number
+  totalErrors: number
 }
 
-interface Progress {
-  current: number
-  total: number
-}
-
-const HISTORY_KEY = "switchboard:cancel-queue-tasks-history"
-const WS_SIDS_KEY = STORED_KEYS.workspaceSids
-const QUEUE_NAMES_KEY = STORED_KEYS.queueNames
-const CLOSE_MESSAGES_KEY = STORED_KEYS.closeMessages
+const HISTORY_KEY = "switchboard:add-particular-filter-history"
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
+const WW_SID_RE = /^WW[a-fA-F0-9]{32}$/i
+const WQ_SID_RE = /^WQ[a-fA-F0-9]{32}$/i
+
+const EMPTY_ROW: EntryRow = { workflowSid: "", taskQueueSid: "" }
+const EMPTY_ERROR: EntryError = { workflowSid: null, taskQueueSid: null }
 
 function readHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return []
@@ -94,30 +105,39 @@ function fmtTs(ts: number) {
   })
 }
 
-export function CancelQueueTasksForm() {
+export function AddParticularFilterForm() {
   const { activeEnvironment } = useEnvironment()
   const [workspaceSid, setWorkspaceSid] = React.useState("")
-  const [taskQueueName, setTaskQueueName] = React.useState("")
-  const [closeMessage, setCloseMessage] = React.useState(DEFAULT_CLOSE_MESSAGE)
+  const [filterName, setFilterName] = React.useState("")
+  const [rows, setRows] = React.useState<EntryRow[]>([{ ...EMPTY_ROW }])
+  const [rowErrors, setRowErrors] = React.useState<EntryError[]>([
+    { ...EMPTY_ERROR },
+  ])
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const [pendingEntries, setPendingEntries] = React.useState<
+    AddParticularFilterEntry[]
+  >([])
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
-  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
-    {}
+  const [wsSidError, setWsSidError] = React.useState<string | null>(null)
+  const [filterNameError, setFilterNameError] = React.useState<string | null>(
+    null
   )
-  const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
     setHistory(readHistory())
   }, [])
 
+  const filledRows = rows.filter(
+    (r) => r.workflowSid.trim() && r.taskQueueSid.trim()
+  )
   const canSubmit =
     workspaceSid.trim().length > 0 &&
-    taskQueueName.trim().length > 0 &&
-    closeMessage.trim().length > 0 &&
+    filterName.trim().length > 0 &&
+    filledRows.length > 0 &&
     status !== "running" &&
     !!activeEnvironment
 
@@ -129,8 +149,13 @@ export function CancelQueueTasksForm() {
     setLogs([])
     setStatus("idle")
     setSummary(null)
-    setProgress(null)
-    setFieldErrors({})
+    setWsSidError(null)
+    setFilterNameError(null)
+    setRowErrors(rows.map(() => ({ ...EMPTY_ERROR })))
+  }
+
+  function handleAbort() {
+    abortRef.current?.abort()
   }
 
   function clearHistory() {
@@ -140,12 +165,84 @@ export function CancelQueueTasksForm() {
     setHistory([])
   }
 
-  function handleAbort() {
-    abortRef.current?.abort()
+  function addRow() {
+    setRows((prev) => [...prev, { ...EMPTY_ROW }])
+    setRowErrors((prev) => [...prev, { ...EMPTY_ERROR }])
+  }
+
+  function removeRow(i: number) {
+    setRows((prev) => prev.filter((_, j) => j !== i))
+    setRowErrors((prev) => prev.filter((_, j) => j !== i))
+  }
+
+  function updateRow(i: number, field: keyof EntryRow, value: string) {
+    setRows((prev) =>
+      prev.map((r, j) => (j === i ? { ...r, [field]: value } : r))
+    )
+    if (rowErrors[i]?.[field]) {
+      setRowErrors((prev) =>
+        prev.map((e, j) => (j === i ? { ...e, [field]: null } : e))
+      )
+    }
+  }
+
+  function handleFormSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!canSubmit) return
+
+    if (!WS_SID_RE.test(workspaceSid.trim())) {
+      setWsSidError(strings.common.workspaceSidInvalid)
+      return
+    }
+    setWsSidError(null)
+
+    if (!filterName.trim()) {
+      setFilterNameError(
+        strings.taskrouter.addParticularFilter.filterNameRequired
+      )
+      return
+    }
+    setFilterNameError(null)
+
+    const newErrors: EntryError[] = rows.map((r) => {
+      const wfFilled = !!r.workflowSid.trim()
+      const tqFilled = !!r.taskQueueSid.trim()
+
+      if (!wfFilled && !tqFilled) return { ...EMPTY_ERROR }
+
+      return {
+        workflowSid: !wfFilled
+          ? strings.taskrouter.addParticularFilter.workflowSidRequired
+          : !WW_SID_RE.test(r.workflowSid.trim())
+            ? strings.taskrouter.addParticularFilter.workflowSidInvalid
+            : null,
+        taskQueueSid: !tqFilled
+          ? strings.taskrouter.addParticularFilter.taskQueueSidRequired
+          : !WQ_SID_RE.test(r.taskQueueSid.trim())
+            ? strings.taskrouter.addParticularFilter.taskQueueSidInvalid
+            : null,
+      }
+    })
+
+    if (newErrors.some((e) => e.workflowSid || e.taskQueueSid)) {
+      setRowErrors(newErrors)
+      return
+    }
+    setRowErrors(rows.map(() => ({ ...EMPTY_ERROR })))
+
+    const valid: AddParticularFilterEntry[] = rows
+      .map((r) => ({
+        workflowSid: r.workflowSid.trim(),
+        taskQueueSid: r.taskQueueSid.trim(),
+      }))
+      .filter((r) => r.workflowSid && r.taskQueueSid)
+
+    setPendingEntries(valid)
+    setConfirmOpen(true)
   }
 
   async function runSubmit() {
-    if (!canSubmit || !activeEnvironment) return
+    if (!pendingEntries.length || !activeEnvironment) return
 
     reset()
     setStatus("running")
@@ -154,14 +251,14 @@ export function CancelQueueTasksForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/cancel-queue-tasks", {
+      const res = await fetch("/api/taskrouter/add-particular-filter", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workspaceSid: workspaceSid.trim(),
-          taskQueueName: taskQueueName.trim(),
-          closeMessage: closeMessage.trim(),
+          filterName: filterName.trim(),
+          entries: pendingEntries,
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
@@ -194,7 +291,9 @@ export function CancelQueueTasksForm() {
         buffer = events.pop() ?? ""
 
         for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
+          const dataLine = event
+            .split("\n")
+            .find((l) => l.startsWith("data:"))
           if (!dataLine) continue
 
           try {
@@ -202,32 +301,29 @@ export function CancelQueueTasksForm() {
               level: LogEntry["level"]
               message: string
               done?: boolean
-              totalSuccess?: number
+              totalAdded?: number
               totalSkipped?: number
               totalErrors?: number
-              progress?: Progress
             }
 
-            if (payload.progress) setProgress(payload.progress)
             addLog(payload.level, payload.message)
 
             if (payload.done) {
-              const success = payload.totalSuccess ?? 0
-              const skipped = payload.totalSkipped ?? 0
-              const errors = payload.totalErrors ?? 0
-              setSummary({
-                totalSuccess: success,
-                totalSkipped: skipped,
-                totalErrors: errors,
-              })
-              setStatus("done")
+              const totalAdded = payload.totalAdded ?? 0
+              const totalSkipped = payload.totalSkipped ?? 0
+              const totalErrors = payload.totalErrors ?? 0
+              setSummary({ totalAdded, totalSkipped, totalErrors })
+              setStatus(
+                totalAdded === 0 && totalSkipped === 0 ? "error" : "done"
+              )
               const entry: HistoryEntry = {
                 ts: Date.now(),
                 workspaceSid: workspaceSid.trim(),
-                taskQueueName: taskQueueName.trim(),
-                success,
-                skipped,
-                errors,
+                filterName: filterName.trim(),
+                totalEntries: pendingEntries.length,
+                totalAdded,
+                totalSkipped,
+                totalErrors,
               }
               pushHistory(entry)
               setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
@@ -238,7 +334,9 @@ export function CancelQueueTasksForm() {
         }
       }
 
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
+      setStatus((prev) =>
+        prev !== "done" && prev !== "error" ? "done" : prev
+      )
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
@@ -254,22 +352,6 @@ export function CancelQueueTasksForm() {
     }
   }
 
-  function handleFormSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!canSubmit) return
-
-    const errs: Record<string, string> = {}
-    if (!WS_SID_RE.test(workspaceSid.trim())) {
-      errs.workspaceSid = strings.common.workspaceSidInvalid
-    }
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs)
-      return
-    }
-    setFieldErrors({})
-    setConfirmOpen(true)
-  }
-
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
@@ -282,31 +364,31 @@ export function CancelQueueTasksForm() {
         </Link>
         <ChevronRight className="size-3.5 text-muted-foreground" />
         <span className="font-medium text-foreground">
-          {strings.taskrouter.cancelQueueTasks.breadcrumb}
+          {strings.taskrouter.addParticularFilter.breadcrumb}
         </span>
       </nav>
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <ListX className="size-4 text-primary" />
+          <Filter className="size-4 text-primary" />
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.cancelQueueTasks.title}
+              {strings.taskrouter.addParticularFilter.title}
             </h1>
             <WarningBadge />
           </div>
           <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.cancelQueueTasks.subtitle}
+            {strings.taskrouter.addParticularFilter.subtitle}
           </p>
         </div>
       </div>
 
       {/* About */}
       <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.taskrouter.cancelQueueTasks.about}
+        {strings.taskrouter.addParticularFilter.about}
       </p>
 
       {/* No environment warning */}
@@ -334,72 +416,132 @@ export function CancelQueueTasksForm() {
         {/* Workspace SID */}
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
-            {strings.taskrouter.cancelQueueTasks.workspaceSidLabel}
+            {strings.taskrouter.addParticularFilter.workspaceSidLabel}
           </Label>
           <StoredInput
             id="workspaceSid"
-            storageKey={WS_SIDS_KEY}
+            storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
             onChange={(v) => {
               setWorkspaceSid(v)
-              if (fieldErrors.workspaceSid)
-                setFieldErrors((prev) => {
-                  const next = { ...prev }
-                  delete next.workspaceSid
-                  return next
-                })
+              if (wsSidError) setWsSidError(null)
             }}
             placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             disabled={status === "running"}
           />
-          {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">
-              {fieldErrors.workspaceSid}
-            </p>
+          {wsSidError && (
+            <p className="text-xs text-destructive">{wsSidError}</p>
           )}
         </div>
 
-        {/* Task Queue Name */}
+        {/* Filter name */}
         <div className="space-y-2">
-          <Label htmlFor="taskQueueName">
-            {strings.taskrouter.cancelQueueTasks.taskQueueNameLabel}
+          <Label htmlFor="filterName">
+            {strings.taskrouter.addParticularFilter.filterNameLabel}
           </Label>
-          <StoredInput
-            id="taskQueueName"
-            storageKey={QUEUE_NAMES_KEY}
-            environmentId={activeEnvironment?.id}
-            value={taskQueueName}
-            onChange={setTaskQueueName}
-            placeholder="ex: SANTA_LUZIA_WHATSAPP"
+          <Input
+            id="filterName"
+            value={filterName}
+            onChange={(e) => {
+              setFilterName(e.target.value)
+              if (filterNameError) setFilterNameError(null)
+            }}
+            placeholder={
+              strings.taskrouter.addParticularFilter.filterNamePlaceholder
+            }
             disabled={status === "running"}
-            className="font-mono"
           />
+          {filterNameError && (
+            <p className="text-xs text-destructive">{filterNameError}</p>
+          )}
         </div>
 
-        {/* Close message */}
+        {/* Workflow / Task Queue pairs */}
         <div className="space-y-2">
-          <Label htmlFor="closeMessage">
-            {strings.taskrouter.cancelQueueTasks.closeMessageLabel}
-          </Label>
-          <StoredTextarea
-            id="closeMessage"
-            storageKey={CLOSE_MESSAGES_KEY}
-            value={closeMessage}
-            onChange={setCloseMessage}
-            rows={3}
-            disabled={status === "running"}
-          />
+          {/* Column headers */}
+          <div className="grid grid-cols-[1fr_1fr_2.25rem] gap-2">
+            <Label>
+              {strings.taskrouter.addParticularFilter.workflowSidColLabel}
+            </Label>
+            <Label>
+              {strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
+            </Label>
+            <div />
+          </div>
+
+          {/* Rows */}
+          <div className="space-y-2">
+            {rows.map((row, i) => (
+              <div key={i} className="space-y-1">
+                <div className="grid grid-cols-[1fr_1fr_2.25rem] items-start gap-2">
+                  <div className="space-y-1">
+                    <Input
+                      value={row.workflowSid}
+                      onChange={(e) =>
+                        updateRow(i, "workflowSid", e.target.value)
+                      }
+                      placeholder="WWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      disabled={status === "running"}
+                      className={cn(
+                        "font-mono text-xs",
+                        rowErrors[i]?.workflowSid && "border-destructive"
+                      )}
+                    />
+                    {rowErrors[i]?.workflowSid && (
+                      <p className="text-xs text-destructive">
+                        {rowErrors[i].workflowSid}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Input
+                      value={row.taskQueueSid}
+                      onChange={(e) =>
+                        updateRow(i, "taskQueueSid", e.target.value)
+                      }
+                      placeholder="WQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      disabled={status === "running"}
+                      className={cn(
+                        "font-mono text-xs",
+                        rowErrors[i]?.taskQueueSid && "border-destructive"
+                      )}
+                    />
+                    {rowErrors[i]?.taskQueueSid && (
+                      <p className="text-xs text-destructive">
+                        {rowErrors[i].taskQueueSid}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={status === "running" || rows.length === 1}
+                    onClick={() => removeRow(i)}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
+                    aria-label={strings.common.remove}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add row */}
+          <button
+            type="button"
+            disabled={status === "running" || rows.length >= MAX_ITEMS}
+            onClick={addRow}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Plus className="size-3.5" />
+            {strings.taskrouter.addParticularFilter.addEntry}
+          </button>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            variant="destructive"
-            className="gap-2"
-          >
+          <Button type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>
                 <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -408,7 +550,7 @@ export function CancelQueueTasksForm() {
             ) : (
               <>
                 <Play className="size-3.5" />
-                {strings.taskrouter.cancelQueueTasks.submit}
+                {strings.taskrouter.addParticularFilter.submit}
               </>
             )}
           </Button>
@@ -444,11 +586,12 @@ export function CancelQueueTasksForm() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {strings.taskrouter.cancelQueueTasks.confirmTitle}
+              {strings.taskrouter.addParticularFilter.confirmTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {strings.taskrouter.cancelQueueTasks.confirmDescription(
-                taskQueueName.trim(),
+              {strings.taskrouter.addParticularFilter.confirmDescription(
+                filterName.trim(),
+                pendingEntries.length,
                 workspaceSid.trim()
               )}
             </AlertDialogDescription>
@@ -461,54 +604,37 @@ export function CancelQueueTasksForm() {
                 void runSubmit()
               }}
             >
-              {strings.taskrouter.cancelQueueTasks.confirmAction}
+              {strings.taskrouter.addParticularFilter.confirmAction}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogRoot>
 
-      {/* Progress bar */}
-      {progress && status === "running" && (
-        <div className="mt-5 space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>
-              {progress.current} / {progress.total}
-            </span>
-            <span>
-              {Math.round((progress.current / progress.total) * 100)}%
-            </span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{
-                width: `${(progress.current / progress.total) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       {/* Summary banner */}
-      {summary && status === "done" && (
+      {summary && (status === "done" || status === "error") && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
           <span className="font-medium text-emerald-600 dark:text-emerald-400">
-            {strings.taskrouter.cancelQueueTasks.summary.success(
-              summary.totalSuccess
-            )}
-          </span>{" "}
-          &middot;{" "}
-          <span className="text-muted-foreground">
-            {strings.taskrouter.cancelQueueTasks.summary.skipped(
-              summary.totalSkipped
+            {strings.taskrouter.addParticularFilter.summary.added(
+              summary.totalAdded
             )}
           </span>
+          {summary.totalSkipped > 0 && (
+            <>
+              {" "}
+              &middot;{" "}
+              <span className="text-muted-foreground">
+                {strings.taskrouter.addParticularFilter.summary.skipped(
+                  summary.totalSkipped
+                )}
+              </span>
+            </>
+          )}
           {summary.totalErrors > 0 && (
             <>
               {" "}
               &middot;{" "}
-              <span className="font-medium text-red-600 dark:text-red-400">
-                {strings.taskrouter.cancelQueueTasks.summary.errors(
+              <span className="text-destructive">
+                {strings.taskrouter.addParticularFilter.summary.errors(
                   summary.totalErrors
                 )}
               </span>
@@ -532,14 +658,14 @@ export function CancelQueueTasksForm() {
         <div className="mt-8 space-y-1.5">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.taskrouter.cancelQueueTasks.history.title}
+              {strings.taskrouter.addParticularFilter.history.title}
             </p>
             <button
               type="button"
               onClick={clearHistory}
               className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              {strings.taskrouter.cancelQueueTasks.history.clear}
+              {strings.taskrouter.addParticularFilter.history.clear}
             </button>
           </div>
           <ul className="space-y-0.5">
@@ -551,23 +677,18 @@ export function CancelQueueTasksForm() {
                   {h.workspaceSid.slice(0, 10)}...
                 </span>
                 {" · "}
-                <span className="font-mono">{h.taskQueueName}</span>
-                {" · "}
-                {strings.taskrouter.cancelQueueTasks.history.item(h.success)}
-                {h.skipped > 0 && (
-                  <span>
-                    {strings.taskrouter.cancelQueueTasks.history.itemSkipped(
-                      h.skipped
-                    )}
-                  </span>
+                {strings.taskrouter.addParticularFilter.history.item(
+                  h.filterName,
+                  h.totalAdded
                 )}
-                {h.errors > 0 && (
-                  <span className="text-red-500 dark:text-red-400">
-                    {strings.taskrouter.cancelQueueTasks.history.itemErrors(
-                      h.errors
-                    )}
-                  </span>
-                )}
+                {h.totalSkipped > 0 &&
+                  strings.taskrouter.addParticularFilter.history.itemSkipped(
+                    h.totalSkipped
+                  )}
+                {h.totalErrors > 0 &&
+                  strings.taskrouter.addParticularFilter.history.itemErrors(
+                    h.totalErrors
+                  )}
               </li>
             ))}
           </ul>

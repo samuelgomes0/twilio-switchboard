@@ -3,7 +3,8 @@
     "allow": [
       "Bash(bun lint *)",
       "Bash(bun format *)",
-      "Bash(bun typecheck *)"
+      "Bash(bun typecheck *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Samuel\\\\Projects\\\\Personal\\\\switchboard\\\\app\\\\\\(pages\\)\\\\conversations\" -Recurse | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\('C:\\\\Users\\\\Samuel\\\\Projects\\\\Personal\\\\switchboard\\\\', ''\\) })"
     ]
   }
 }

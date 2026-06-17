@@ -1,5 +1,6 @@
-import { createWorkflow } from "@/features/taskrouter/lib/create-workflow"
 import { sseEvent } from "@/features/conversations/lib/close"
+import { addParticularFilter } from "@/features/taskrouter/lib/add-particular-filter"
+import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
@@ -7,8 +8,8 @@ import { NextRequest } from "next/server"
 export async function POST(req: NextRequest) {
   let body: {
     workspaceSid?: unknown
-    workflowName?: unknown
-    csvContent?: unknown
+    filterName?: unknown
+    entries?: unknown
     accountSid?: string
     authToken?: string
   }
@@ -26,19 +27,38 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (!body.workflowName || typeof body.workflowName !== "string") {
+  if (!body.filterName || typeof body.filterName !== "string") {
     return Response.json(
-      { error: "O campo 'workflowName' é obrigatório" },
+      { error: "O campo 'filterName' é obrigatório" },
       { status: 400 }
     )
   }
 
-  if (!body.csvContent || typeof body.csvContent !== "string") {
+  if (!Array.isArray(body.entries) || body.entries.length === 0) {
     return Response.json(
-      { error: "O campo 'csvContent' é obrigatório" },
+      { error: "O campo 'entries' deve ser um array não-vazio" },
       { status: 400 }
     )
   }
+
+  for (const entry of body.entries as unknown[]) {
+    if (
+      typeof entry !== "object" ||
+      entry === null ||
+      typeof (entry as Record<string, unknown>).workflowSid !== "string" ||
+      typeof (entry as Record<string, unknown>).taskQueueSid !== "string"
+    ) {
+      return Response.json(
+        {
+          error:
+            "Cada entrada deve conter 'workflowSid' e 'taskQueueSid' como strings",
+        },
+        { status: 400 }
+      )
+    }
+  }
+
+  const entries = body.entries as AddParticularFilterEntry[]
 
   let client: ReturnType<typeof getTwilioClient>
   try {
@@ -55,12 +75,12 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        const { workflowSid, workflowName, totalFilters } =
-          await createWorkflow(
+        const { totalAdded, totalSkipped, totalErrors } =
+          await addParticularFilter(
             {
               workspaceSid: body.workspaceSid as string,
-              workflowName: body.workflowName as string,
-              csvContent: body.csvContent as string,
+              filterName: body.filterName as string,
+              entries,
               accountSid: body.accountSid,
               authToken: body.authToken,
             },
@@ -68,25 +88,29 @@ export async function POST(req: NextRequest) {
             emit
           )
 
+        const level =
+          totalAdded > 0 || totalSkipped > 0 ? "success" : "error"
         emit(
           sseEvent(
-            "success",
-            `Concluído. Workflow "${workflowName}" criado com ${totalFilters} filtro(s).`,
-            { done: true, workflowSid, workflowName, totalFilters }
+            level,
+            `Concluído. ${totalAdded} adicionado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+            { done: true, totalAdded, totalSkipped, totalErrors }
           )
         )
       } catch (err) {
-        // Twilio API errors have a numeric .status; CSV/logic errors do not.
         const isTwilioError =
           typeof (err as Record<string, unknown>).status === "number"
         if (isTwilioError) {
-          const appErr = fromTwilioError(err, "taskrouter/create-workflow")
+          const appErr = fromTwilioError(
+            err,
+            "taskrouter/add-particular-filter"
+          )
           emit(sseEvent("error", appErr.safeMessage, { done: true }))
         } else {
           const message =
             err instanceof Error
               ? err.message
-              : "Erro inesperado ao criar workflow."
+              : "Erro inesperado ao processar filtros."
           emit(sseEvent("error", message, { done: true }))
         }
       }

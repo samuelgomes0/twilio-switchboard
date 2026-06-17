@@ -1,4 +1,4 @@
-import { GitBranch, ListX, Search, User, UserPlus } from "lucide-react"
+import { Filter, GitBranch, ListX, Search, User, UserPlus } from "lucide-react"
 import { ElementType } from "react"
 
 import { strings } from "@/lib/strings"
@@ -45,6 +45,13 @@ export const taskrouterTools: Tool[] = [
     description: strings.taskrouter.cancelQueueTasks.subtitle,
     href: "/taskrouter/cancel-queue-tasks",
     icon: ListX,
+    available: true,
+  },
+  {
+    label: strings.taskrouter.addParticularFilter.breadcrumb,
+    description: strings.taskrouter.addParticularFilter.subtitle,
+    href: "/taskrouter/add-particular-filter",
+    icon: Filter,
     available: true,
   },
 ]

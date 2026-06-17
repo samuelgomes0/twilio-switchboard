@@ -62,3 +62,16 @@ export interface WorkerData {
   dateUpdated: Date | null
   dateStatusChanged: Date | null
 }
+
+export interface AddParticularFilterEntry {
+  workflowSid: string
+  taskQueueSid: string
+}
+
+export interface AddParticularFilterInput {
+  workspaceSid: string
+  filterName: string
+  entries: AddParticularFilterEntry[]
+  accountSid?: string
+  authToken?: string
+}
