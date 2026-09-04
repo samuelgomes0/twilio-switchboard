@@ -102,7 +102,7 @@ export async function assignWorkersToQueue(
     emit(
       sseEvent(
         "info",
-        `Worker encontrado: ${worker.sid} — adicionando skill "${input.skill}"...`
+        `Worker encontrado: ${worker.sid}. Adicionando skill "${input.skill}"...`
       )
     )
 

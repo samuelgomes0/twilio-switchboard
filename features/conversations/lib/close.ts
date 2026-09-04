@@ -31,16 +31,19 @@ export async function withRetry<T>(
         emit(
           sseEvent(
             "warning",
-            `${label} — tentativa ${attempt} falhou: ${safeMessage}. Tentando novamente...`
+            `${label}: tentativa ${attempt} falhou: ${safeMessage}. Tentando novamente...`
           )
         )
         await sleep(delayMs)
       } else {
-        console.error(`[withRetry] ${label}: falhou após ${attempts} tentativas`, err)
+        console.error(
+          `[withRetry] ${label}: falhou após ${attempts} tentativas`,
+          err
+        )
         emit(
           sseEvent(
             "error",
-            `${label} — falhou após ${attempts} tentativas: ${safeMessage}`
+            `${label}: falhou após ${attempts} tentativas: ${safeMessage}`
           )
         )
       }

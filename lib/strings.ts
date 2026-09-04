@@ -22,6 +22,7 @@ export const strings = {
     unknown: "Erro desconhecido",
     networkError: "Erro de rede",
     unexpectedError: "Erro inesperado",
+    notAvailable: "Não disponível",
     apiConnectionError: "Erro ao conectar com a API",
     aborted: "Operação cancelada",
     remove: "Remover",
@@ -56,75 +57,76 @@ export const strings = {
     nav: {
       numbers: {
         listNumbers: {
-          label: "WhatsApp Senders",
-          description:
-            "Lista senders e identifica Conversations ou Programmable Chat",
+          label: "Classificar Senders",
+          description: "Identifica o serviço usado por cada número WhatsApp",
         },
       },
       conversations: {
         fetch: {
-          label: "Buscar por SID",
-          description: "Retorna detalhes por SID",
+          label: "Detalhes por SID",
+          description: "Consulta dados e participantes de uma Conversation",
         },
         fetchByParticipant: {
-          label: "Buscar por Número",
-          description: "Lista conversas de um endereço",
+          label: "Conversations por Número",
+          description: "Localiza Conversations vinculadas a um número",
+        },
+        history: {
+          label: "Mensagens por SID",
+          description: "Pesquisa e exporta mensagens de uma Conversation",
         },
         close: {
-          label: "Encerrar Conversation",
-          description: "Encerra conversations ativas por número",
+          label: "Encerrar por Número",
+          description: "Encerra Conversations ativas vinculadas a números",
         },
       },
       flex: {
         createAddressConfig: {
-          label: "Criar Endereço Flex",
-          description: "Configura endereço para auto-criação de conversas",
+          label: "Configurar Endereço",
+          description: "Cria um canal com integração Flex e Studio ou webhook",
         },
       },
       taskrouter: {
         assignWorkers: {
-          label: "Atribuir Workers",
-          description: "Adiciona skills a workers por e-mail",
+          label: "Adicionar Skill a Workers",
+          description: "Atualiza os atributos de vários workers",
         },
         createWorkflow: {
-          label: "Criar Workflow",
-          description: "Cria workflow de roteamento via CSV",
+          label: "Criar Workflow por CSV",
+          description: "Importa filtros e filas de um arquivo CSV",
         },
         fetchTask: {
           label: "Buscar Task",
           description: "Retorna detalhes de uma task por SID",
         },
         fetchWorker: {
-          label: "Buscar Worker",
-          description: "Retorna dados de um worker por SID ou e-mail",
+          label: "Detalhes do Worker",
+          description: "Consulta um worker por SID, e-mail ou nome",
         },
         cancelQueueTasks: {
-          label: "Encerrar Tasks da Fila",
-          description: "Encerra tasks pendentes/reservadas e fecha conversas",
+          label: "Encerrar Tasks por Fila",
+          description: "Encerra tasks abertas e suas Conversations",
         },
         searchTasks: {
-          label: "Buscar Tasks",
-          description:
-            "Localiza tasks por número de telefone (WhatsApp ou Voz)",
+          label: "Tasks por SID ou Número",
+          description: "Consulta uma Task ou localiza atendimentos do contato",
         },
         addParticularFilter: {
-          label: "Adicionar Filtro",
-          description:
-            "Insere um filtro de roteamento customizado em workflows",
+          label: "Adicionar Filtro a Workflows",
+          description: "Direciona uma regra de negócio para Task Queues",
         },
       },
       config: {
         manageEnvironments: {
-          label: "Gerenciar Ambientes",
-          description: "Cadastre e gerencie credenciais Twilio",
+          label: "Ambientes Twilio",
+          description: "Cadastre credenciais separadas por ambiente",
         },
         manageContacts: {
-          label: "Gerenciar Contatos",
-          description: "Salve números com nomes para autocompletar",
+          label: "Contatos Salvos",
+          description: "Associe nomes a números usados nos formulários",
         },
         manageVariables: {
-          label: "Gerenciar Variáveis",
-          description: "Gerencie valores salvos para autocompletar",
+          label: "Valores de Autocomplete",
+          description: "Gerencie valores reutilizáveis nos formulários",
         },
       },
     },
@@ -136,7 +138,7 @@ export const strings = {
     intro: {
       badge: "Dashboard Twilio",
       description:
-        "Painel de controle para operações Twilio. Execute ações diretamente pela interface, com resultados em tempo real — sem scripts, sem acesso ao console.",
+        "Painel de controle para operações Twilio. Execute ações diretamente pela interface, com resultados em tempo real, sem scripts e sem acesso ao console.",
       features: {
         credentials: "Credenciais armazenadas localmente",
         realtime: "Streaming de resultados em tempo real",
@@ -148,22 +150,22 @@ export const strings = {
       conversations: {
         label: "Conversations",
         description:
-          "Fecha conversas ativas em lote por número de telefone e consulta estado, participantes e atributos de conversas por SID.",
+          "Consulte detalhes, participantes e mensagens de Conversations ou encerre atendimentos ativos por número.",
       },
       taskrouter: {
         label: "TaskRouter",
         description:
-          "Atribui skills a workers por e-mail e cria workflows de roteamento a partir de arquivos CSV.",
+          "Consulte Tasks e Workers, atualize skills e configure Workflows, filtros e filas.",
       },
       settings: {
         label: "Configurações",
         description:
-          "Cadastre e gerencie credenciais Twilio (Account SID e Auth Token) para múltiplos ambientes.",
+          "Gerencie ambientes Twilio, contatos e valores reutilizados nos formulários.",
       },
       numbers: {
         label: "Números",
         description:
-          "Consulte e classifique os números WhatsApp da conta entre Conversations e Programmable Chat.",
+          "Liste números WhatsApp e identifique se usam Conversations ou Programmable Chat.",
       },
     },
   },
@@ -171,11 +173,16 @@ export const strings = {
     page: {
       title: "Conversations",
       subtitle:
-        "Feche conversas ativas em lote e consulte detalhes de conversas por SID.",
+        "Consulte Conversations por SID ou número, analise mensagens e encerre atendimentos ativos.",
+      metadata: {
+        title: "Ferramentas para Conversations",
+        description:
+          "Consulte detalhes, participantes e mensagens de Conversations e encerre atendimentos ativos.",
+      },
       intro: {
         badge: "Conversations API",
         description:
-          "Ferramentas para operar sobre conversas Twilio. Consulte, filtre e execute ações — com resultados em tempo real, sem sair da interface.",
+          "Encontre a ferramenta certa para consultar dados, localizar atendimentos por número, pesquisar mensagens ou encerrar Conversations ativas.",
         features: {
           channel: "WhatsApp e SMS",
           batch: "Operações em lote",
@@ -185,11 +192,17 @@ export const strings = {
       },
     },
     fetch: {
-      breadcrumb: "Buscar por SID",
-      title: "Buscar por SID",
-      subtitle: "Consulta os detalhes completos de uma conversa pelo SID",
+      breadcrumb: "Detalhes por SID",
+      title: "Detalhes da Conversation",
+      subtitle:
+        "Consulte dados gerais e participantes usando o Conversation SID",
       about:
-        "Busca uma conversa pelo SID e exibe suas informações completas. Útil quando você tem o SID e quer inspecionar a conversa sem abrir o console Twilio.",
+        "Exibe estado, datas, atributos, Messaging Service e participantes da Conversation. Para consultar o conteúdo das mensagens, use o atalho disponível no resultado.",
+      metadata: {
+        title: "Detalhes da Conversation por SID",
+        description:
+          "Consulte dados gerais, atributos e participantes de uma Conversation pelo SID.",
+      },
       sidLabel: "Conversation SID",
       sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
       sidInvalid: "Deve começar com CH e ter 34 caracteres",
@@ -209,23 +222,87 @@ export const strings = {
         added: "Adicionado:",
         updated: "Atualizado:",
         messagingServiceSid: "Messaging Service SID",
+        viewHistory: "Ver histórico",
       },
       history: {
         title: "Últimas consultas",
         clear: "Limpar",
       },
     },
-    close: {
-      breadcrumb: "Encerrar Conversation",
-      title: "Encerrar Conversations Ativas",
+    history: {
+      breadcrumb: "Mensagens por SID",
+      title: "Mensagens da Conversation",
       subtitle:
-        "Encerra em lote todas as conversations ativas de um ou mais números de telefone",
+        "Pesquise, filtre e exporte mensagens usando o Conversation SID",
       about:
-        "Localiza e encerra em lote todas as conversations ativas associadas a uma lista de números de telefone. Ideal para desativar atendimentos de vários números de uma só vez.",
+        "Exibe as mensagens em ordem cronológica e permite buscar no conteúdo, filtrar por autor ou período e exportar os resultados em CSV.",
+      sidLabel: "Conversation SID",
+      sidPlaceholder: "CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
+      sidInvalid: "Deve começar com CH e ter 34 caracteres",
+      metadata: {
+        title: "Mensagens da Conversation por SID",
+        description:
+          "Pesquise, filtre e exporte as mensagens de uma Conversation pelo SID.",
+      },
+      filters: {
+        contentLabel: "Buscar no conteúdo",
+        contentPlaceholder: "Digite um trecho da mensagem",
+        authorLabel: "Autor",
+        allAuthors: "Todos os autores",
+        startDateLabel: "Data inicial",
+        endDateLabel: "Data final",
+        clear: "Limpar filtros",
+      },
+      export: {
+        button: "Exportar CSV",
+        columns: [
+          "Índice",
+          "Message SID",
+          "Autor",
+          "Data",
+          "Conteúdo",
+          "Anexos",
+        ],
+      },
+      recent: {
+        title: "Últimas consultas",
+        clear: "Limpar",
+        messages: (count: number) => `${count} mensagem(ns)`,
+        reuse: (sid: string) => `Usar novamente o Conversation SID ${sid}`,
+      },
+      result: {
+        noFriendlyName: "Sem nome amigável",
+        viewDetails: "Ver detalhes",
+        messagesHeading: "Mensagens",
+        messageCount: (count: number) => `${count} mensagem(ns)`,
+        filteredMessageCount: (filtered: number, total: number) =>
+          `${filtered} de ${total} mensagem(ns)`,
+        empty: "Nenhuma mensagem encontrada nesta Conversation.",
+        noFilteredMessages: "Nenhuma mensagem corresponde aos filtros.",
+        limitWarning: "Exibindo as 1.000 mensagens mais recentes.",
+        dateUnavailable: "Data indisponível",
+        systemAuthor: "Sistema",
+        noText: "Mensagem sem conteúdo de texto",
+        attachment: "Anexo",
+      },
+    },
+    close: {
+      breadcrumb: "Encerrar por Número",
+      title: "Encerrar Conversations por Número",
+      subtitle:
+        "Encerre todas as Conversations ativas vinculadas aos números informados",
+      about:
+        "Localiza os atendimentos ativos associados a cada número e encerra suas Conversations em lote. Esta operação modifica dados no Twilio e não pode ser desfeita.",
+      metadata: {
+        title: "Encerrar Conversations por Número",
+        description:
+          "Localize e encerre Conversations ativas vinculadas a números de telefone.",
+      },
       phoneLabel: "Números de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       detected: (n: number) => `${n} número(s) detectado(s)`,
-      maxExceeded: (max: number) => ` — máximo ${max} por vez`,
+      maxExceeded: (max: number) => `; máximo de ${max} por vez`,
       addPhone: "Adicionar número",
       removePhone: "Remover número",
       submit: "Encerrar Conversations",
@@ -247,11 +324,17 @@ export const strings = {
       },
     },
     fetchByParticipant: {
-      breadcrumb: "Buscar por Número",
-      title: "Buscar por Número",
-      subtitle: "Lista todas as conversas associadas a um número de telefone",
+      breadcrumb: "Conversations por Número",
+      title: "Conversations por Número",
+      subtitle:
+        "Localize Conversations vinculadas ao número de WhatsApp informado",
       about:
-        "Lista todas as conversas em que um número de telefone participou. Útil para entender o histórico de atendimento de um cliente ou verificar o estado atual das suas conversas.",
+        "Lista as Conversations em que o número participou, permite filtrar por estado e oferece atalhos para consultar detalhes ou mensagens de cada atendimento.",
+      metadata: {
+        title: "Conversations por Número",
+        description:
+          "Localize Conversations associadas a um número de WhatsApp e consulte seus detalhes ou mensagens.",
+      },
       phoneLabel: "Número de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
       filterLabel: "Filtrar por estado",
@@ -274,6 +357,9 @@ export const strings = {
         dateUpdated: "Atualizada:",
         identity: "Identidade:",
         loadMore: "Carregar mais",
+        loadingMore: "Carregando...",
+        viewConversation: "Ver Conversation",
+        viewMessageHistory: "Ver histórico",
       },
       history: {
         title: "Últimas consultas",
@@ -285,11 +371,16 @@ export const strings = {
   flex: {
     page: {
       title: "Flex",
-      subtitle: "Configure endereços e integrações do Twilio Flex.",
+      subtitle: "Configure canais que criam Conversations e acionam o Flex.",
+      metadata: {
+        title: "Configuração do Twilio Flex",
+        description:
+          "Configure endereços de canal e integrações do Twilio Flex.",
+      },
       intro: {
         badge: "Flex API",
         description:
-          "Ferramentas para configurar o Twilio Flex. Gerencie endereços de canal e integrações com Studio diretamente pela interface.",
+          "Configure como mensagens recebidas por WhatsApp, SMS e outros canais criam Conversations e são encaminhadas ao Studio ou a webhooks.",
         features: {
           channels: "WhatsApp e SMS",
           studio: "Integração Studio",
@@ -299,9 +390,14 @@ export const strings = {
       },
     },
     createAddressConfig: {
-      breadcrumb: "Criar Endereço Flex",
-      title: "Criar novo Endereço",
-      subtitle: "Configura um endereço para criação automática de conversas no Flex",
+      breadcrumb: "Configurar Endereço",
+      title: "Configurar Endereço de Canal",
+      subtitle: "Crie um endereço e defina como novas mensagens entram no Flex",
+      metadata: {
+        title: "Configurar Endereço de Canal no Flex",
+        description:
+          "Crie um endereço de canal e configure sua integração com Studio, webhook ou Flex.",
+      },
       addressTypeLabel: "Tipo de endereço",
       addressTypes: {
         sms: "SMS",
@@ -338,7 +434,7 @@ export const strings = {
         chat: "Este endereço será criado no Flex Conversations. **Capacidades do endereço:** Suporta entrada de mensagens de chat.",
       },
       friendlyNameLabel: "Nome amigável do endereço",
-      flexIntegrationSection: "Flex integration",
+      flexIntegrationSection: "Integração com o Flex",
       flexIntegrationInfo:
         "Define como o Flex processa mensagens recebidas neste endereço.",
       integrationTypeLabel: "Tipo de integração",
@@ -365,7 +461,7 @@ export const strings = {
         friendlyName: "Nome amigável",
         noFriendlyName: "Sem nome amigável",
         addressCountry: "País",
-        noCountry: "—",
+        noCountry: "Não informado",
         dateCreated: "Criada em",
         dateUpdated: "Atualizada em",
         autoCreation: "Integração Flex",
@@ -382,11 +478,16 @@ export const strings = {
     page: {
       title: "TaskRouter",
       subtitle:
-        "Atribua workers, crie workflows, consulte tasks e inspecione workers do TaskRouter.",
+        "Consulte atendimentos e configure Workers, Workflows, filtros e filas.",
+      metadata: {
+        title: "Ferramentas para TaskRouter",
+        description:
+          "Consulte Tasks e Workers e configure skills, Workflows, filtros e filas do TaskRouter.",
+      },
       intro: {
         badge: "TaskRouter API",
         description:
-          "Ferramentas para gerenciar o TaskRouter. Configure roteamento, opere sobre workers e filas, e automatize processos diretamente pela interface.",
+          "Escolha uma ferramenta para investigar Tasks, consultar Workers ou modificar regras de roteamento e distribuição de atendimentos.",
         features: {
           routing: "Roteamento de tasks",
           workers: "Workers e filas",
@@ -396,12 +497,17 @@ export const strings = {
       },
     },
     assignWorkers: {
-      breadcrumb: "Atribuir Workers",
-      title: "Atribuir Workers à Fila",
+      breadcrumb: "Adicionar Skill a Workers",
+      title: "Adicionar Skill a Workers",
       subtitle:
-        "Adiciona uma skill aos atributos de múltiplos workers de uma vez",
+        "Atualize vários Workers por e-mail ou SID em uma única operação",
       about:
-        "Adiciona uma skill com nível opcional aos atributos de vários workers de uma vez. Ideal para preparar uma equipe antes de ativar uma nova fila ou redistribuir atendimentos entre times.",
+        "Adiciona uma skill, com nível opcional, aos atributos dos Workers informados. Use para habilitar uma equipe a receber Tasks que dependem dessa regra de roteamento.",
+      metadata: {
+        title: "Adicionar Skill a Workers",
+        description:
+          "Adicione uma skill aos atributos de vários Workers do TaskRouter por e-mail ou SID.",
+      },
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
@@ -409,7 +515,7 @@ export const strings = {
       emailsLabel: "E-mails ou SIDs dos workers",
       emailsHint: "(um por linha ou separados por vírgula)",
       detected: (n: number) => `${n} identificador(es) detectado(s)`,
-      maxExceeded: (max: number) => ` — máximo ${max} por vez`,
+      maxExceeded: (max: number) => `; máximo de ${max} por vez`,
       submit: "Atribuir Workers",
       confirmTitle: "Atribuir workers?",
       confirmDescription: (skill: string, n: number, workspaceSid: string) =>
@@ -429,12 +535,16 @@ export const strings = {
       },
     },
     createWorkflow: {
-      breadcrumb: "Criar Workflow",
-      title: "Criar Workflow",
-      subtitle:
-        "Cria um workflow de roteamento no TaskRouter a partir de um arquivo CSV",
+      breadcrumb: "Criar Workflow por CSV",
+      title: "Criar Workflow por CSV",
+      subtitle: "Importe regras e filas para criar um Workflow de roteamento",
       about:
-        "Lê as regras de negócio e filas de um arquivo CSV e cria o workflow de roteamento no TaskRouter. Ideal para automatizar a criação de workflows sem configurar cada filtro manualmente.",
+        "Lê filtros e Task Queues de um arquivo CSV e cria o Workflow no Workspace informado, evitando a configuração manual de cada regra.",
+      metadata: {
+        title: "Criar Workflow do TaskRouter por CSV",
+        description:
+          "Crie um Workflow do TaskRouter importando filtros e Task Queues de um arquivo CSV.",
+      },
       workspaceSidLabel: "Workspace SID",
       workflowNameLabel: "Nome do Workflow",
       csvLabel: "Arquivo CSV",
@@ -489,12 +599,17 @@ export const strings = {
       },
     },
     fetchWorker: {
-      breadcrumb: "Buscar Worker",
-      title: "Buscar Worker",
+      breadcrumb: "Detalhes do Worker",
+      title: "Detalhes do Worker",
       subtitle:
-        "Consulta os detalhes completos de um worker pelo SID ou e-mail",
+        "Consulte atividade, skills e atributos por SID, e-mail ou nome",
       about:
-        "Busca um worker pelo SID ou e-mail e exibe suas informações completas. Útil para inspecionar um worker e conferir suas configurações sem acessar o console Twilio.",
+        "Localiza um Worker no Workspace e exibe atividade atual, disponibilidade, skills e atributos. Use para validar sua configuração de roteamento.",
+      metadata: {
+        title: "Detalhes do Worker",
+        description:
+          "Consulte atividade, skills e atributos de um Worker do TaskRouter por SID, e-mail ou nome.",
+      },
       workspaceSidLabel: "Workspace SID",
       identifierLabel: "Worker SID ou e-mail",
       identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
@@ -515,12 +630,17 @@ export const strings = {
       },
     },
     searchTasks: {
-      breadcrumb: "Buscar Task",
-      title: "Buscar Task",
+      breadcrumb: "Tasks por SID ou Número",
+      title: "Tasks por SID ou Número",
       subtitle:
-        "Consulte por SID ou localize tasks pelo número de telefone do contato",
+        "Consulte uma Task específica ou localize atendimentos de um contato",
       about:
-        "Busca tasks no TaskRouter por SID exato ou pelo campo 'from' do contato — considerando voz e WhatsApp. Alterne o modo de busca conforme o que você tem disponível.",
+        "Use o Task SID para inspecionar uma Task específica ou informe o telefone para localizar Tasks de voz e WhatsApp associadas ao contato.",
+      metadata: {
+        title: "Tasks por SID ou Número",
+        description:
+          "Consulte uma Task por SID ou localize Tasks de voz e WhatsApp pelo número do contato.",
+      },
       workspaceSidLabel: "Workspace SID",
       modeSid: "Por SID",
       modePhone: "Por Telefone",
@@ -550,7 +670,7 @@ export const strings = {
         attributes: "Atributos",
         channelVoice: "Voz",
         channelWhatsapp: "WhatsApp",
-        channelUnknown: "—",
+        channelUnknown: "Desconhecido",
         copySid: "Copiar SID",
         sidCopied: "Copiado!",
       },
@@ -561,12 +681,16 @@ export const strings = {
       },
     },
     cancelQueueTasks: {
-      breadcrumb: "Encerrar Tasks da Fila",
-      title: "Encerrar Tasks da Fila",
-      subtitle:
-        "Encerra em lote as tasks de uma fila e fecha as conversas associadas",
+      breadcrumb: "Encerrar Tasks por Fila",
+      title: "Encerrar Tasks por Fila",
+      subtitle: "Encerre Tasks abertas e feche as Conversations associadas",
       about:
-        "Encerra em lote todas as tasks pendentes ou reservadas de uma fila, notifica os clientes e fecha as conversas associadas. Ideal para desativar uma fila inteira de atendimentos — ação irreversível, use com cuidado.",
+        "Localiza Tasks pendentes ou reservadas na Task Queue, envia a mensagem informada aos clientes e fecha as Conversations associadas. A operação é irreversível.",
+      metadata: {
+        title: "Encerrar Tasks por Fila",
+        description:
+          "Encerre Tasks abertas de uma Task Queue e feche as Conversations associadas.",
+      },
       workspaceSidLabel: "Workspace SID",
       taskQueueNameLabel: "Nome da fila (Task Queue)",
       closeMessageLabel: "Mensagem enviada ao cliente antes de fechar",
@@ -589,12 +713,16 @@ export const strings = {
       },
     },
     addParticularFilter: {
-      breadcrumb: "Adicionar Filtro",
-      title: "Adicionar Filtro de Roteamento",
-      subtitle:
-        "Insere um filtro de roteamento customizado nos workflows indicados",
+      breadcrumb: "Adicionar Filtro a Workflows",
+      title: "Adicionar Filtro a Workflows",
+      subtitle: "Direcione uma regra de negócio para Task Queues específicas",
       about:
-        "Insere um filtro de roteamento nos workflows indicados, direcionando tasks com a regra de negócio especificada para a fila correspondente. Workflows que já possuem um filtro com o mesmo nome são automaticamente ignorados.",
+        "Adiciona o filtro informado aos Workflows e associa cada um à sua Task Queue. Workflows que já possuem um filtro com o mesmo nome são ignorados.",
+      metadata: {
+        title: "Adicionar Filtro a Workflows",
+        description:
+          "Adicione uma regra de roteamento a vários Workflows e associe cada um a uma Task Queue.",
+      },
       workspaceSidLabel: "Workspace SID",
       filterNameLabel: "Nome da regra de negócio",
       filterNamePlaceholder: "ex: PARTICULAR",
@@ -632,9 +760,14 @@ export const strings = {
   },
   contacts: {
     manager: {
-      breadcrumb: "Gerenciar Contatos",
-      title: "Contatos",
-      subtitle: "Números salvos com nomes para autocompletar nos formulários",
+      breadcrumb: "Contatos Salvos",
+      title: "Contatos Salvos",
+      subtitle: "Associe nomes aos números usados nos formulários",
+      metadata: {
+        title: "Contatos Salvos",
+        description:
+          "Cadastre nomes e números de telefone para preencher formulários com mais rapidez.",
+      },
       addButton: "Novo contato",
       addTitle: "Novo contato",
       editTitle: "Editar contato",
@@ -656,9 +789,14 @@ export const strings = {
   },
   variables: {
     manager: {
-      breadcrumb: "Gerenciar Variáveis",
-      title: "Variáveis",
-      subtitle: "Valores salvos para autocompletar nos formulários",
+      breadcrumb: "Valores de Autocomplete",
+      title: "Valores de Autocomplete",
+      subtitle: "Gerencie valores reutilizáveis por campo e ambiente",
+      metadata: {
+        title: "Valores de Autocomplete",
+        description:
+          "Gerencie valores salvos por campo e ambiente para reutilização nos formulários.",
+      },
       addButton: "Adicionar",
       valueLabel: "Valor",
       valuePlaceholder: "Digite o valor...",
@@ -673,11 +811,16 @@ export const strings = {
   environments: {
     page: {
       title: "Configurações",
-      subtitle: "Gerencie credenciais e configurações do Switchboard.",
+      subtitle: "Gerencie acessos Twilio e dados reutilizados nos formulários.",
+      metadata: {
+        title: "Configurações do Switchboard",
+        description:
+          "Gerencie ambientes Twilio, contatos salvos e valores reutilizáveis nos formulários.",
+      },
       intro: {
         badge: "Configurações",
         description:
-          "Central de configuração do Switchboard. Gerencie credenciais Twilio e recursos auxiliares que potencializam o uso das ferramentas.",
+          "Configure as credenciais usadas nas operações e mantenha contatos e valores de autocomplete disponíveis para preenchimento rápido.",
         features: {
           multienv: "Múltiplos ambientes",
           local: "Dados locais e privados",
@@ -687,26 +830,31 @@ export const strings = {
       },
       tools: {
         manage: {
-          label: "Gerenciar Ambientes",
+          label: "Ambientes Twilio",
           description:
-            "Cadastre, edite e remova ambientes Twilio com Account SID e Auth Token.",
+            "Cadastre credenciais e escolha qual conta usar nas operações.",
         },
         contacts: {
-          label: "Gerenciar Contatos",
+          label: "Contatos Salvos",
           description:
-            "Salve números de telefone com nomes para autocompletar nos formulários.",
+            "Associe nomes a números para preencher buscas e operações.",
         },
         variables: {
-          label: "Gerenciar Variáveis",
+          label: "Valores de Autocomplete",
           description:
-            "Adicione, edite e remova valores salvos para autocompletar nos formulários.",
+            "Organize valores reutilizáveis por tipo de campo e ambiente.",
         },
       },
     },
     manager: {
-      breadcrumb: "Gerenciar Ambientes",
+      breadcrumb: "Ambientes Twilio",
       title: "Ambientes Twilio",
-      subtitle: "Gerencie as credenciais de cada ambiente",
+      subtitle: "Cadastre credenciais e selecione a conta usada nas operações",
+      metadata: {
+        title: "Ambientes Twilio",
+        description:
+          "Cadastre, teste e selecione credenciais Twilio para cada ambiente.",
+      },
       addButton: "Novo ambiente",
       addTitle: "Novo ambiente",
       editTitle: "Editar ambiente",
@@ -732,7 +880,7 @@ export const strings = {
       nameRequired: "Nome obrigatório",
       accountSidLabel: "Account SID",
       accountSidHint:
-        "Começa com AC, seguido de 32 caracteres hex — total 34 chars",
+        "Começa com AC, seguido de 32 caracteres hexadecimais. Total: 34 caracteres",
       accountSidRequired: "Account SID obrigatório",
       accountSidInvalid: "Deve começar com AC e ter 34 caracteres",
       authTokenLabel: "Auth Token",
@@ -753,12 +901,16 @@ export const strings = {
   numbers: {
     page: {
       title: "Números",
-      subtitle:
-        "Consulte e classifique os números WhatsApp da conta Twilio por serviço.",
+      subtitle: "Identifique o serviço configurado para cada número WhatsApp.",
+      metadata: {
+        title: "Números WhatsApp da Conta",
+        description:
+          "Liste os números WhatsApp da conta e identifique o serviço associado a cada um.",
+      },
       intro: {
         badge: "Numbers API",
         description:
-          "Ferramentas para consultar e classificar os números WhatsApp da conta. Identifique qual serviço opera cada número — sem precisar acessar o console Twilio.",
+          "Consulte os WhatsApp Senders da conta e descubra quais operam com Conversations ou Programmable Chat.",
         features: {
           classification: "Classificação por serviço",
           filtering: "Filtros e ordenação",
@@ -768,12 +920,17 @@ export const strings = {
       },
     },
     list: {
-      breadcrumb: "WhatsApp Senders",
-      title: "WhatsApp Senders",
+      breadcrumb: "Classificar Senders",
+      title: "Classificar WhatsApp Senders",
       subtitle:
-        "Lista todos os WhatsApp senders da conta e identifica o serviço de cada um",
+        "Liste os números da conta e identifique o serviço de mensageria",
       about:
-        "Lista todos os WhatsApp senders registrados na conta e identifica se cada um opera via Conversations ou Programmable Chat. Útil para mapear rapidamente qual serviço está por trás de cada número sem precisar acessar o console Twilio.",
+        "Exibe cada WhatsApp Sender com seu nome, número e serviço associado. Use os filtros para separar números configurados em Conversations ou Programmable Chat e exporte o resultado.",
+      metadata: {
+        title: "Classificar WhatsApp Senders",
+        description:
+          "Liste, filtre e exporte WhatsApp Senders classificados por Conversations ou Programmable Chat.",
+      },
       submit: "Listar Senders",
       confirmTitle: "Listar senders?",
       confirmDescription: (env: string) =>

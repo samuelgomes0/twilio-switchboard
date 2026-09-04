@@ -107,7 +107,7 @@ function fmtTs(ts: number) {
 }
 
 function formatDate(d: string | null): string {
-  if (!d) return "—"
+  if (!d) return strings.common.notAvailable
   return new Date(d).toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
@@ -213,9 +213,7 @@ export function CreateAddressConfigForm() {
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : strings.common.networkError
-      )
+      setError(err instanceof Error ? err.message : strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -288,7 +286,7 @@ export function CreateAddressConfigForm() {
         {/* Address type */}
         <div className="space-y-2">
           <Label htmlFor="addressType">
-            <span className="text-destructive mr-0.5">*</span>
+            <span className="mr-0.5 text-destructive">*</span>
             {s.addressTypeLabel}
           </Label>
           <select
@@ -315,7 +313,7 @@ export function CreateAddressConfigForm() {
         {/* Address / number */}
         <div className="space-y-2">
           <Label htmlFor="address">
-            <span className="text-destructive mr-0.5">*</span>
+            <span className="mr-0.5 text-destructive">*</span>
             {s.addressFieldLabel[addressType]}
           </Label>
           <StoredInput
@@ -355,7 +353,7 @@ export function CreateAddressConfigForm() {
             </h2>
             <div className="group relative">
               <Info className="size-4 cursor-help text-muted-foreground" />
-              <div className="pointer-events-none absolute left-5 top-0 z-10 w-64 rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute top-0 left-5 z-10 w-64 rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
                 {s.flexIntegrationInfo}
               </div>
             </div>
@@ -364,7 +362,7 @@ export function CreateAddressConfigForm() {
           {/* Integration type */}
           <div className="space-y-2">
             <Label htmlFor="integrationType">
-              <span className="text-destructive mr-0.5">*</span>
+              <span className="mr-0.5 text-destructive">*</span>
               {s.integrationTypeLabel}
             </Label>
             <select
@@ -388,7 +386,7 @@ export function CreateAddressConfigForm() {
           {integrationType === "studio" && (
             <div className="space-y-2">
               <Label htmlFor="studioFlowSid">
-                <span className="text-destructive mr-0.5">*</span>
+                <span className="mr-0.5 text-destructive">*</span>
                 {s.studioFlowLabel}
               </Label>
               <StoredInput
@@ -411,7 +409,7 @@ export function CreateAddressConfigForm() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="webhookUrl">
-                  <span className="text-destructive mr-0.5">*</span>
+                  <span className="mr-0.5 text-destructive">*</span>
                   {s.webhookUrlLabel}
                 </Label>
                 <Input
@@ -603,12 +601,18 @@ export function CreateAddressConfigForm() {
           </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li
+                key={i}
+                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" — "}
+                {" · "}
                 <span className="font-mono">{h.address}</span>
                 <span> · {h.type}</span>
-                <span className="font-mono"> · {h.sid.slice(0, 10)}...</span>
+                <span className="font-mono break-all select-text">
+                  {" · "}
+                  {h.sid}
+                </span>
               </li>
             ))}
           </ul>

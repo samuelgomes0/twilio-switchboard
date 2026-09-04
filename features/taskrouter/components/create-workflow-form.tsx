@@ -231,7 +231,7 @@ export function CreateWorkflowForm() {
               }
             }
           } catch {
-            // malformed event — skip
+            // Invalid events are ignored because the stream can contain partial data.
           }
         }
       }
@@ -502,13 +502,16 @@ export function CreateWorkflowForm() {
           </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li
+                key={i}
+                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" — "}
+                {" · "}
                 <span>{h.workflowName}</span>
                 {" · "}
-                <span className="font-mono">
-                  {h.workflowSid.slice(0, 10)}...
+                <span className="font-mono break-all select-text">
+                  {h.workflowSid}
                 </span>
                 {" · "}
                 {strings.taskrouter.createWorkflow.history.itemFilters(

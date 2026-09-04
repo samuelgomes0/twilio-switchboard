@@ -11,15 +11,33 @@ export interface ParticipantConversation {
   participantMessagingBinding: Record<string, unknown> | null
 }
 
+export interface ParticipantConversationPage {
+  conversations: ParticipantConversation[]
+  nextPageToken: string | null
+}
+
+const PARTICIPANT_CONVERSATION_PAGE_SIZE = 20
+
+function readPageToken(nextPageUrl: string | undefined): string | null {
+  if (!nextPageUrl) return null
+  return new URL(
+    nextPageUrl,
+    "https://conversations.twilio.com"
+  ).searchParams.get("PageToken")
+}
+
 export async function fetchConversationsByParticipant(
   address: string,
-  client: ReturnType<typeof getTwilioClient>
-): Promise<ParticipantConversation[]> {
-  const results = await client.conversations.v1.participantConversations.list({
+  client: ReturnType<typeof getTwilioClient>,
+  pageToken?: string
+): Promise<ParticipantConversationPage> {
+  const page = await client.conversations.v1.participantConversations.page({
     address,
+    pageSize: PARTICIPANT_CONVERSATION_PAGE_SIZE,
+    pageToken,
   })
 
-  return results
+  const conversations = page.instances
     .map((pc) => ({
       conversationSid: pc.conversationSid,
       conversationState: pc.conversationState as string,
@@ -40,4 +58,9 @@ export async function fetchConversationsByParticipant(
       const bTime = b.conversationDateUpdated?.getTime() ?? 0
       return bTime - aTime
     })
+
+  return {
+    conversations,
+    nextPageToken: readPageToken(page.nextPageUrl),
+  }
 }

@@ -8,6 +8,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react"
 import Link from "next/link"
+import type { Metadata } from "next"
 import type { ElementType } from "react"
 
 import {
@@ -52,6 +53,11 @@ const tools: Tool[] = [
 ]
 
 const s = strings.environments.page
+
+export const metadata: Metadata = {
+  title: s.metadata.title,
+  description: s.metadata.description,
+}
 
 const features = [
   { icon: Layers, label: s.intro.features.multienv },

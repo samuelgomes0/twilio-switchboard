@@ -1,4 +1,5 @@
 import { ArrowRight, Route, Users, Workflow } from "lucide-react"
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import {
@@ -12,6 +13,11 @@ import { taskrouterTools } from "@/features/taskrouter/tools"
 import { strings } from "@/lib/strings"
 
 const s = strings.taskrouter.page
+
+export const metadata: Metadata = {
+  title: s.metadata.title,
+  description: s.metadata.description,
+}
 
 const features = [
   { icon: Route, label: s.intro.features.routing },

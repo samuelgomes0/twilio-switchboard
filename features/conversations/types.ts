@@ -32,3 +32,27 @@ export interface FetchResponse {
   participants: Participant[]
 }
 
+export interface ConversationMedia {
+  sid: string | null
+  filename: string | null
+  contentType: string | null
+  size: number | null
+}
+
+export interface ConversationMessage {
+  sid: string
+  index: number
+  author: string
+  body: string
+  participantSid: string | null
+  dateCreated: Date | null
+  dateUpdated: Date | null
+  attributes: string
+  media: ConversationMedia[]
+}
+
+export interface ConversationHistoryResponse {
+  conversation: Pick<ConversationData, "sid" | "friendlyName" | "state">
+  messages: ConversationMessage[]
+  hasMore: boolean
+}

@@ -24,7 +24,7 @@ export async function listNumbers(
   // Tracks normalised phone strings to prevent duplicates across both APIs.
   const seenPhones = new Set<string>()
 
-  // Conversations numbers take priority — process and register their phones first.
+  // Conversations numbers take priority, so their phones are registered first.
   if (addressConfigsResult.status === "fulfilled") {
     for (const config of addressConfigsResult.value) {
       const phone = normalizePhone(config.address)
@@ -39,7 +39,7 @@ export async function listNumbers(
     }
   }
 
-  // Programmable Chat — only senders not already present as Conversations.
+  // Only Programmable Chat senders not already present as Conversations are added.
   if (whatsappSendersResult.status === "fulfilled") {
     for (const sender of whatsappSendersResult.value) {
       const phone = normalizePhone(sender.senderId)

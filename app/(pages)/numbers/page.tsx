@@ -1,4 +1,5 @@
 import { ArrowRight, Hash, SlidersHorizontal, Zap } from "lucide-react"
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import {
@@ -12,6 +13,11 @@ import { numbersTools } from "@/features/numbers/tools"
 import { strings } from "@/lib/strings"
 
 const s = strings.numbers.page
+
+export const metadata: Metadata = {
+  title: s.metadata.title,
+  description: s.metadata.description,
+}
 
 const features = [
   { icon: Hash, label: s.intro.features.classification },
