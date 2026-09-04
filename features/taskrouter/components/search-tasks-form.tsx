@@ -96,7 +96,7 @@ function fmtTs(ts: number) {
 }
 
 function formatDate(d: Date | null | string): string {
-  if (!d) return "—"
+  if (!d) return strings.common.notAvailable
   const date = typeof d === "string" ? new Date(d) : d
   return date.toLocaleString("pt-BR", {
     day: "2-digit",
@@ -172,12 +172,7 @@ function JsonBlock({ value }: { value: string }) {
 // ─── Badge variants ──────────────────────────────────────────────────────────
 
 type BadgeVariant =
-  | "success"
-  | "warning"
-  | "destructive"
-  | "secondary"
-  | "info"
-  | "outline"
+  "success" | "warning" | "destructive" | "secondary" | "info" | "outline"
 
 function statusVariant(s: string): BadgeVariant {
   if (s === "assigned") return "success"
@@ -729,13 +724,16 @@ export function SearchTasksForm() {
           </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li
+                key={i}
+                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" — "}
+                {" · "}
                 {h.mode === "sid" ? (
                   <>
-                    <span className="font-mono">
-                      {h.taskSid.slice(0, 14)}...
+                    <span className="font-mono break-all select-text">
+                      {h.taskSid}
                     </span>
                     {" · "}
                     <span>{h.assignmentStatus}</span>

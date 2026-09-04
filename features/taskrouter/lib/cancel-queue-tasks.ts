@@ -79,7 +79,7 @@ async function processSingleTask(
   const rawSid = extractConversationSid(attributes)
   const conversationSid = isValidConversationSid(rawSid) ? rawSid : null
 
-  // Step 1: cancel task first — if this fails, abort to avoid sending a misleading message
+  // Cancel first because a failure must prevent sending a misleading message.
   const cancelResult = await withRetry(
     () =>
       client.taskrouter.v1
@@ -205,7 +205,7 @@ export async function cancelQueueTasks(
   emit(
     sseEvent(
       "info",
-      `${tasks.length} task(s) encontrada(s) — elegíveis: ${cancellableTasks.length} · ignoradas: ${ignoredCount}`
+      `${tasks.length} task(s) encontrada(s). Elegíveis: ${cancellableTasks.length} · ignoradas: ${ignoredCount}`
     )
   )
 

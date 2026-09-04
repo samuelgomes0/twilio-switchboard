@@ -1,6 +1,12 @@
 "use client"
 
-import { AlertTriangle, ChevronRight, Loader2, Search } from "lucide-react"
+import {
+  AlertTriangle,
+  ChevronRight,
+  History,
+  Loader2,
+  Search,
+} from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -85,7 +91,7 @@ function stateBadgeVariant(state: ConversationState) {
 }
 
 function formatDate(d: Date | null | string): string {
-  if (!d) return "—"
+  if (!d) return strings.common.notAvailable
   const date = typeof d === "string" ? new Date(d) : d
   return date.toLocaleString("pt-BR", {
     day: "2-digit",
@@ -127,9 +133,9 @@ function JsonBlock({ value }: { value: string }) {
   )
 }
 
-export function FetchForm() {
+export function FetchForm({ initialSid = "" }: { initialSid?: string }) {
   const { activeEnvironment } = useEnvironment()
-  const [sid, setSid] = React.useState("")
+  const [sid, setSid] = React.useState(initialSid)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [sidError, setSidError] = React.useState<string | null>(null)
@@ -138,7 +144,8 @@ export function FetchForm() {
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    const timer = window.setTimeout(() => setHistory(readHistory()), 0)
+    return () => window.clearTimeout(timer)
   }, [])
 
   const canSubmit = sid.trim().length > 0 && !loading && !!activeEnvironment
@@ -349,9 +356,22 @@ export function FetchForm() {
                       strings.conversations.fetch.result.noFriendlyName}
                   </CardDescription>
                 </div>
-                <Badge variant={stateBadgeVariant(data.conversation.state)}>
-                  {data.conversation.state}
-                </Badge>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge variant={stateBadgeVariant(data.conversation.state)}>
+                    {data.conversation.state}
+                  </Badge>
+                  <Button asChild variant="outline" size="xs">
+                    <Link
+                      href={{
+                        pathname: "/conversations/history",
+                        query: { sid: data.conversation.sid },
+                      }}
+                    >
+                      <History />
+                      {strings.conversations.fetch.result.viewHistory}
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -513,10 +533,13 @@ export function FetchForm() {
           </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li
+                key={i}
+                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" — "}
-                <span className="font-mono">{h.sid.slice(0, 14)}...</span>
+                {" · "}
+                <span className="font-mono break-all select-text">{h.sid}</span>
                 {h.state && <span> · {h.state}</span>}
                 {h.friendlyName && (
                   <span className="italic"> · {h.friendlyName}</span>

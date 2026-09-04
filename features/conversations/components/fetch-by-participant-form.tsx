@@ -1,6 +1,13 @@
 "use client"
 
-import { AlertTriangle, AtSign, ChevronRight, Loader2 } from "lucide-react"
+import {
+  AlertTriangle,
+  AtSign,
+  ChevronRight,
+  FileSearch2,
+  History,
+  Loader2,
+} from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -18,7 +25,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ContactInput } from "@/components/contact-input"
-import type { ParticipantConversation } from "@/features/conversations/lib/fetch-by-participant"
+import type {
+  ParticipantConversation,
+  ParticipantConversationPage,
+} from "@/features/conversations/lib/fetch-by-participant"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
 import { strings } from "@/lib/strings"
@@ -65,7 +75,7 @@ function fmtTs(ts: number) {
 }
 
 function formatDate(d: Date | null | string): string {
-  if (!d) return "—"
+  if (!d) return strings.common.notAvailable
   const date = typeof d === "string" ? new Date(d) : d
   return date.toLocaleString("pt-BR", {
     day: "2-digit",
@@ -116,6 +126,8 @@ export function FetchByParticipantForm() {
   >(null)
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
   const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const [nextPageToken, setNextPageToken] = React.useState<string | null>(null)
+  const [loadingMore, setLoadingMore] = React.useState(false)
 
   React.useEffect(() => {
     setHistory(readHistory())
@@ -130,6 +142,7 @@ export function FetchByParticipantForm() {
     setLoading(true)
     setError(null)
     setResults(null)
+    setNextPageToken(null)
 
     try {
       const res = await fetch("/api/conversations/fetch-by-participant", {
@@ -141,8 +154,7 @@ export function FetchByParticipantForm() {
           authToken: activeEnvironment.authToken,
         }),
       })
-      const json = (await res.json()) as {
-        conversations: ParticipantConversation[]
+      const json = (await res.json()) as ParticipantConversationPage & {
         error?: string
       }
       if (!res.ok || json.error) {
@@ -150,6 +162,7 @@ export function FetchByParticipantForm() {
         return
       }
       setResults(json.conversations)
+      setNextPageToken(json.nextPageToken)
       const entry: HistoryEntry = {
         ts: Date.now(),
         phone: phone.trim(),
@@ -162,6 +175,39 @@ export function FetchByParticipantForm() {
       setError(err instanceof Error ? err.message : strings.common.networkError)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadMoreResults() {
+    if (!activeEnvironment || !nextPageToken || loadingMore) return
+    setLoadingMore(true)
+    setError(null)
+
+    try {
+      const res = await fetch("/api/conversations/fetch-by-participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address,
+          pageToken: nextPageToken,
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
+      })
+      const json = (await res.json()) as ParticipantConversationPage & {
+        error?: string
+      }
+      if (!res.ok || json.error) {
+        setError(json.error ?? strings.common.unknown)
+        return
+      }
+
+      setResults((current) => [...(current ?? []), ...json.conversations])
+      setNextPageToken(json.nextPageToken)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -189,6 +235,22 @@ export function FetchByParticipantForm() {
       : stateFilter === "all"
         ? results
         : results.filter((pc) => pc.conversationState === stateFilter)
+  const loadMoreButton = nextPageToken ? (
+    <div className="flex justify-center py-3">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={loadingMore}
+        onClick={() => void loadMoreResults()}
+      >
+        {loadingMore && <Loader2 className="animate-spin" />}
+        {loadingMore
+          ? strings.conversations.fetchByParticipant.results.loadingMore
+          : strings.conversations.fetchByParticipant.results.loadMore}
+      </Button>
+    </div>
+  ) : null
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -350,13 +412,16 @@ export function FetchByParticipantForm() {
       {filteredResults !== null && (
         <div className="mt-6">
           {filteredResults.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {results?.length === 0
-                ? strings.conversations.fetchByParticipant.results.none
-                : strings.conversations.fetchByParticipant.results.noneFiltered(
-                    stateFilter
-                  )}
-            </p>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                {results?.length === 0
+                  ? strings.conversations.fetchByParticipant.results.none
+                  : strings.conversations.fetchByParticipant.results.noneFiltered(
+                      stateFilter
+                    )}
+              </p>
+              {loadMoreButton}
+            </div>
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
@@ -373,57 +438,90 @@ export function FetchByParticipantForm() {
                     </>
                   )}
               </p>
-              <ul className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
-                {filteredResults?.map((pc) => (
-                  <li
-                    key={pc.conversationSid}
-                    className="rounded-lg border border-border bg-card px-4 py-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {pc.conversationSid}
-                        </p>
-                        {pc.conversationFriendlyName && (
-                          <p className="mt-0.5 text-sm font-medium">
-                            {pc.conversationFriendlyName}
+              <div className="max-h-[420px] overflow-y-auto pr-1">
+                <ul className="space-y-2">
+                  {filteredResults?.map((pc) => (
+                    <li
+                      key={pc.conversationSid}
+                      className="rounded-lg border border-border bg-card px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {pc.conversationSid}
                           </p>
-                        )}
+                          {pc.conversationFriendlyName && (
+                            <p className="mt-0.5 text-sm font-medium">
+                              {pc.conversationFriendlyName}
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant={stateVariant(pc.conversationState)}>
+                          {pc.conversationState}
+                        </Badge>
                       </div>
-                      <Badge variant={stateVariant(pc.conversationState)}>
-                        {pc.conversationState}
-                      </Badge>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                      <span>
-                        {
-                          strings.conversations.fetchByParticipant.results
-                            .dateCreated
-                        }{" "}
-                        {formatDate(pc.conversationDateCreated)}
-                      </span>
-                      <span>
-                        {
-                          strings.conversations.fetchByParticipant.results
-                            .dateUpdated
-                        }{" "}
-                        {formatDate(pc.conversationDateUpdated)}
-                      </span>
-                    </div>
-                    {pc.participantIdentity && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {
-                          strings.conversations.fetchByParticipant.results
-                            .identity
-                        }{" "}
-                        <span className="font-mono">
-                          {pc.participantIdentity}
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                        <span>
+                          {
+                            strings.conversations.fetchByParticipant.results
+                              .dateCreated
+                          }{" "}
+                          {formatDate(pc.conversationDateCreated)}
                         </span>
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
+                        <span>
+                          {
+                            strings.conversations.fetchByParticipant.results
+                              .dateUpdated
+                          }{" "}
+                          {formatDate(pc.conversationDateUpdated)}
+                        </span>
+                      </div>
+                      {pc.participantIdentity && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {
+                            strings.conversations.fetchByParticipant.results
+                              .identity
+                          }{" "}
+                          <span className="font-mono">
+                            {pc.participantIdentity}
+                          </span>
+                        </p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Button asChild variant="outline" size="xs">
+                          <Link
+                            href={{
+                              pathname: "/conversations/fetch",
+                              query: { sid: pc.conversationSid },
+                            }}
+                          >
+                            <FileSearch2 />
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .viewConversation
+                            }
+                          </Link>
+                        </Button>
+                        <Button asChild variant="outline" size="xs">
+                          <Link
+                            href={{
+                              pathname: "/conversations/history",
+                              query: { sid: pc.conversationSid },
+                            }}
+                          >
+                            <History />
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .viewMessageHistory
+                            }
+                          </Link>
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {loadMoreButton}
+              </div>
             </div>
           )}
         </div>
@@ -446,9 +544,12 @@ export function FetchByParticipantForm() {
           </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li
+                key={i}
+                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" — "}
+                {" · "}
                 <span className="font-mono">{h.phone}</span>
                 {h.stateFilter !== "all" && <span> · {h.stateFilter}</span>}
                 {" · "}

@@ -11,6 +11,7 @@ import {
   Filter,
   GitBranch,
   Hash,
+  History,
   ListX,
   MapPin,
   Menu,
@@ -53,6 +54,11 @@ const conversationsNavItems: NavItem[] = [
     label: strings.sidebar.nav.conversations.fetchByParticipant.label,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
+  },
+  {
+    label: strings.sidebar.nav.conversations.history.label,
+    href: "/conversations/history",
+    icon: History,
   },
   {
     label: strings.sidebar.nav.conversations.close.label,
@@ -218,7 +224,7 @@ function SidebarNav() {
 
   return (
     <>
-      {/* Mobile toggle — hidden while sidebar is open (backdrop handles close) */}
+      {/* Hidden while the sidebar is open because the backdrop handles closing. */}
       {!mobileOpen && (
         <button
           type="button"
@@ -262,7 +268,10 @@ function SidebarNav() {
         </Link>
 
         {/* Navigation */}
-        <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2">
+        <nav
+          aria-label="Navegação principal"
+          className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2"
+        >
           <NavSection
             label={strings.sidebar.sections.conversations}
             href="/conversations"

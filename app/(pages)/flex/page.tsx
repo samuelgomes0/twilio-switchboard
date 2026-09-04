@@ -1,4 +1,5 @@
 import { ArrowRight, MessageCircle, Settings2, Zap } from "lucide-react"
+import type { Metadata } from "next"
 import Link from "next/link"
 
 import {
@@ -12,6 +13,11 @@ import { flexTools } from "@/features/flex/tools"
 import { strings } from "@/lib/strings"
 
 const s = strings.flex.page
+
+export const metadata: Metadata = {
+  title: s.metadata.title,
+  description: s.metadata.description,
+}
 
 const features = [
   { icon: MessageCircle, label: s.intro.features.channels },

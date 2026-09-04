@@ -217,7 +217,7 @@ export function CloseForm() {
               setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
             }
           } catch {
-            // malformed event — skip
+            // Invalid events are ignored because the stream can contain partial data.
           }
         }
       }
@@ -519,9 +519,12 @@ export function CloseForm() {
           </div>
           <ul className="space-y-0.5">
             {history.map((h, i) => (
-              <li key={i} className="text-xs text-muted-foreground">
+              <li
+                key={i}
+                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
                 <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" — "}
+                {" · "}
                 {strings.conversations.close.history.item(h.total, h.closed)}
                 {h.errors > 0 && (
                   <span className="text-red-500 dark:text-red-400">

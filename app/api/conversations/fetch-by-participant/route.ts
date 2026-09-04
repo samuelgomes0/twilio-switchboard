@@ -4,18 +4,51 @@ import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
 export async function POST(req: NextRequest) {
-  let body: { address?: unknown; accountSid?: string; authToken?: string }
+  let body: {
+    address?: unknown
+    pageToken?: unknown
+    accountSid?: unknown
+    authToken?: unknown
+  }
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: "Corpo da requisição inválido" },
+      { status: 400 }
+    )
   }
 
   const address = typeof body.address === "string" ? body.address.trim() : ""
 
   if (!address) {
-    return Response.json({ error: "O campo 'address' é obrigatório" }, { status: 400 })
+    return Response.json(
+      { error: "O campo 'address' é obrigatório" },
+      { status: 400 }
+    )
   }
+
+  if (
+    body.pageToken !== undefined &&
+    (typeof body.pageToken !== "string" ||
+      !body.pageToken ||
+      body.pageToken.length > 2048)
+  ) {
+    return Response.json({ error: "Token de página inválido" }, { status: 400 })
+  }
+
+  if (
+    (body.accountSid !== undefined && typeof body.accountSid !== "string") ||
+    (body.authToken !== undefined && typeof body.authToken !== "string")
+  ) {
+    return Response.json(
+      { error: "Credenciais em formato inválido" },
+      { status: 400 }
+    )
+  }
+
+  const pageToken =
+    typeof body.pageToken === "string" ? body.pageToken : undefined
 
   let client: ReturnType<typeof getTwilioClient>
   try {
@@ -25,9 +58,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const conversations = await fetchConversationsByParticipant(address, client)
-    return Response.json({ conversations })
+    const page = await fetchConversationsByParticipant(
+      address,
+      client,
+      pageToken
+    )
+    return Response.json(page)
   } catch (err) {
-    return toApiResponse(fromTwilioError(err, "conversations/fetch-by-participant"))
+    return toApiResponse(
+      fromTwilioError(err, "conversations/fetch-by-participant")
+    )
   }
 }
