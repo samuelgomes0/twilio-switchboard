@@ -36,7 +36,7 @@ export default function NumbersPage() {
         <h1 className="mt-4 text-3xl font-bold tracking-tight">{s.title}</h1>
 
         <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
-          {s.intro.description}
+          {s.subtitle}
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2">

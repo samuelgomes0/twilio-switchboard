@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { HistoryForm } from "@/features/conversations/components/history-form"
+import { redirect } from "next/navigation"
 import { strings } from "@/lib/strings"
 
 export const metadata: Metadata = {
@@ -16,5 +16,7 @@ export default async function ConversationHistoryPage({
   searchParams,
 }: ConversationHistoryPageProps) {
   const { sid } = await searchParams
-  return <HistoryForm initialSid={typeof sid === "string" ? sid : ""} />
+  const query = new URLSearchParams({ tab: "messages" })
+  if (typeof sid === "string") query.set("sid", sid)
+  redirect(`/conversations/consult?${query}`)
 }

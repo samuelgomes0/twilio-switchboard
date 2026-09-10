@@ -1,59 +1,22 @@
 import { fetchConversationHistory } from "@/features/conversations/lib/history"
-import { fromTwilioError, toApiResponse } from "@/lib/errors"
+import { validateConsultInput } from "@/features/conversations/lib/validate-consult-input"
+import { strings } from "@/lib/strings"
 import { getTwilioClient } from "@/lib/twilio-client"
-import { NextRequest } from "next/server"
 
-const CONVERSATION_SID_PATTERN = /^CH[a-f0-9]{32}$/i
-
-export async function POST(req: NextRequest) {
-  let body: {
-    sid?: unknown
-    accountSid?: unknown
-    authToken?: unknown
-  }
-
+export async function POST(req: Request) {
+  const input = validateConsultInput(await req.json().catch(() => null))
+  if (!input)
+    return Response.json(
+      { error: strings.conversations.consult.invalidInput },
+      { status: 400 }
+    )
   try {
-    body = await req.json()
+    const client = getTwilioClient(input.accountSid, input.authToken)
+    return Response.json(await fetchConversationHistory(input.sid, client))
   } catch {
     return Response.json(
-      { error: "Corpo da requisição inválido." },
-      { status: 400 }
+      { error: strings.conversations.consult.apiError },
+      { status: 500 }
     )
-  }
-
-  const sid = typeof body.sid === "string" ? body.sid.trim() : ""
-  if (!CONVERSATION_SID_PATTERN.test(sid)) {
-    return Response.json(
-      { error: "Conversation SID inválido." },
-      { status: 400 }
-    )
-  }
-
-  if (
-    (body.accountSid !== undefined && typeof body.accountSid !== "string") ||
-    (body.authToken !== undefined && typeof body.authToken !== "string")
-  ) {
-    return Response.json(
-      { error: "Credenciais em formato inválido." },
-      { status: 400 }
-    )
-  }
-
-  const accountSid =
-    typeof body.accountSid === "string" ? body.accountSid : undefined
-  const authToken =
-    typeof body.authToken === "string" ? body.authToken : undefined
-
-  let client: ReturnType<typeof getTwilioClient>
-  try {
-    client = getTwilioClient(accountSid, authToken)
-  } catch (error) {
-    return toApiResponse(error)
-  }
-
-  try {
-    return Response.json(await fetchConversationHistory(sid, client))
-  } catch (error) {
-    return toApiResponse(fromTwilioError(error, "conversations/history"))
   }
 }

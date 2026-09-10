@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { FetchForm } from "@/features/conversations/components/fetch-form"
+import { redirect } from "next/navigation"
 import { strings } from "@/lib/strings"
 
 export const metadata: Metadata = {
@@ -16,5 +16,7 @@ export default async function FetchConversationPage({
   searchParams,
 }: FetchConversationPageProps) {
   const { sid } = await searchParams
-  return <FetchForm initialSid={typeof sid === "string" ? sid : ""} />
+  const query = new URLSearchParams({ tab: "details" })
+  if (typeof sid === "string") query.set("sid", sid)
+  redirect(`/conversations/consult?${query}`)
 }

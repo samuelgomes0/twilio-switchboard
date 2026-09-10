@@ -75,3 +75,11 @@ export interface AddParticularFilterInput {
   accountSid?: string
   authToken?: string
 }
+export interface UpdateWorkerFeatureInput {
+  workspaceSid: string
+  workerSids: string[]
+  feature: string
+  enabled: boolean
+  accountSid?: string
+  authToken?: string
+}

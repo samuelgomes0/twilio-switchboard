@@ -56,3 +56,9 @@ export interface ConversationHistoryResponse {
   messages: ConversationMessage[]
   hasMore: boolean
 }
+
+export interface ConversationConsultInput {
+  sid: string
+  accountSid?: string
+  authToken?: string
+}

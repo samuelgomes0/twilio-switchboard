@@ -11,7 +11,6 @@ import {
   Filter,
   GitBranch,
   Hash,
-  History,
   ListX,
   MapPin,
   Menu,
@@ -20,8 +19,6 @@ import {
   Search,
   Settings2,
   SlidersHorizontal,
-  User,
-  UserPlus,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -46,19 +43,14 @@ interface NavItem {
 
 const conversationsNavItems: NavItem[] = [
   {
-    label: strings.sidebar.nav.conversations.fetch.label,
-    href: "/conversations/fetch",
+    label: strings.conversations.consult.title,
+    href: "/conversations/consult",
     icon: FileSearch2,
   },
   {
     label: strings.sidebar.nav.conversations.fetchByParticipant.label,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
-  },
-  {
-    label: strings.sidebar.nav.conversations.history.label,
-    href: "/conversations/history",
-    icon: History,
   },
   {
     label: strings.sidebar.nav.conversations.close.label,
@@ -77,19 +69,14 @@ const flexNavItems: NavItem[] = [
 
 const taskrouterNavItems: NavItem[] = [
   {
+    label: strings.taskrouter.workerManagement.title,
+    href: "/taskrouter/workers",
+    icon: Settings2,
+  },
+  {
     label: strings.sidebar.nav.taskrouter.searchTasks.label,
     href: "/taskrouter/search-tasks",
     icon: Search,
-  },
-  {
-    label: strings.sidebar.nav.taskrouter.assignWorkers.label,
-    href: "/taskrouter/assign-workers",
-    icon: UserPlus,
-  },
-  {
-    label: strings.sidebar.nav.taskrouter.fetchWorker.label,
-    href: "/taskrouter/fetch-worker",
-    icon: User,
   },
   {
     label: strings.sidebar.nav.taskrouter.createWorkflow.label,

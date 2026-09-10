@@ -5,8 +5,8 @@ import {
   AtSign,
   ChevronRight,
   FileSearch2,
-  History,
   Loader2,
+  Search,
 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
@@ -23,8 +23,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { ContactInput } from "@/components/contact-input"
+import { FetchByParticipantResultsSkeleton } from "@/features/conversations/components/fetch-by-participant-skeleton"
 import type {
   ParticipantConversation,
   ParticipantConversationPage,
@@ -137,8 +139,11 @@ export function FetchByParticipantForm() {
 
   const address = `whatsapp:+55${phone.trim()}`
 
-  async function runSearch() {
-    if (!canSubmit || !activeEnvironment) return
+  async function runSearch(
+    requestedPhone = phone.trim(),
+    requestedStateFilter = stateFilter
+  ) {
+    if (loading || !activeEnvironment || !PHONE_RE.test(requestedPhone)) return
     setLoading(true)
     setError(null)
     setResults(null)
@@ -149,7 +154,7 @@ export function FetchByParticipantForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          address,
+          address: `whatsapp:+55${requestedPhone}`,
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
@@ -165,8 +170,8 @@ export function FetchByParticipantForm() {
       setNextPageToken(json.nextPageToken)
       const entry: HistoryEntry = {
         ts: Date.now(),
-        phone: phone.trim(),
-        stateFilter,
+        phone: requestedPhone,
+        stateFilter: requestedStateFilter,
         count: json.conversations.length,
       }
       pushHistory(entry)
@@ -283,11 +288,6 @@ export function FetchByParticipantForm() {
         </div>
       </div>
 
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.conversations.fetchByParticipant.about}
-      </p>
-
       {/* No environment warning */}
       {!activeEnvironment && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
@@ -340,7 +340,7 @@ export function FetchByParticipantForm() {
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
-                <AtSign className="size-3.5" />
+                <Search className="size-3.5" />
               )}
               {strings.common.search}
             </Button>
@@ -390,11 +390,13 @@ export function FetchByParticipantForm() {
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
+              className="gap-2"
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
+              <Search aria-hidden="true" className="size-3.5" />
               {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -407,6 +409,8 @@ export function FetchByParticipantForm() {
           {error}
         </div>
       )}
+
+      {loading && <FetchByParticipantResultsSkeleton />}
 
       {/* Results */}
       {filteredResults !== null && (
@@ -487,32 +491,21 @@ export function FetchByParticipantForm() {
                           </span>
                         </p>
                       )}
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div className="mt-3">
                         <Button asChild variant="outline" size="xs">
                           <Link
                             href={{
-                              pathname: "/conversations/fetch",
-                              query: { sid: pc.conversationSid },
+                              pathname: "/conversations/consult",
+                              query: {
+                                sid: pc.conversationSid,
+                                tab: "details",
+                              },
                             }}
                           >
                             <FileSearch2 />
                             {
                               strings.conversations.fetchByParticipant.results
-                                .viewConversation
-                            }
-                          </Link>
-                        </Button>
-                        <Button asChild variant="outline" size="xs">
-                          <Link
-                            href={{
-                              pathname: "/conversations/history",
-                              query: { sid: pc.conversationSid },
-                            }}
-                          >
-                            <History />
-                            {
-                              strings.conversations.fetchByParticipant.results
-                                .viewMessageHistory
+                                .consultConversation
                             }
                           </Link>
                         </Button>
@@ -529,35 +522,28 @@ export function FetchByParticipantForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.conversations.fetchByParticipant.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem
+              key={i}
+              onSelect={() => {
+                setPhone(h.phone)
+                setStateFilter(h.stateFilter)
+                void runSearch(h.phone, h.stateFilter)
+              }}
+              ariaLabel={strings.common.recentHistory.reuse}
             >
-              {strings.conversations.fetchByParticipant.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                <span className="font-mono">{h.phone}</span>
-                {h.stateFilter !== "all" && <span> · {h.stateFilter}</span>}
-                {" · "}
-                {strings.conversations.fetchByParticipant.history.item(h.count)}
-              </li>
-            ))}
-          </ul>
-        </div>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              <span className="font-mono font-semibold text-foreground">
+                {h.phone}
+              </span>
+              {h.stateFilter !== "all" && <span> — {h.stateFilter}</span>}
+              {" — "}
+              {strings.conversations.fetchByParticipant.history.item(h.count)}
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

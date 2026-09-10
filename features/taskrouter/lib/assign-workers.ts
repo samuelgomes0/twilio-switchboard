@@ -2,7 +2,7 @@ import { sleep, sseEvent, withRetry } from "@/features/conversations/lib/close"
 import type { AssignWorkersInput } from "@/features/taskrouter/types"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
-const WORKER_SID_RE = /^WK[a-f0-9]{32}$/i
+import { resolveWorker } from "@/features/taskrouter/lib/resolve-worker"
 
 interface WorkerAttributes {
   routing?: {
@@ -11,28 +11,6 @@ interface WorkerAttributes {
     [key: string]: unknown
   }
   [key: string]: unknown
-}
-
-async function getWorker(
-  client: ReturnType<typeof getTwilioClient>,
-  workspaceSid: string,
-  identifier: string
-) {
-  if (WORKER_SID_RE.test(identifier.trim())) {
-    try {
-      return await client.taskrouter.v1
-        .workspaces(workspaceSid)
-        .workers(identifier.trim())
-        .fetch()
-    } catch (err: unknown) {
-      if ((err as { status?: number }).status === 404) return undefined
-      throw err
-    }
-  }
-  const workers = await client.taskrouter.v1
-    .workspaces(workspaceSid)
-    .workers.list({ friendlyName: identifier })
-  return workers[0]
 }
 
 async function addSkillToWorker(
@@ -81,7 +59,7 @@ export async function assignWorkersToQueue(
     )
 
     const worker = await withRetry(
-      () => getWorker(client, input.workspaceSid, identifier),
+      () => resolveWorker(client, input.workspaceSid, identifier),
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,
       `Busca de worker (${identifier})`,

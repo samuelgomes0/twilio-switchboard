@@ -13,6 +13,7 @@ import {
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -42,6 +43,7 @@ type SearchMode = "sid" | "phone"
 interface SidHistoryEntry {
   ts: number
   mode: "sid"
+  workspaceSid?: string
   taskSid: string
   assignmentStatus: string
   taskQueueFriendlyName: string | null
@@ -50,6 +52,7 @@ interface SidHistoryEntry {
 interface PhoneHistoryEntry {
   ts: number
   mode: "phone"
+  workspaceSid?: string
   phone: string
   count: number
 }
@@ -350,20 +353,30 @@ export function SearchTasksForm() {
     !loading &&
     !!activeEnvironment
 
-  async function runSearch() {
-    if (!canSubmit || !activeEnvironment) return
+  async function runSearch(
+    requestedMode = mode,
+    requestedValue = mode === "sid" ? taskSid.trim() : phone.trim(),
+    requestedWorkspaceSid = workspaceSid.trim()
+  ) {
+    if (
+      !activeEnvironment ||
+      loading ||
+      !requestedWorkspaceSid ||
+      !requestedValue
+    )
+      return
     setLoading(true)
     setError(null)
     setTasks(null)
 
     try {
-      if (mode === "sid") {
+      if (requestedMode === "sid") {
         const res = await fetch("/api/taskrouter/fetch-task", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            workspaceSid: workspaceSid.trim(),
-            taskSid: taskSid.trim(),
+            workspaceSid: requestedWorkspaceSid,
+            taskSid: requestedValue,
             accountSid: activeEnvironment.accountSid,
             authToken: activeEnvironment.authToken,
           }),
@@ -378,6 +391,7 @@ export function SearchTasksForm() {
         const entry: SidHistoryEntry = {
           ts: Date.now(),
           mode: "sid",
+          workspaceSid: requestedWorkspaceSid,
           taskSid: result.sid,
           assignmentStatus: result.assignmentStatus,
           taskQueueFriendlyName: result.taskQueueFriendlyName,
@@ -389,8 +403,8 @@ export function SearchTasksForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            workspaceSid: workspaceSid.trim(),
-            phoneNumber: phone.trim(),
+            workspaceSid: requestedWorkspaceSid,
+            phoneNumber: requestedValue,
             accountSid: activeEnvironment.accountSid,
             authToken: activeEnvironment.authToken,
           }),
@@ -408,6 +422,7 @@ export function SearchTasksForm() {
         const entry: PhoneHistoryEntry = {
           ts: Date.now(),
           mode: "phone",
+          workspaceSid: requestedWorkspaceSid,
           phone: json.phone,
           count: json.tasks.length,
         }
@@ -490,11 +505,6 @@ export function SearchTasksForm() {
           </p>
         </div>
       </div>
-
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.taskrouter.searchTasks.about}
-      </p>
 
       {/* No environment warning */}
       {!activeEnvironment && (
@@ -665,11 +675,13 @@ export function SearchTasksForm() {
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
+              className="gap-2"
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
+              <Search aria-hidden="true" className="size-3.5" />
               {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -709,53 +721,51 @@ export function SearchTasksForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.taskrouter.searchTasks.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem
+              key={i}
+              onSelect={() => {
+                const historyWorkspaceSid = h.workspaceSid ?? workspaceSid
+                setWorkspaceSid(historyWorkspaceSid)
+                setMode(h.mode)
+                if (h.mode === "sid") setTaskSid(h.taskSid)
+                else setPhone(h.phone)
+                void runSearch(
+                  h.mode,
+                  h.mode === "sid" ? h.taskSid : h.phone,
+                  historyWorkspaceSid
+                )
+              }}
+              ariaLabel={strings.common.recentHistory.reuse}
             >
-              {strings.taskrouter.searchTasks.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                {h.mode === "sid" ? (
-                  <>
-                    <span className="font-mono break-all select-text">
-                      {h.taskSid}
-                    </span>
-                    {" · "}
-                    <span>{h.assignmentStatus}</span>
-                    {h.taskQueueFriendlyName && (
-                      <span> · {h.taskQueueFriendlyName}</span>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <span className="font-mono">{h.phone}</span>
-                    {" · "}
-                    <span>
-                      {strings.taskrouter.searchTasks.history.itemPhone(
-                        h.count
-                      )}
-                    </span>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              {h.mode === "sid" ? (
+                <>
+                  <span className="font-mono font-semibold break-all text-foreground select-text">
+                    {h.taskSid}
+                  </span>
+                  {" — "}
+                  <span>{h.assignmentStatus}</span>
+                  {h.taskQueueFriendlyName && (
+                    <span> — {h.taskQueueFriendlyName}</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="font-mono font-semibold text-foreground">
+                    {h.phone}
+                  </span>
+                  {" — "}
+                  <span>
+                    {strings.taskrouter.searchTasks.history.itemPhone(h.count)}
+                  </span>
+                </>
+              )}
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

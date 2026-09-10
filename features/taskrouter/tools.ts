@@ -1,4 +1,4 @@
-import { Filter, GitBranch, ListX, Search, User, UserPlus } from "lucide-react"
+import { Filter, GitBranch, ListX, Search, User } from "lucide-react"
 import { ElementType } from "react"
 
 import { strings } from "@/lib/strings"
@@ -13,24 +13,17 @@ interface Tool {
 
 export const taskrouterTools: Tool[] = [
   {
+    label: strings.taskrouter.workerManagement.title,
+    description: strings.taskrouter.workerManagement.subtitle,
+    href: "/taskrouter/workers",
+    icon: User,
+    available: true,
+  },
+  {
     label: strings.taskrouter.searchTasks.breadcrumb,
     description: strings.taskrouter.searchTasks.subtitle,
     href: "/taskrouter/search-tasks",
     icon: Search,
-    available: true,
-  },
-  {
-    label: strings.taskrouter.assignWorkers.breadcrumb,
-    description: strings.taskrouter.assignWorkers.subtitle,
-    href: "/taskrouter/assign-workers",
-    icon: UserPlus,
-    available: true,
-  },
-  {
-    label: strings.taskrouter.fetchWorker.breadcrumb,
-    description: strings.taskrouter.fetchWorker.subtitle,
-    href: "/taskrouter/fetch-worker",
-    icon: User,
     available: true,
   },
   {

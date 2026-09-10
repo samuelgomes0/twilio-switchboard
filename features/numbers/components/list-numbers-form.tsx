@@ -112,7 +112,12 @@ export function ListNumbersForm() {
 
   function exportCsv() {
     if (!results) return
-    const header = [s.table.colMark, s.table.colNumber, s.table.colService, "SID"]
+    const header = [
+      s.table.colMark,
+      s.table.colNumber,
+      s.table.colService,
+      "SID",
+    ]
     const rows = results.map((r) => [
       `"${r.friendlyName.replace(/"/g, '""')}"`,
       r.phoneNumber,
@@ -140,7 +145,10 @@ export function ListNumbersForm() {
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, "Senders")
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" }) as ArrayBuffer
+    const wbout = XLSX.write(wb, {
+      bookType: "xlsx",
+      type: "array",
+    }) as ArrayBuffer
     const blob = new Blob([wbout], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     })
@@ -213,11 +221,6 @@ export function ListNumbersForm() {
           <p className="text-sm text-muted-foreground">{s.subtitle}</p>
         </div>
       </div>
-
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {s.about}
-      </p>
 
       {/* No environment warning */}
       {!activeEnvironment && (
