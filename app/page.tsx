@@ -78,7 +78,7 @@ export default function DashboardPage() {
         </h1>
 
         <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
-          {strings.dashboard.intro.description}
+          {strings.dashboard.subtitle}
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2">

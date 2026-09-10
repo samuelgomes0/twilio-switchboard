@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import {
   Card,
   CardContent,
@@ -586,37 +587,22 @@ export function CreateAddressConfigForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {s.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {s.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                <span className="font-mono">{h.address}</span>
-                <span> · {h.type}</span>
-                <span className="font-mono break-all select-text">
-                  {" · "}
-                  {h.sid}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem key={i}>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              <span className="font-mono font-semibold text-foreground">
+                {h.address}
+              </span>
+              <span> — {h.type}</span>
+              <span className="font-mono break-all select-text">
+                {" — "}
+                {h.sid}
+              </span>
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { DEFAULT_CLOSE_MESSAGE } from "@/features/taskrouter/lib/cancel-queue-tasks"
@@ -304,11 +305,6 @@ export function CancelQueueTasksForm() {
         </div>
       </div>
 
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.taskrouter.cancelQueueTasks.about}
-      </p>
-
       {/* No environment warning */}
       {!activeEnvironment && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
@@ -529,52 +525,37 @@ export function CancelQueueTasksForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.taskrouter.cancelQueueTasks.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {strings.taskrouter.cancelQueueTasks.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                <span className="font-mono break-all select-text">
-                  {h.workspaceSid}
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem key={i}>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              <span className="font-mono break-all select-text">
+                {h.workspaceSid}
+              </span>
+              {" — "}
+              <span className="font-mono font-semibold text-foreground">
+                {h.taskQueueName}
+              </span>
+              {" — "}
+              {strings.taskrouter.cancelQueueTasks.history.item(h.success)}
+              {h.skipped > 0 && (
+                <span>
+                  {strings.taskrouter.cancelQueueTasks.history.itemSkipped(
+                    h.skipped
+                  )}
                 </span>
-                {" · "}
-                <span className="font-mono">{h.taskQueueName}</span>
-                {" · "}
-                {strings.taskrouter.cancelQueueTasks.history.item(h.success)}
-                {h.skipped > 0 && (
-                  <span>
-                    {strings.taskrouter.cancelQueueTasks.history.itemSkipped(
-                      h.skipped
-                    )}
-                  </span>
-                )}
-                {h.errors > 0 && (
-                  <span className="text-red-500 dark:text-red-400">
-                    {strings.taskrouter.cancelQueueTasks.history.itemErrors(
-                      h.errors
-                    )}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+              )}
+              {h.errors > 0 && (
+                <span className="text-red-500 dark:text-red-400">
+                  {strings.taskrouter.cancelQueueTasks.history.itemErrors(
+                    h.errors
+                  )}
+                </span>
+              )}
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

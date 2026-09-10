@@ -2,9 +2,16 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronRight, Loader2, AlertTriangle, User } from "lucide-react"
+import {
+  ChevronRight,
+  Loader2,
+  AlertTriangle,
+  Search,
+  User,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +32,7 @@ import type { WorkerData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
+import { useWorkerManagement } from "./worker-management-context"
 
 interface HistoryEntry {
   ts: number
@@ -132,8 +140,11 @@ function parseRouting(attributes: string): WorkerRouting | null {
 }
 
 export function FetchWorkerForm() {
+  const management = useWorkerManagement()
   const { activeEnvironment } = useEnvironment()
-  const [workspaceSid, setWorkspaceSid] = React.useState("")
+  const [localWorkspaceSid, setLocalWorkspaceSid] = React.useState("")
+  const workspaceSid = management?.workspaceSid ?? localWorkspaceSid
+  const setWorkspaceSid = management?.setWorkspaceSid ?? setLocalWorkspaceSid
   const [identifier, setIdentifier] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -152,8 +163,17 @@ export function FetchWorkerForm() {
     !loading &&
     !!activeEnvironment
 
-  async function runSearch() {
-    if (!canSubmit || !activeEnvironment) return
+  async function runSearch(
+    requestedWorkspaceSid = workspaceSid.trim(),
+    requestedIdentifier = identifier.trim()
+  ) {
+    if (
+      loading ||
+      !activeEnvironment ||
+      !WS_SID_RE.test(requestedWorkspaceSid) ||
+      !requestedIdentifier
+    )
+      return
     setLoading(true)
     setError(null)
     setData(null)
@@ -163,8 +183,8 @@ export function FetchWorkerForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          workspaceSid: workspaceSid.trim(),
-          identifier: identifier.trim(),
+          workspaceSid: requestedWorkspaceSid,
+          identifier: requestedIdentifier,
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
@@ -177,8 +197,8 @@ export function FetchWorkerForm() {
       setData(json)
       const entry: HistoryEntry = {
         ts: Date.now(),
-        workspaceSid: workspaceSid.trim(),
-        identifier: identifier.trim(),
+        workspaceSid: requestedWorkspaceSid,
+        identifier: requestedIdentifier,
         workerSid: json.worker.sid,
         friendlyName: json.worker.friendlyName,
         activityName: json.worker.activityName,
@@ -215,7 +235,10 @@ export function FetchWorkerForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav
+        data-worker-page-header
+        className="mb-5 flex items-center gap-1 text-sm"
+      >
         <Link
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
@@ -229,7 +252,7 @@ export function FetchWorkerForm() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
+      <div data-worker-page-header className="mb-6 flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
           <User className="size-4 text-primary" />
         </div>
@@ -242,11 +265,6 @@ export function FetchWorkerForm() {
           </p>
         </div>
       </div>
-
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.taskrouter.fetchWorker.about}
-      </p>
 
       {/* No environment warning */}
       {!activeEnvironment && (
@@ -271,7 +289,7 @@ export function FetchWorkerForm() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+        <div data-worker-workspace-field className="space-y-2">
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.fetchWorker.workspaceSidLabel}
           </Label>
@@ -316,7 +334,7 @@ export function FetchWorkerForm() {
               {loading ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : (
-                <User className="size-3.5" />
+                <Search className="size-3.5" />
               )}
               {strings.common.search}
             </Button>
@@ -344,11 +362,13 @@ export function FetchWorkerForm() {
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
+              className="gap-2"
               onClick={() => {
                 setConfirmOpen(false)
                 void runSearch()
               }}
             >
+              <Search aria-hidden="true" className="size-3.5" />
               {strings.common.search}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -384,6 +404,31 @@ export function FetchWorkerForm() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {management && (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      management.openWorkerAction("skills", data.worker.sid)
+                    }
+                  >
+                    {strings.taskrouter.workerManagement.actions.addSkill}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      management.openWorkerAction("features", data.worker.sid)
+                    }
+                  >
+                    {
+                      strings.taskrouter.workerManagement.actions
+                        .configureFeature
+                    }
+                  </Button>
+                </div>
+              )}
               {/* Skills */}
               {routing?.skills && routing.skills.length > 0 && (
                 <>
@@ -457,38 +502,29 @@ export function FetchWorkerForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.taskrouter.fetchWorker.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem
+              key={i}
+              onSelect={() => {
+                setWorkspaceSid(h.workspaceSid)
+                setIdentifier(h.identifier)
+                void runSearch(h.workspaceSid, h.identifier)
+              }}
+              ariaLabel={strings.common.recentHistory.reuse}
             >
-              {strings.taskrouter.fetchWorker.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                <span>{h.friendlyName}</span>
-                {" · "}
-                <span className="font-mono break-all select-text">
-                  {h.workerSid}
-                </span>
-                {" · "}
-                <span>{h.activityName}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              <span>{h.friendlyName}</span>
+              {" — "}
+              <span className="font-mono font-semibold break-all text-foreground select-text">
+                {h.workerSid}
+              </span>
+              {" — "}
+              <span>{h.activityName}</span>
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

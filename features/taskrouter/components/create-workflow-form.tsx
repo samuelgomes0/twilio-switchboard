@@ -29,6 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
@@ -297,11 +298,6 @@ export function CreateWorkflowForm() {
         </div>
       </div>
 
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.taskrouter.createWorkflow.about}
-      </p>
-
       {/* No environment warning */}
       {!activeEnvironment && (
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
@@ -487,40 +483,25 @@ export function CreateWorkflowForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.taskrouter.createWorkflow.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {strings.taskrouter.createWorkflow.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                <span>{h.workflowName}</span>
-                {" · "}
-                <span className="font-mono break-all select-text">
-                  {h.workflowSid}
-                </span>
-                {" · "}
-                {strings.taskrouter.createWorkflow.history.itemFilters(
-                  h.totalFilters
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem key={i}>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              <span className="font-semibold text-foreground">
+                {h.workflowName}
+              </span>
+              {" — "}
+              <span className="font-mono break-all select-text">
+                {h.workflowSid}
+              </span>
+              {" — "}
+              {strings.taskrouter.createWorkflow.history.itemFilters(
+                h.totalFilters
+              )}
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

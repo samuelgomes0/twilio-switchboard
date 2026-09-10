@@ -1,4 +1,4 @@
-import { AtSign, FileSearch2, History, MessageSquareOff } from "lucide-react"
+import { AtSign, FileSearch2, MessageSquareOff } from "lucide-react"
 import { ElementType } from "react"
 
 import { strings } from "@/lib/strings"
@@ -13,9 +13,9 @@ interface Tool {
 
 export const conversationsTools: Tool[] = [
   {
-    label: strings.conversations.fetch.breadcrumb,
-    description: strings.conversations.fetch.subtitle,
-    href: "/conversations/fetch",
+    label: strings.conversations.consult.title,
+    description: strings.conversations.consult.subtitle,
+    href: "/conversations/consult",
     icon: FileSearch2,
     available: true,
   },
@@ -24,13 +24,6 @@ export const conversationsTools: Tool[] = [
     description: strings.conversations.fetchByParticipant.subtitle,
     href: "/conversations/fetch-by-participant",
     icon: AtSign,
-    available: true,
-  },
-  {
-    label: strings.conversations.history.breadcrumb,
-    description: strings.conversations.history.subtitle,
-    href: "/conversations/history",
-    icon: History,
     available: true,
   },
   {

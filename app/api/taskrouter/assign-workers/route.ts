@@ -1,5 +1,6 @@
 import { assignWorkersToQueue } from "@/features/taskrouter/lib/assign-workers"
 import { sseEvent } from "@/features/conversations/lib/close"
+import { MAX_ITEMS } from "@/lib/constants"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
@@ -17,7 +18,10 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: "Corpo da requisição inválido" },
+      { status: 400 }
+    )
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
@@ -34,23 +38,24 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (!Array.isArray(body.emails) || body.emails.length === 0) {
+  if (
+    !Array.isArray(body.emails) ||
+    body.emails.length === 0 ||
+    body.emails.length > MAX_ITEMS ||
+    !body.emails.every(
+      (identifier) =>
+        typeof identifier === "string" && identifier.trim().length > 0
+    )
+  ) {
     return Response.json(
-      { error: "O campo 'emails' deve ser um array não vazio" },
+      { error: `Informe entre 1 e ${MAX_ITEMS} Workers válidos` },
       { status: 400 }
     )
   }
 
-  const emails = (body.emails as unknown[])
-    .map((e) => String(e).trim())
-    .filter(Boolean)
-
-  if (emails.length === 0) {
-    return Response.json(
-      { error: "Nenhum e-mail válido informado" },
-      { status: 400 }
-    )
-  }
+  const emails = [
+    ...new Set((body.emails as string[]).map((email) => email.trim())),
+  ]
 
   const level =
     body.level !== undefined && body.level !== null ? Number(body.level) : null

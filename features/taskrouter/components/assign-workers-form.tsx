@@ -4,8 +4,10 @@ import {
   AlertTriangle,
   ChevronRight,
   Play,
+  Plus,
   RotateCcw,
   Square,
+  Trash2,
   UserPlus,
 } from "lucide-react"
 import Link from "next/link"
@@ -29,13 +31,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
+import { useWorkerManagement } from "./worker-management-context"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -93,19 +96,17 @@ function fmtTs(ts: number) {
   })
 }
 
-function parseEmails(input: string): string[] {
-  return input
-    .split(/[\n,]+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 export function AssignWorkersForm() {
+  const management = useWorkerManagement()
   const { activeEnvironment } = useEnvironment()
-  const [workspaceSid, setWorkspaceSid] = React.useState("")
+  const [localWorkspaceSid, setLocalWorkspaceSid] = React.useState("")
+  const workspaceSid = management?.workspaceSid ?? localWorkspaceSid
+  const setWorkspaceSid = management?.setWorkspaceSid ?? setLocalWorkspaceSid
   const [skill, setSkill] = React.useState("")
   const [levelInput, setLevelInput] = React.useState("")
-  const [emailsInput, setEmailsInput] = React.useState("")
+  const [workers, setWorkers] = React.useState<string[]>([
+    management?.selectedWorkerSid ?? "",
+  ])
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
@@ -121,7 +122,9 @@ export function AssignWorkersForm() {
     setHistory(readHistory())
   }, [])
 
-  const emails = parseEmails(emailsInput)
+  const emails = [
+    ...new Set(workers.map((identifier) => identifier.trim()).filter(Boolean)),
+  ]
   const canSubmit =
     workspaceSid.trim().length > 0 &&
     skill.trim().length > 0 &&
@@ -286,7 +289,10 @@ export function AssignWorkersForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav
+        data-worker-page-header
+        className="mb-5 flex items-center gap-1 text-sm"
+      >
         <Link
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground"
@@ -300,7 +306,7 @@ export function AssignWorkersForm() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
+      <div data-worker-page-header className="mb-6 flex items-center gap-3">
         <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
           <UserPlus className="size-4 text-primary" />
         </div>
@@ -316,11 +322,6 @@ export function AssignWorkersForm() {
           </p>
         </div>
       </div>
-
-      {/* About */}
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-        {strings.taskrouter.assignWorkers.about}
-      </p>
 
       {/* No environment warning */}
       {!activeEnvironment && (
@@ -345,7 +346,7 @@ export function AssignWorkersForm() {
 
       <form onSubmit={handleFormSubmit} className="space-y-5">
         {/* Workspace SID */}
-        <div className="space-y-2">
+        <div data-worker-workspace-field className="space-y-2">
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.assignWorkers.workspaceSidLabel}
           </Label>
@@ -372,6 +373,56 @@ export function AssignWorkersForm() {
             </p>
           )}
         </div>
+
+        <fieldset className="space-y-2" disabled={status === "running"}>
+          <legend className="mb-2 text-sm font-medium">
+            {strings.taskrouter.assignWorkers.workersLabel}
+          </legend>
+          {workers.map((worker, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Label htmlFor={`skill-worker-${index}`} className="sr-only">
+                {strings.taskrouter.assignWorkers.workerLabel(index + 1)}
+              </Label>
+              <Input
+                id={`skill-worker-${index}`}
+                value={worker}
+                onChange={(event) =>
+                  setWorkers((previous) =>
+                    previous.map((identifier, position) =>
+                      position === index ? event.target.value : identifier
+                    )
+                  )
+                }
+                placeholder={strings.taskrouter.assignWorkers.workerPlaceholder}
+                className="flex-1"
+              />
+              <button
+                type="button"
+                disabled={workers.length === 1}
+                onClick={() =>
+                  setWorkers((previous) =>
+                    previous.filter((_, position) => position !== index)
+                  )
+                }
+                className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                aria-label={strings.taskrouter.assignWorkers.removeWorker(
+                  index + 1
+                )}
+              >
+                <Trash2 className="size-3.5" aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            disabled={workers.length >= MAX_ITEMS}
+            onClick={() => setWorkers((previous) => [...previous, ""])}
+            className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            {strings.taskrouter.assignWorkers.addWorker}
+          </button>
+        </fieldset>
 
         {/* Skill name */}
         <div className="space-y-2">
@@ -408,35 +459,6 @@ export function AssignWorkersForm() {
             onChange={(e) => setLevelInput(e.target.value)}
             disabled={status === "running"}
           />
-        </div>
-
-        {/* Emails */}
-        <div className="space-y-2">
-          <Label htmlFor="emails">
-            {strings.taskrouter.assignWorkers.emailsLabel}{" "}
-            <span className="font-normal text-muted-foreground">
-              {strings.taskrouter.assignWorkers.emailsHint}
-            </span>
-          </Label>
-          <Textarea
-            id="emails"
-            placeholder={
-              "agente1@empresa.com\nWKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            }
-            value={emailsInput}
-            onChange={(e) => setEmailsInput(e.target.value)}
-            className="min-h-[120px] font-mono text-xs"
-            disabled={status === "running"}
-          />
-          {emails.length > 0 && (
-            <p
-              className={`text-xs ${emails.length > MAX_ITEMS ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {strings.taskrouter.assignWorkers.detected(emails.length)}
-              {emails.length > MAX_ITEMS &&
-                strings.taskrouter.assignWorkers.maxExceeded(MAX_ITEMS)}
-            </p>
-          )}
         </div>
 
         {/* Actions */}
@@ -572,52 +594,35 @@ export function AssignWorkersForm() {
 
       {/* History */}
       {history.length > 0 && (
-        <div className="mt-8 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-              {strings.taskrouter.assignWorkers.history.title}
-            </p>
-            <button
-              type="button"
-              onClick={clearHistory}
-              className="text-[10px] text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {strings.taskrouter.assignWorkers.history.clear}
-            </button>
-          </div>
-          <ul className="space-y-0.5">
-            {history.map((h, i) => (
-              <li
-                key={i}
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <span className="tabular-nums">{fmtTs(h.ts)}</span>
-                {" · "}
-                <span className="font-mono break-all select-text">
-                  {h.workspaceSid}
+        <RecentHistory onClear={clearHistory}>
+          {history.map((h, i) => (
+            <RecentHistoryItem key={i}>
+              <span className="tabular-nums">{fmtTs(h.ts)}</span>
+              {" — "}
+              <span className="font-mono font-semibold break-all text-foreground select-text">
+                {h.workspaceSid}
+              </span>
+              {" — "}
+              <span>{h.skill}</span>
+              {" — "}
+              {strings.taskrouter.assignWorkers.history.item(h.updated)}
+              {h.skipped > 0 && (
+                <span>
+                  {strings.taskrouter.assignWorkers.history.itemSkipped(
+                    h.skipped
+                  )}
                 </span>
-                {" · "}
-                <span>{h.skill}</span>
-                {" · "}
-                {strings.taskrouter.assignWorkers.history.item(h.updated)}
-                {h.skipped > 0 && (
-                  <span>
-                    {strings.taskrouter.assignWorkers.history.itemSkipped(
-                      h.skipped
-                    )}
-                  </span>
-                )}
-                {h.errors > 0 && (
-                  <span className="text-red-500 dark:text-red-400">
-                    {strings.taskrouter.assignWorkers.history.itemErrors(
-                      h.errors
-                    )}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+              )}
+              {h.errors > 0 && (
+                <span className="text-red-500 dark:text-red-400">
+                  {strings.taskrouter.assignWorkers.history.itemErrors(
+                    h.errors
+                  )}
+                </span>
+              )}
+            </RecentHistoryItem>
+          ))}
+        </RecentHistory>
       )}
     </div>
   )

@@ -1,13 +1,5 @@
-import type { Metadata } from "next"
-
-import { FetchWorkerForm } from "@/features/taskrouter/components/fetch-worker-form"
-import { strings } from "@/lib/strings"
-
-export const metadata: Metadata = {
-  title: strings.taskrouter.fetchWorker.metadata.title,
-  description: strings.taskrouter.fetchWorker.metadata.description,
-}
+import { redirect } from "next/navigation"
 
 export default function FetchWorkerPage() {
-  return <FetchWorkerForm />
+  redirect("/taskrouter/workers?tab=details")
 }
