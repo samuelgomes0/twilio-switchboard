@@ -176,8 +176,8 @@ export function FetchByParticipantForm() {
       }
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      setError(strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -209,8 +209,8 @@ export function FetchByParticipantForm() {
 
       setResults((current) => [...(current ?? []), ...json.conversations])
       setNextPageToken(json.nextPageToken)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      setError(strings.common.networkError)
     } finally {
       setLoadingMore(false)
     }
@@ -326,7 +326,7 @@ export function FetchByParticipantForm() {
                 setPhone(v)
                 if (phoneError) setPhoneError(null)
               }}
-              placeholder="1187654321"
+              placeholder={strings.common.placeholders.localPhone}
               disabled={loading}
               prefix="whatsapp:+55"
               containerClassName="flex-1"

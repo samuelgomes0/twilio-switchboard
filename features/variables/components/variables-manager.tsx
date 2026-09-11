@@ -218,7 +218,7 @@ function VariableGroupSection({
                   <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       type="button"
-                      aria-label="Editar"
+                      aria-label={strings.variables.manager.editAriaLabel}
                       onClick={() =>
                         set({
                           editingIndex: i,
@@ -233,7 +233,7 @@ function VariableGroupSection({
                     </button>
                     <button
                       type="button"
-                      aria-label="Excluir"
+                      aria-label={strings.variables.manager.deleteAriaLabel}
                       onClick={() =>
                         set({ confirmDeleteIndex: i, editingIndex: null })
                       }

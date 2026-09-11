@@ -213,8 +213,8 @@ export function CreateAddressConfigForm() {
       }
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      setError(strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -325,7 +325,7 @@ export function CreateAddressConfigForm() {
             onChange={setAddress}
             placeholder={
               addressType === "whatsapp" || addressType === "sms"
-                ? "+5511999999999"
+                ? strings.common.placeholders.phone
                 : ""
             }
             disabled={loading}
@@ -418,7 +418,7 @@ export function CreateAddressConfigForm() {
                   type="url"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="https://example.com/webhook"
+                  placeholder={strings.common.placeholders.webhook}
                   disabled={loading}
                 />
               </div>
@@ -433,8 +433,8 @@ export function CreateAddressConfigForm() {
                   disabled={loading}
                   className={selectClass}
                 >
-                  <option value="POST">POST</option>
-                  <option value="GET">GET</option>
+                  <option value="POST">{s.httpMethods.post}</option>
+                  <option value="GET">{s.httpMethods.get}</option>
                 </select>
               </div>
             </div>

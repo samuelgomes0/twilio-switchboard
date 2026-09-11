@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { fetchWorker } from "@/features/taskrouter/lib/fetch-worker"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -13,7 +14,10 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   const workspaceSid =
@@ -23,14 +27,14 @@ export async function POST(req: NextRequest) {
 
   if (!workspaceSid) {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!identifier) {
     return Response.json(
-      { error: "O campo 'identifier' é obrigatório" },
+      { error: strings.common.validation.identifierRequired },
       { status: 400 }
     )
   }
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
     const data = await fetchWorker(workspaceSid, identifier, client)
     if (!data) {
       return Response.json(
-        { error: `Worker não encontrado: ${identifier}` },
+        { error: strings.taskrouter.assignWorkers.log.notFound(identifier) },
         { status: 404 }
       )
     }
@@ -55,7 +59,7 @@ export async function POST(req: NextRequest) {
     const appErr = fromTwilioError(err, "taskrouter/fetch-worker")
     if (appErr.kind === "not_found") {
       return Response.json(
-        { error: `Worker não encontrado: ${identifier}` },
+        { error: strings.taskrouter.assignWorkers.log.notFound(identifier) },
         { status: 404 }
       )
     }

@@ -244,8 +244,7 @@ export function CreateWorkflowForm() {
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -334,7 +333,7 @@ export function CreateWorkflowForm() {
               setWorkspaceSid(v)
               if (wsSidError) setWsSidError(null)
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={status === "running"}
           />
           {wsSidError && (
@@ -353,7 +352,7 @@ export function CreateWorkflowForm() {
             environmentId={activeEnvironment?.id}
             value={workflowName}
             onChange={setWorkflowName}
-            placeholder="ex: Roteamento Principal"
+            placeholder={strings.common.placeholders.workflow}
             disabled={status === "running"}
             className="font-sans text-sm placeholder:font-sans"
           />

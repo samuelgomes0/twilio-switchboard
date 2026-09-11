@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import twilio from "twilio"
 import { AppError } from "@/lib/errors"
 
@@ -6,10 +7,7 @@ function getTwilioClient(accountSid?: string, authToken?: string) {
   const token = authToken ?? process.env.TWILIO_AUTH_TOKEN
 
   if (!sid || !token)
-    throw new AppError(
-      "auth",
-      "Credenciais não configuradas. Selecione um ambiente."
-    )
+    throw new AppError("auth", strings.common.errors.missingCredentials)
 
   return twilio(sid, token)
 }

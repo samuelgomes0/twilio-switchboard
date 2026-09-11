@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { sseEvent } from "@/features/conversations/lib/close"
 import { cancelQueueTasks } from "@/features/taskrouter/lib/cancel-queue-tasks"
 import { toApiResponse } from "@/lib/errors"
@@ -16,19 +17,22 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!body.taskQueueName || typeof body.taskQueueName !== "string") {
     return Response.json(
-      { error: "O campo 'taskQueueName' é obrigatório" },
+      { error: strings.common.validation.queueRequired },
       { status: 400 }
     )
   }
@@ -66,7 +70,11 @@ export async function POST(req: NextRequest) {
       emit(
         sseEvent(
           "info",
-          `Concluído. ${totalSuccess} cancelada(s), ${totalSkipped} ignorada(s), ${totalErrors} erro(s).`,
+          strings.taskrouter.cancelQueueTasks.log.done(
+            totalSuccess,
+            totalSkipped,
+            totalErrors
+          ),
           {
             done: true,
             totalSuccess,

@@ -130,8 +130,8 @@ export function StoredInput({
                 type="button"
                 tabIndex={0}
                 className="min-w-0 flex-1 px-3 py-1.5 text-left font-mono text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleSelect(s)
                 }}
               >
@@ -139,11 +139,11 @@ export function StoredInput({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
+                tabIndex={0}
                 aria-label={strings.common.remove}
-                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   deleteValue(s)
                 }}
               >
@@ -157,12 +157,12 @@ export function StoredInput({
                 type="button"
                 tabIndex={0}
                 className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleSaveNew()
                 }}
               >
-                + Salvar &ldquo;{trimmed}&rdquo;
+                {strings.common.autocomplete.saveValue(trimmed)}
               </button>
             </li>
           )}

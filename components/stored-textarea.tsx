@@ -1,5 +1,7 @@
 "use client"
 
+import { strings } from "@/lib/strings"
+
 import { X } from "lucide-react"
 import * as React from "react"
 
@@ -100,8 +102,8 @@ export function StoredTextarea({
               </button>
               <button
                 type="button"
-                aria-label="Remover"
-                className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                aria-label={strings.common.remove}
+                className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => deleteValue(s)}
               >
                 <X className="size-3" />
@@ -115,7 +117,7 @@ export function StoredTextarea({
                 className="w-full px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 onClick={() => saveValue(trimmed)}
               >
-                + Salvar mensagem atual
+                {strings.common.autocomplete.saveMessage}
               </button>
             </li>
           )}

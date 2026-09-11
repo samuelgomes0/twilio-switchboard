@@ -1,6 +1,7 @@
+import { strings } from "@/lib/strings"
 import { createWorkflow } from "@/features/taskrouter/lib/create-workflow"
 import { sseEvent } from "@/features/conversations/lib/close"
-import { fromTwilioError, toApiResponse } from "@/lib/errors"
+import { AppError, fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 
@@ -16,26 +17,29 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!body.workflowName || typeof body.workflowName !== "string") {
     return Response.json(
-      { error: "O campo 'workflowName' é obrigatório" },
+      { error: strings.common.validation.workflowRequired },
       { status: 400 }
     )
   }
 
   if (!body.csvContent || typeof body.csvContent !== "string") {
     return Response.json(
-      { error: "O campo 'csvContent' é obrigatório" },
+      { error: strings.common.validation.csvRequired },
       { status: 400 }
     )
   }
@@ -71,22 +75,28 @@ export async function POST(req: NextRequest) {
         emit(
           sseEvent(
             "success",
-            `Concluído. Workflow "${workflowName}" criado com ${totalFilters} filtro(s).`,
+            strings.taskrouter.createWorkflow.log.done(
+              workflowName,
+              totalFilters
+            ),
             { done: true, workflowSid, workflowName, totalFilters }
           )
         )
       } catch (err) {
         // Twilio API errors have a numeric .status; CSV/logic errors do not.
         const isTwilioError =
-          typeof (err as Record<string, unknown>).status === "number"
+          typeof err === "object" &&
+          err !== null &&
+          "status" in err &&
+          typeof err.status === "number"
         if (isTwilioError) {
           const appErr = fromTwilioError(err, "taskrouter/create-workflow")
           emit(sseEvent("error", appErr.safeMessage, { done: true }))
         } else {
           const message =
-            err instanceof Error
-              ? err.message
-              : "Erro inesperado ao criar workflow."
+            err instanceof AppError
+              ? err.safeMessage
+              : strings.taskrouter.createWorkflow.log.unexpectedError
           emit(sseEvent("error", message, { done: true }))
         }
       }

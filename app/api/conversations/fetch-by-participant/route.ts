@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { fetchConversationsByParticipant } from "@/features/conversations/lib/fetch-by-participant"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     body = await req.json()
   } catch {
     return Response.json(
-      { error: "Corpo da requisição inválido" },
+      { error: strings.common.validation.invalidBody },
       { status: 400 }
     )
   }
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   if (!address) {
     return Response.json(
-      { error: "O campo 'address' é obrigatório" },
+      { error: strings.common.validation.addressRequired },
       { status: 400 }
     )
   }
@@ -34,7 +35,10 @@ export async function POST(req: NextRequest) {
       !body.pageToken ||
       body.pageToken.length > 2048)
   ) {
-    return Response.json({ error: "Token de página inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidPageToken },
+      { status: 400 }
+    )
   }
 
   if (
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest) {
     (body.authToken !== undefined && typeof body.authToken !== "string")
   ) {
     return Response.json(
-      { error: "Credenciais em formato inválido" },
+      { error: strings.common.validation.invalidCredentials },
       { status: 400 }
     )
   }

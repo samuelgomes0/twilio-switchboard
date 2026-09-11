@@ -1,3 +1,5 @@
+import { strings } from "@/lib/strings"
+import { sanitizeExternalError } from "@/lib/errors"
 import { sseEvent } from "@/features/conversations/lib/close"
 import type { AddParticularFilterInput } from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -62,7 +64,12 @@ export async function addParticularFilter(
   let totalErrors = 0
 
   for (const { workflowSid, taskQueueSid } of input.entries) {
-    emit(sseEvent("info", `Processando workflow ${workflowSid}...`))
+    emit(
+      sseEvent(
+        "info",
+        strings.taskrouter.addParticularFilter.log.processing(workflowSid)
+      )
+    )
 
     try {
       const workflow = await client.taskrouter.v1
@@ -78,15 +85,16 @@ export async function addParticularFilter(
         emit(
           sseEvent(
             "error",
-            `Workflow ${workflowSid} não possui configuração de roteamento válida.`
+            strings.taskrouter.addParticularFilter.log.invalidRouting(
+              workflowSid
+            )
           )
         )
         totalErrors++
         continue
       }
 
-      const filters: WorkflowFilter[] =
-        configuration.task_routing.filters ?? []
+      const filters: WorkflowFilter[] = configuration.task_routing.filters ?? []
 
       const alreadyExists = filters.some(
         (f) =>
@@ -98,7 +106,10 @@ export async function addParticularFilter(
         emit(
           sseEvent(
             "warning",
-            `Filtro "${input.filterName}" já existe no workflow ${workflowSid}. Ignorado.`
+            strings.taskrouter.addParticularFilter.log.alreadyExists(
+              input.filterName,
+              workflowSid
+            )
           )
         )
         totalSkipped++
@@ -116,17 +127,22 @@ export async function addParticularFilter(
       emit(
         sseEvent(
           "success",
-          `Filtro "${input.filterName}" adicionado ao workflow ${workflowSid}.`
+          strings.taskrouter.addParticularFilter.log.added(
+            input.filterName,
+            workflowSid
+          )
         )
       )
       totalAdded++
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erro desconhecido"
+      const message = sanitizeExternalError(err)
       emit(
         sseEvent(
           "error",
-          `Erro ao processar workflow ${workflowSid}: ${message}`
+          strings.taskrouter.addParticularFilter.log.failed(
+            workflowSid,
+            message
+          )
         )
       )
       totalErrors++

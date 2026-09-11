@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { sleep, sseEvent, withRetry } from "@/features/conversations/lib/close"
 import type { AssignWorkersInput } from "@/features/taskrouter/types"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
@@ -53,16 +54,20 @@ export async function assignWorkersToQueue(
   for (let idx = 0; idx < input.emails.length; idx++) {
     const identifier = input.emails[idx]
     emit(
-      sseEvent("info", `Buscando worker: ${identifier}...`, {
-        progress: { current: idx + 1, total: input.emails.length },
-      })
+      sseEvent(
+        "info",
+        strings.taskrouter.assignWorkers.log.searching(identifier),
+        {
+          progress: { current: idx + 1, total: input.emails.length },
+        }
+      )
     )
 
     const worker = await withRetry(
       () => resolveWorker(client, input.workspaceSid, identifier),
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,
-      `Busca de worker (${identifier})`,
+      strings.taskrouter.assignWorkers.log.searchLabel(identifier),
       emit
     )
 
@@ -72,7 +77,12 @@ export async function assignWorkersToQueue(
     }
 
     if (worker === undefined) {
-      emit(sseEvent("warning", `Worker não encontrado: ${identifier}`))
+      emit(
+        sseEvent(
+          "warning",
+          strings.taskrouter.assignWorkers.log.notFound(identifier)
+        )
+      )
       totalSkipped++
       continue
     }
@@ -80,7 +90,10 @@ export async function assignWorkersToQueue(
     emit(
       sseEvent(
         "info",
-        `Worker encontrado: ${worker.sid}. Adicionando skill "${input.skill}"...`
+        strings.taskrouter.assignWorkers.log.addingSkill(
+          worker.sid,
+          input.skill
+        )
       )
     )
 
@@ -96,7 +109,7 @@ export async function assignWorkersToQueue(
         ),
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,
-      `Atualizar worker ${worker.sid}`,
+      strings.taskrouter.assignWorkers.log.updateLabel(worker.sid),
       emit
     )
 
@@ -105,7 +118,11 @@ export async function assignWorkersToQueue(
       emit(
         sseEvent(
           "success",
-          `Skill "${input.skill}" adicionada ao worker ${identifier} (${worker.sid})`
+          strings.taskrouter.assignWorkers.log.updated(
+            input.skill,
+            identifier,
+            worker.sid
+          )
         )
       )
     } else {

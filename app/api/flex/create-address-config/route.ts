@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { createAddressConfig } from "@/features/flex/lib/create-address-config"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -8,17 +9,26 @@ export async function POST(req: NextRequest) {
   try {
     body = (await req.json()) as Record<string, unknown>
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   const address = typeof body.address === "string" ? body.address.trim() : ""
   const type = typeof body.type === "string" ? body.type.trim() : ""
 
   if (!address) {
-    return Response.json({ error: "O campo 'address' é obrigatório" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.addressRequired },
+      { status: 400 }
+    )
   }
   if (!type) {
-    return Response.json({ error: "O campo 'type' é obrigatório" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.typeRequired },
+      { status: 400 }
+    )
   }
 
   const accountSid =
@@ -43,7 +53,10 @@ export async function POST(req: NextRequest) {
     const appErr = fromTwilioError(err, "flex/create-address-config")
     if (appErr.kind === "conflict") {
       return Response.json(
-        { error: `Endereço já configurado: ${address}` },
+        {
+          error:
+            strings.flex.createAddressConfig.log.alreadyConfigured(address),
+        },
         { status: 409 }
       )
     }

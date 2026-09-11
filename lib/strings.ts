@@ -4,6 +4,73 @@ export const strings = {
     description: "Interface visual para operações Twilio",
   },
   common: {
+    errors: {
+      auth: "Credenciais inválidas ou sem permissão.",
+      notFound: "Recurso não encontrado.",
+      conflict: "Recurso já existe.",
+      validation: "Parâmetros inválidos.",
+      external: "Erro na API do Twilio. Tente novamente.",
+      internal: "Erro interno do servidor.",
+      retryAuth: "credenciais inválidas ou sem permissão",
+      retryNotFound: "recurso não encontrado",
+      rateLimit: "limite de requisições excedido",
+      http: (status: number) => `erro HTTP ${status}`,
+      retryExternal: "erro na API do Twilio",
+      missingCredentials:
+        "Credenciais não configuradas. Selecione um ambiente.",
+    },
+    validation: {
+      invalidBody: "Corpo da requisição inválido",
+      workspaceRequired: "O campo 'workspaceSid' é obrigatório",
+      skillRequired: "O campo 'skill' é obrigatório",
+      addressRequired: "O campo 'address' é obrigatório",
+      invalidPageToken: "Token de página inválido",
+      invalidCredentials: "Credenciais em formato inválido",
+      phoneRequired: "O campo 'phoneNumber' é obrigatório",
+      invalidWorkspaceSid:
+        "Workspace SID inválido. Formato esperado: WS + 32 caracteres hex",
+      queueRequired: "O campo 'taskQueueName' é obrigatório",
+      workflowRequired: "O campo 'workflowName' é obrigatório",
+      csvRequired: "O campo 'csvContent' é obrigatório",
+      typeRequired: "O campo 'type' é obrigatório",
+      filterRequired: "O campo 'filterName' é obrigatório",
+      entriesRequired: "O campo 'entries' deve ser um array não-vazio",
+      invalidEntries:
+        "Cada entrada deve conter 'workflowSid' e 'taskQueueSid' como strings",
+      identifierRequired: "O campo 'identifier' é obrigatório",
+      taskRequired: "O campo 'taskSid' é obrigatório",
+      invalidTaskSid:
+        "Task SID inválido. Formato esperado: WT + 32 caracteres hex",
+      participantsRequired:
+        "O campo 'participants' deve ser um array não vazio",
+      noValidParticipants: "Nenhum participante válido informado",
+    },
+    retry: {
+      attemptFailed: (label: string, attempt: number, safeMessage: string) =>
+        `${label}: tentativa ${attempt} falhou: ${safeMessage}. Tentando novamente...`,
+      failed: (label: string, attempts: number, safeMessage: string) =>
+        `${label}: falhou após ${attempts} tentativas: ${safeMessage}`,
+    },
+    placeholders: {
+      workspaceSid: "WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      accountSid: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      workflowSid: "WWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      taskQueueSid: "WQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      taskSid: "WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      phone: "+5511999999999",
+      localPhone: "1187654321",
+      closePhone: "11987654321",
+      worker: "WKxxxxx... ou agente@empresa.com",
+      queue: "ex: SANTA_LUZIA_WHATSAPP",
+      skill: "ex: suporte-tecnico",
+      level: "ex: 5",
+      workflow: "ex: Roteamento Principal",
+      webhook: "https://example.com/webhook",
+    },
+    autocomplete: {
+      saveValue: (value: string) => `+ Salvar “${value}”`,
+      saveMessage: "+ Salvar mensagem atual",
+    },
     cancel: "Cancelar",
     search: "Buscar",
     clear: "Limpar",
@@ -40,8 +107,9 @@ export const strings = {
     },
   },
   sidebar: {
+    navigationAriaLabel: "Navegação principal",
     title: "Switchboard",
-    toggleLabel: "Toggle sidebar",
+    toggleLabel: "Alternar navegação lateral",
     environment: "Ambiente",
     noEnvironment: "Nenhum ambiente",
     noEnvironmentRegistered: "Nenhum ambiente cadastrado",
@@ -111,7 +179,7 @@ export const strings = {
           description: "Encerra tasks abertas e suas Conversations",
         },
         searchTasks: {
-          label: "Tasks por SID ou Número",
+          label: "Consultar Task",
           description: "Consulta uma Task ou localiza atendimentos do contato",
         },
         addParticularFilter: {
@@ -275,6 +343,7 @@ export const strings = {
         clear: "Limpar filtros",
       },
       export: {
+        filename: (sid: string) => `conversation-${sid}.csv`,
         button: "Exportar CSV",
         columns: [
           "Índice",
@@ -314,6 +383,20 @@ export const strings = {
       },
     },
     close: {
+      log: {
+        searching: (address: string) => `Buscando conversas para ${address}...`,
+        searchLabel: (address: string) => `Busca de conversas (${address})`,
+        noActive: (address: string) =>
+          `Nenhuma conversa ativa encontrada para ${address}`,
+        closeLabel: (sid: string) => `Fechar conversa ${sid}`,
+        closed: (sid: string) => `Conversa ${sid} fechada com sucesso`,
+        start: (count: number) =>
+          `Iniciando processamento de ${count} número(s)...`,
+        done: (totalClosed: number, totalErrors: number) =>
+          `Concluído. ${totalClosed} conversa(s) fechada(s), ${totalErrors} erro(s).`,
+        found: (count: number, address: string) =>
+          `${count} conversa(s) ativa(s) encontrada(s) para ${address}`,
+      },
       breadcrumb: "Encerrar por Número",
       title: "Encerrar Conversations por Número",
       subtitle:
@@ -410,6 +493,11 @@ export const strings = {
       },
     },
     createAddressConfig: {
+      log: {
+        alreadyConfigured: (address: string) =>
+          `Endereço já configurado: ${address}`,
+      },
+      httpMethods: { post: "POST", get: "GET" },
       breadcrumb: "Configurar Endereço",
       title: "Configurar Endereço de Canal",
       subtitle: "Crie um endereço e configure a entrada de mensagens no Flex.",
@@ -576,6 +664,27 @@ export const strings = {
       },
     },
     assignWorkers: {
+      log: {
+        invalidWorkers: (maxItems: number) =>
+          `Informe entre 1 e ${maxItems} Workers válidos`,
+        start: (count: number) =>
+          `Iniciando processamento de ${count} worker(s)...`,
+        done: (
+          totalUpdated: number,
+          totalSkipped: number,
+          totalErrors: number
+        ) =>
+          `Concluído. ${totalUpdated} worker(s) atualizado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+        searching: (identifier: string) => `Buscando worker: ${identifier}...`,
+        searchLabel: (identifier: string) => `Busca de worker (${identifier})`,
+        notFound: (identifier: string) =>
+          `Worker não encontrado: ${identifier}`,
+        addingSkill: (workerSid: string, skill: string) =>
+          `Worker encontrado: ${workerSid}. Adicionando skill "${skill}"...`,
+        updateLabel: (workerSid: string) => `Atualizar worker ${workerSid}`,
+        updated: (skill: string, identifier: string, workerSid: string) =>
+          `Skill "${skill}" adicionada ao worker ${identifier} (${workerSid})`,
+      },
       breadcrumb: "Adicionar Skill a Workers",
       title: "Adicionar Skill a Workers",
       subtitle: "Adicione uma skill a vários Workers por e-mail ou SID.",
@@ -612,6 +721,25 @@ export const strings = {
       },
     },
     createWorkflow: {
+      log: {
+        done: (workflowName: string, totalFilters: number) =>
+          `Concluído. Workflow "${workflowName}" criado com ${totalFilters} filtro(s).`,
+        unexpectedError: "Erro inesperado ao criar workflow.",
+        invalidColumns:
+          'Colunas "Regra de Negócio" e "Fila Twilio" não encontradas no CSV.',
+        loadingQueues: "Carregando filas do workspace...",
+        noDefaultQueue: (queueName: string) =>
+          `Fila "${queueName}" não encontrada. Workflow será criado sem filtro padrão.`,
+        queueNotFound: (fila: string) =>
+          `Fila não encontrada no workspace: ${fila}`,
+        filter: (regra: string, fila: string, queueSid: string) =>
+          `Filtro: ${regra} → ${fila} (${queueSid})`,
+        creating: (workflowName: string) =>
+          `Criando workflow '${workflowName}'...`,
+        created: (workflowName: string, workflowSid: string) =>
+          `Workflow criado: ${workflowName} | SID: ${workflowSid}`,
+        queuesLoaded: (count: number) => `${count} fila(s) carregada(s).`,
+      },
       breadcrumb: "Criar Workflow por CSV",
       title: "Criar Workflow por CSV",
       subtitle: "Crie um Workflow importando regras e filas de um arquivo CSV.",
@@ -701,12 +829,23 @@ export const strings = {
       },
     },
     searchTasks: {
-      breadcrumb: "Tasks por SID ou Número",
-      title: "Tasks por SID ou Número",
+      log: {
+        workspaceNotFound: (workspaceSid: string) =>
+          `Workspace não encontrado: ${workspaceSid}`,
+        taskNotFound: (taskSid: string) => `Task não encontrada: ${taskSid}`,
+      },
+      duration: {
+        seconds: (seconds: number) => `${seconds}s`,
+        minutes: (minutes: number, seconds: number) =>
+          `${minutes}m ${seconds}s`,
+        hours: (hours: number, minutes: number) => `${hours}h ${minutes}m`,
+      },
+      breadcrumb: "Consultar Task",
+      title: "Consultar Task",
       subtitle:
-        "Consulte uma Task por SID ou localize atendimentos por telefone.",
+        "Consulte detalhes de uma Task por SID ou por número de telefone.",
       metadata: {
-        title: "Tasks por SID ou Número",
+        title: "Consultar Task",
         description:
           "Consulte uma Task por SID ou localize Tasks de voz e WhatsApp pelo número do contato.",
       },
@@ -750,6 +889,41 @@ export const strings = {
       },
     },
     cancelQueueTasks: {
+      log: {
+        done: (
+          totalSuccess: number,
+          totalSkipped: number,
+          totalErrors: number
+        ) =>
+          `Concluído. ${totalSuccess} cancelada(s), ${totalSkipped} ignorada(s), ${totalErrors} erro(s).`,
+        reason: (taskQueueName: string) =>
+          `Limpeza em massa da fila ${taskQueueName}`,
+        cancelLabel: (taskSid: string) => `Cancelar task ${taskSid}`,
+        noConversation: (taskSid: string) =>
+          `Task ${taskSid}: cancelada (sem conversa associada)`,
+        messageLabel: (conversationSid: string) =>
+          `Enviar mensagem para conversa ${conversationSid}`,
+        messageFailed: (taskSid: string, conversationSid: string) =>
+          `Task ${taskSid}: cancelada, mas falha ao enviar mensagem para ${conversationSid}`,
+        closeFailed: (taskSid: string, conversationSid: string) =>
+          `Task ${taskSid}: cancelada, mas falha ao fechar conversa ${conversationSid}`,
+        closed: (taskSid: string, status: string) =>
+          `Task ${taskSid}: cancelada, mensagem enviada, conversa fechada (${status} → canceled)`,
+        searching: (taskQueueName: string) =>
+          `Buscando tasks da fila "${taskQueueName}"...`,
+        searchLabel: (taskQueueName: string) =>
+          `Listar tasks da fila ${taskQueueName}`,
+        found: (
+          tasksCount: number,
+          cancellableTasksCount: number,
+          ignoredCount: number
+        ) =>
+          `${tasksCount} task(s) encontrada(s). Elegíveis: ${cancellableTasksCount} · ignoradas: ${ignoredCount}`,
+        progress: (processed: number, count: number) =>
+          `Progresso: ${processed}/${count}`,
+      },
+      defaultCloseMessage:
+        "Infelizmente tivemos um problema com a nossa conversa e ela precisará ser reiniciada. Por favor, envie uma nova mensagem.",
       breadcrumb: "Encerrar Tasks por Fila",
       title: "Encerrar Tasks por Fila",
       subtitle: "Encerre Tasks abertas e suas Conversations associadas.",
@@ -780,6 +954,21 @@ export const strings = {
       },
     },
     addParticularFilter: {
+      log: {
+        done: (totalAdded: number, totalSkipped: number, totalErrors: number) =>
+          `Concluído. ${totalAdded} adicionado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+        unexpectedError: "Erro inesperado ao processar filtros.",
+        processing: (workflowSid: string) =>
+          `Processando workflow ${workflowSid}...`,
+        invalidRouting: (workflowSid: string) =>
+          `Workflow ${workflowSid} não possui configuração de roteamento válida.`,
+        alreadyExists: (filterName: string, workflowSid: string) =>
+          `Filtro "${filterName}" já existe no workflow ${workflowSid}. Ignorado.`,
+        added: (filterName: string, workflowSid: string) =>
+          `Filtro "${filterName}" adicionado ao workflow ${workflowSid}.`,
+        failed: (workflowSid: string, message: string) =>
+          `Erro ao processar workflow ${workflowSid}: ${message}`,
+      },
       breadcrumb: "Adicionar Filtro a Workflows",
       title: "Adicionar Filtro a Workflows",
       subtitle: "Adicione uma regra de roteamento a Workflows e Task Queues.",
@@ -824,7 +1013,13 @@ export const strings = {
     },
   },
   contacts: {
+    input: {
+      saveContact: (value: string) => `Salvar “${value}” como contato`,
+      removeContact: "Remover contato",
+      namePlaceholder: "Nome do contato",
+    },
     manager: {
+      deleteAriaLabel: "Excluir contato",
       breadcrumb: "Contatos Salvos",
       title: "Contatos Salvos",
       subtitle: "Associe nomes aos números usados nos formulários.",
@@ -853,7 +1048,21 @@ export const strings = {
     },
   },
   variables: {
+    groups: {
+      workspaceSids: "Workspace SIDs",
+      queueNames: "Filas (Task Queue)",
+      skillNames: "Skills",
+      workflowNames: "Workflows",
+      workerIdentifiers: "Workers",
+      conversationSids: "Conversation SIDs",
+      closeMessages: "Mensagens de encerramento",
+      flexAddresses: "Endereços Flex",
+      conversationServiceSids: "Conversation Service SIDs",
+      studioFlowSids: "Studio Flow SIDs",
+    },
     manager: {
+      editAriaLabel: "Editar",
+      deleteAriaLabel: "Excluir",
       breadcrumb: "Valores de Autocomplete",
       title: "Valores de Autocomplete",
       subtitle: "Gerencie valores reutilizáveis por campo e ambiente.",
@@ -995,6 +1204,8 @@ export const strings = {
       confirmDescription: (env: string) =>
         `Listar todos os WhatsApp senders da conta no ambiente ${env}?`,
       table: {
+        colSid: "SID",
+        sheetName: "Senders",
         colMark: "Marca / Identificação",
         colNumber: "Número",
         colService: "Serviço",

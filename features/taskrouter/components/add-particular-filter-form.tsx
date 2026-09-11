@@ -340,8 +340,7 @@ export function AddParticularFilterForm() {
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -419,7 +418,7 @@ export function AddParticularFilterForm() {
               setWorkspaceSid(v)
               if (wsSidError) setWsSidError(null)
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={status === "running"}
           />
           {wsSidError && (
@@ -473,7 +472,7 @@ export function AddParticularFilterForm() {
                       onChange={(e) =>
                         updateRow(i, "workflowSid", e.target.value)
                       }
-                      placeholder="WWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      placeholder={strings.common.placeholders.workflowSid}
                       disabled={status === "running"}
                       className={cn(
                         "font-mono text-xs",
@@ -492,7 +491,7 @@ export function AddParticularFilterForm() {
                       onChange={(e) =>
                         updateRow(i, "taskQueueSid", e.target.value)
                       }
-                      placeholder="WQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      placeholder={strings.common.placeholders.taskQueueSid}
                       disabled={status === "running"}
                       className={cn(
                         "font-mono text-xs",

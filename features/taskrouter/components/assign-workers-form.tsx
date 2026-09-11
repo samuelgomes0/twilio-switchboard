@@ -261,8 +261,7 @@ export function AssignWorkersForm() {
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -364,7 +363,7 @@ export function AssignWorkersForm() {
                   return next
                 })
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={status === "running"}
           />
           {fieldErrors.workspaceSid && (
@@ -435,7 +434,7 @@ export function AssignWorkersForm() {
             environmentId={activeEnvironment?.id}
             value={skill}
             onChange={setSkill}
-            placeholder="ex: suporte-tecnico"
+            placeholder={strings.common.placeholders.skill}
             disabled={status === "running"}
             className="font-sans text-sm placeholder:font-sans"
           />
@@ -452,7 +451,7 @@ export function AssignWorkersForm() {
           <Input
             id="level"
             type="number"
-            placeholder="ex: 5"
+            placeholder={strings.common.placeholders.level}
             min={0}
             max={5}
             value={levelInput}

@@ -256,7 +256,7 @@ function SidebarNav() {
 
         {/* Navigation */}
         <nav
-          aria-label="Navegação principal"
+          aria-label={strings.sidebar.navigationAriaLabel}
           className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2"
         >
           <NavSection

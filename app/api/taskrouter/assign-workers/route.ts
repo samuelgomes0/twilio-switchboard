@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { assignWorkersToQueue } from "@/features/taskrouter/lib/assign-workers"
 import { sseEvent } from "@/features/conversations/lib/close"
 import { MAX_ITEMS } from "@/lib/constants"
@@ -19,21 +20,21 @@ export async function POST(req: NextRequest) {
     body = await req.json()
   } catch {
     return Response.json(
-      { error: "Corpo da requisição inválido" },
+      { error: strings.common.validation.invalidBody },
       { status: 400 }
     )
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!body.skill || typeof body.skill !== "string") {
     return Response.json(
-      { error: "O campo 'skill' é obrigatório" },
+      { error: strings.common.validation.skillRequired },
       { status: 400 }
     )
   }
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     )
   ) {
     return Response.json(
-      { error: `Informe entre 1 e ${MAX_ITEMS} Workers válidos` },
+      { error: strings.taskrouter.assignWorkers.log.invalidWorkers(MAX_ITEMS) },
       { status: 400 }
     )
   }
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
       emit(
         sseEvent(
           "info",
-          `Iniciando processamento de ${emails.length} worker(s)...`
+          strings.taskrouter.assignWorkers.log.start(emails.length)
         )
       )
 
@@ -98,7 +99,11 @@ export async function POST(req: NextRequest) {
       emit(
         sseEvent(
           "info",
-          `Concluído. ${totalUpdated} worker(s) atualizado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+          strings.taskrouter.assignWorkers.log.done(
+            totalUpdated,
+            totalSkipped,
+            totalErrors
+          ),
           {
             done: true,
             totalUpdated,

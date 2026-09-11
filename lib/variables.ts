@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { STORED_KEYS } from "./stored-keys"
 
 const MAX_SAVED = 10
@@ -71,11 +72,26 @@ export type VariableGroup = {
 }
 
 export const VARIABLE_GROUPS: VariableGroup[] = [
-  { key: STORED_KEYS.workspaceSids, label: "Workspace SIDs" },
-  { key: STORED_KEYS.queueNames, label: "Filas (Task Queue)" },
-  { key: STORED_KEYS.skillNames, label: "Skills" },
-  { key: STORED_KEYS.workflowNames, label: "Workflows" },
-  { key: STORED_KEYS.workerIdentifiers, label: "Workers" },
-  { key: STORED_KEYS.conversationSids, label: "Conversation SIDs" },
-  { key: STORED_KEYS.closeMessages, label: "Mensagens de encerramento" },
+  {
+    key: STORED_KEYS.workspaceSids,
+    label: strings.variables.groups.workspaceSids,
+  },
+  { key: STORED_KEYS.queueNames, label: strings.variables.groups.queueNames },
+  { key: STORED_KEYS.skillNames, label: strings.variables.groups.skillNames },
+  {
+    key: STORED_KEYS.workflowNames,
+    label: strings.variables.groups.workflowNames,
+  },
+  {
+    key: STORED_KEYS.workerIdentifiers,
+    label: strings.variables.groups.workerIdentifiers,
+  },
+  {
+    key: STORED_KEYS.conversationSids,
+    label: strings.variables.groups.conversationSids,
+  },
+  {
+    key: STORED_KEYS.closeMessages,
+    label: strings.variables.groups.closeMessages,
+  },
 ]

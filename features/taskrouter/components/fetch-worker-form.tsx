@@ -205,8 +205,8 @@ export function FetchWorkerForm() {
       }
       pushHistory(entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      setError(strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -302,7 +302,7 @@ export function FetchWorkerForm() {
               setWorkspaceSid(v)
               if (wsSidError) setWsSidError(null)
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={loading}
           />
           {wsSidError && (
@@ -321,7 +321,7 @@ export function FetchWorkerForm() {
               environmentId={activeEnvironment?.id}
               value={identifier}
               onChange={setIdentifier}
-              placeholder="WKxxxxx... ou agente@empresa.com"
+              placeholder={strings.common.placeholders.worker}
               disabled={loading}
               containerClassName="flex-1"
               className="font-sans text-sm placeholder:font-sans"

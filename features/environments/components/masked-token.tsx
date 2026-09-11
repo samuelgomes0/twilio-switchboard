@@ -1,5 +1,7 @@
 "use client"
 
+import { strings } from "@/lib/strings"
+
 import * as React from "react"
 import { Eye, EyeOff } from "lucide-react"
 
@@ -14,7 +16,11 @@ export function MaskedToken({ token }: { token: string }) {
         type="button"
         onClick={() => setVisible((v) => !v)}
         className="text-muted-foreground transition-colors hover:text-foreground"
-        aria-label={visible ? "Ocultar token" : "Revelar token"}
+        aria-label={
+          visible
+            ? strings.environments.form.hideTokenAriaLabel
+            : strings.environments.form.showTokenAriaLabel
+        }
       >
         {visible ? (
           <EyeOff className="size-3.5" />

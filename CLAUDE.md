@@ -81,6 +81,12 @@ Two separate layers:
 
 Every user-visible string lives in `lib/strings.ts` as a typed `const` object. Never inline string literals in components — always reference `strings.*`.
 
+This includes accessibility labels, autocomplete actions and groups, placeholders, exported column/sheet/file names, API validation messages and SSE messages. Shared errors and retries live under `strings.common`; operation-specific messages live under the domain action's `log` object. Dynamic messages use typed functions. Protocol identifiers, CSV input contracts, storage keys and external resource data remain technical values, separate from display labels.
+
+Client error handlers show centralized messages rather than raw exception messages. Expected workflow CSV validation errors use `AppError.safeMessage`; unexpected failures use generic messages. External error logging retains only numeric status/code metadata. The default queue-close message is defined in `strings.taskrouter.cancelQueueTasks.defaultCloseMessage`; client components read it there without importing the Twilio business module. `DEFAULT_CLOSE_MESSAGE` remains a server-side alias for compatibility.
+
+`node --test tests/operation-messages.test.mjs` validates safe errors, expected CSV validation, retry feedback and successful SSE completion with mocked Twilio calls. The baseline inventory and follow-up audit are in `docs/auditoria-textos-hardcoded.md` and `docs/reauditoria-textos-hardcoded.md`.
+
 Page headers contain a concise title and subtitle. Longer introductory descriptions are omitted so the primary action appears sooner; metadata and tool-card descriptions remain available for their respective contexts.
 
 ### Adding a new feature

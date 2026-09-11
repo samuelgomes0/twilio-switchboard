@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import {
   closeConversations,
   sseEvent,
@@ -11,13 +12,16 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   const raw = body.participants
   if (!Array.isArray(raw) || raw.length === 0) {
     return Response.json(
-      { error: "O campo 'participants' deve ser um array não vazio" },
+      { error: strings.common.validation.participantsRequired },
       { status: 400 }
     )
   }
@@ -28,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   if (participants.length === 0) {
     return Response.json(
-      { error: "Nenhum participante válido informado" },
+      { error: strings.common.validation.noValidParticipants },
       { status: 400 }
     )
   }
@@ -50,7 +54,7 @@ export async function POST(req: NextRequest) {
       emit(
         sseEvent(
           "info",
-          `Iniciando processamento de ${participants.length} número(s)...`
+          strings.conversations.close.log.start(participants.length)
         )
       )
 
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest) {
       emit(
         sseEvent(
           "info",
-          `Concluído. ${totalClosed} conversa(s) fechada(s), ${totalErrors} erro(s).`,
+          strings.conversations.close.log.done(totalClosed, totalErrors),
           {
             done: true,
             totalClosed,

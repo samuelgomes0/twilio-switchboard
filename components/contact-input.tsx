@@ -1,8 +1,11 @@
 "use client"
 
+import { strings } from "@/lib/strings"
+
 import * as React from "react"
 import { Check, UserPlus, X } from "lucide-react"
 
+import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import {
   addContact,
@@ -33,6 +36,7 @@ export function ContactInput({
   id,
   prefix,
 }: ContactInputProps) {
+  const nameInputId = React.useId()
   const [contacts, setContacts] = React.useState<Contact[]>([])
   const [open, setOpen] = React.useState(false)
   const [showSaveForm, setShowSaveForm] = React.useState(false)
@@ -116,8 +120,8 @@ export function ContactInput({
                 type="button"
                 tabIndex={0}
                 className="min-w-0 flex-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleSelect(c.phone)
                 }}
               >
@@ -130,11 +134,11 @@ export function ContactInput({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
-                aria-label="Remover contato"
-                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                tabIndex={0}
+                aria-label={strings.contacts.input.removeContact}
+                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleDelete(c.id)
                 }}
               >
@@ -148,21 +152,25 @@ export function ContactInput({
                 type="button"
                 tabIndex={0}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   setShowSaveForm(true)
                   setTimeout(() => saveInputRef.current?.focus(), 0)
                 }}
               >
                 <UserPlus className="size-3 shrink-0" />
-                Salvar &ldquo;{trimmed}&rdquo; como contato
+                {strings.contacts.input.saveContact(trimmed)}
               </button>
             </li>
           )}
           {canSave && showSaveForm && (
             <li className="px-3 py-2">
+              <Label htmlFor={nameInputId} className="sr-only">
+                {strings.contacts.form.nameLabel}
+              </Label>
               <div className="flex gap-1.5">
                 <input
+                  id={nameInputId}
                   ref={saveInputRef}
                   type="text"
                   value={savingName}
@@ -177,14 +185,15 @@ export function ContactInput({
                       setSavingName("")
                     }
                   }}
-                  placeholder="Nome do contato"
+                  placeholder={strings.contacts.input.namePlaceholder}
                   className="h-7 flex-1 rounded border border-input bg-transparent px-2 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                 />
                 <button
                   type="button"
+                  aria-label={strings.common.save}
                   disabled={!savingName.trim()}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
                     handleSave()
                   }}
                   className="flex size-7 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"

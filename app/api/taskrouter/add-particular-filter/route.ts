@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { sseEvent } from "@/features/conversations/lib/close"
 import { addParticularFilter } from "@/features/taskrouter/lib/add-particular-filter"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
@@ -17,26 +18,29 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!body.filterName || typeof body.filterName !== "string") {
     return Response.json(
-      { error: "O campo 'filterName' é obrigatório" },
+      { error: strings.common.validation.filterRequired },
       { status: 400 }
     )
   }
 
   if (!Array.isArray(body.entries) || body.entries.length === 0) {
     return Response.json(
-      { error: "O campo 'entries' deve ser um array não-vazio" },
+      { error: strings.common.validation.entriesRequired },
       { status: 400 }
     )
   }
@@ -50,8 +54,7 @@ export async function POST(req: NextRequest) {
     ) {
       return Response.json(
         {
-          error:
-            "Cada entrada deve conter 'workflowSid' e 'taskQueueSid' como strings",
+          error: strings.common.validation.invalidEntries,
         },
         { status: 400 }
       )
@@ -88,18 +91,24 @@ export async function POST(req: NextRequest) {
             emit
           )
 
-        const level =
-          totalAdded > 0 || totalSkipped > 0 ? "success" : "error"
+        const level = totalAdded > 0 || totalSkipped > 0 ? "success" : "error"
         emit(
           sseEvent(
             level,
-            `Concluído. ${totalAdded} adicionado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+            strings.taskrouter.addParticularFilter.log.done(
+              totalAdded,
+              totalSkipped,
+              totalErrors
+            ),
             { done: true, totalAdded, totalSkipped, totalErrors }
           )
         )
       } catch (err) {
         const isTwilioError =
-          typeof (err as Record<string, unknown>).status === "number"
+          typeof err === "object" &&
+          err !== null &&
+          "status" in err &&
+          typeof err.status === "number"
         if (isTwilioError) {
           const appErr = fromTwilioError(
             err,
@@ -108,9 +117,7 @@ export async function POST(req: NextRequest) {
           emit(sseEvent("error", appErr.safeMessage, { done: true }))
         } else {
           const message =
-            err instanceof Error
-              ? err.message
-              : "Erro inesperado ao processar filtros."
+            strings.taskrouter.addParticularFilter.log.unexpectedError
           emit(sseEvent("error", message, { done: true }))
         }
       }

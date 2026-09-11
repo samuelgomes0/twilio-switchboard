@@ -112,12 +112,12 @@ function formatDate(d: Date | null | string): string {
 }
 
 function formatAge(sec: number): string {
-  if (sec < 60) return `${sec}s`
+  if (sec < 60) return strings.taskrouter.searchTasks.duration.seconds(sec)
   const m = Math.floor(sec / 60)
   const s = sec % 60
-  if (m < 60) return `${m}m ${s}s`
+  if (m < 60) return strings.taskrouter.searchTasks.duration.minutes(m, s)
   const h = Math.floor(m / 60)
-  return `${h}h ${m % 60}m`
+  return strings.taskrouter.searchTasks.duration.hours(h, m % 60)
 }
 
 // ─── Channel inference ───────────────────────────────────────────────────────
@@ -429,8 +429,8 @@ export function SearchTasksForm() {
         pushHistory(entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      setError(strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -575,7 +575,7 @@ export function SearchTasksForm() {
                   return n
                 })
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={loading}
           />
           {fieldErrors.workspaceSid && (
@@ -603,7 +603,7 @@ export function SearchTasksForm() {
                       return n
                     })
                 }}
-                placeholder="WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                placeholder={strings.common.placeholders.taskSid}
                 disabled={loading}
                 className="flex-1 font-mono text-sm"
                 aria-invalid={!!fieldErrors.taskSid}
@@ -639,7 +639,7 @@ export function SearchTasksForm() {
                 id="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+5511999999999"
+                placeholder={strings.common.placeholders.phone}
                 disabled={loading}
                 className="flex-1"
               />

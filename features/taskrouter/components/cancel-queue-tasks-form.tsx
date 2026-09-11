@@ -33,7 +33,6 @@ import { Button } from "@/components/ui/button"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
-import { DEFAULT_CLOSE_MESSAGE } from "@/features/taskrouter/lib/cancel-queue-tasks"
 import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -99,7 +98,9 @@ export function CancelQueueTasksForm() {
   const { activeEnvironment } = useEnvironment()
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [taskQueueName, setTaskQueueName] = React.useState("")
-  const [closeMessage, setCloseMessage] = React.useState(DEFAULT_CLOSE_MESSAGE)
+  const [closeMessage, setCloseMessage] = React.useState<string>(
+    strings.taskrouter.cancelQueueTasks.defaultCloseMessage
+  )
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
@@ -246,8 +247,7 @@ export function CancelQueueTasksForm() {
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -346,7 +346,7 @@ export function CancelQueueTasksForm() {
                   return next
                 })
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={status === "running"}
           />
           {fieldErrors.workspaceSid && (
@@ -367,7 +367,7 @@ export function CancelQueueTasksForm() {
             environmentId={activeEnvironment?.id}
             value={taskQueueName}
             onChange={setTaskQueueName}
-            placeholder="ex: SANTA_LUZIA_WHATSAPP"
+            placeholder={strings.common.placeholders.queue}
             disabled={status === "running"}
             className="font-mono"
           />

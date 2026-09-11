@@ -1,3 +1,5 @@
+import { strings } from "@/lib/strings"
+import { AppError } from "@/lib/errors"
 import { sseEvent } from "@/features/conversations/lib/close"
 import type { CreateWorkflowInput } from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -43,8 +45,9 @@ function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
   const filaIdx = headers.indexOf("Fila Twilio")
 
   if (regraIdx === -1 || filaIdx === -1) {
-    throw new Error(
-      'Colunas "Regra de Negócio" e "Fila Twilio" não encontradas no CSV.'
+    throw new AppError(
+      "validation",
+      strings.taskrouter.createWorkflow.log.invalidColumns
     )
   }
 
@@ -81,7 +84,7 @@ export async function createWorkflow(
   workflowName: string
   totalFilters: number
 }> {
-  emit(sseEvent("info", "Carregando filas do workspace..."))
+  emit(sseEvent("info", strings.taskrouter.createWorkflow.log.loadingQueues))
 
   const queues = await client.taskrouter.v1
     .workspaces(input.workspaceSid)
@@ -92,14 +95,19 @@ export async function createWorkflow(
     queueSidMap[queue.friendlyName] = queue.sid
   }
 
-  emit(sseEvent("info", `${queues.length} fila(s) carregada(s).`))
+  emit(
+    sseEvent(
+      "info",
+      strings.taskrouter.createWorkflow.log.queuesLoaded(queues.length)
+    )
+  )
 
   const defaultQueueSid = queueSidMap[DEFAULT_QUEUE_NAME] ?? null
   if (!defaultQueueSid) {
     emit(
       sseEvent(
         "warning",
-        `Fila "${DEFAULT_QUEUE_NAME}" não encontrada. Workflow será criado sem filtro padrão.`
+        strings.taskrouter.createWorkflow.log.noDefaultQueue(DEFAULT_QUEUE_NAME)
       )
     )
   }
@@ -110,9 +118,17 @@ export async function createWorkflow(
   for (const { regra, fila } of rows) {
     const queueSid = queueSidMap[fila]
     if (!queueSid) {
-      throw new Error(`Fila não encontrada no workspace: ${fila}`)
+      throw new AppError(
+        "validation",
+        strings.taskrouter.createWorkflow.log.queueNotFound(fila)
+      )
     }
-    emit(sseEvent("info", `Filtro: ${regra} → ${fila} (${queueSid})`))
+    emit(
+      sseEvent(
+        "info",
+        strings.taskrouter.createWorkflow.log.filter(regra, fila, queueSid)
+      )
+    )
     filters.push({
       filter_friendly_name: regra,
       expression: `regraDeNegocio IN ['${regra}']`,
@@ -120,7 +136,12 @@ export async function createWorkflow(
     })
   }
 
-  emit(sseEvent("info", `Criando workflow '${input.workflowName}'...`))
+  emit(
+    sseEvent(
+      "info",
+      strings.taskrouter.createWorkflow.log.creating(input.workflowName)
+    )
+  )
 
   const taskRouting: {
     filters: WorkflowFilter[]
@@ -143,7 +164,10 @@ export async function createWorkflow(
   emit(
     sseEvent(
       "success",
-      `Workflow criado: ${workflow.friendlyName} | SID: ${workflow.sid}`
+      strings.taskrouter.createWorkflow.log.created(
+        workflow.friendlyName,
+        workflow.sid
+      )
     )
   )
 

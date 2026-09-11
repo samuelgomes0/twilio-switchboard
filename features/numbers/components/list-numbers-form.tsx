@@ -50,6 +50,12 @@ const SERVICE_FILTER_OPTIONS: { value: ServiceFilter; label: string }[] = [
   { value: "Programmable Chat", label: s.table.filterPchat },
 ]
 
+function serviceLabel(service: PhoneNumberService): string {
+  return service === "Conversations"
+    ? s.table.filterConversations
+    : s.table.filterPchat
+}
+
 function SortIcon({
   field,
   current,
@@ -103,8 +109,8 @@ export function ListNumbersForm() {
         return
       }
       setResults(json.numbers)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      setError(strings.common.networkError)
     } finally {
       setLoading(false)
     }
@@ -116,12 +122,12 @@ export function ListNumbersForm() {
       s.table.colMark,
       s.table.colNumber,
       s.table.colService,
-      "SID",
+      s.table.colSid,
     ]
     const rows = results.map((r) => [
       `"${r.friendlyName.replace(/"/g, '""')}"`,
       r.phoneNumber,
-      r.service,
+      serviceLabel(r.service),
       r.id,
     ])
     const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n")
@@ -139,12 +145,12 @@ export function ListNumbersForm() {
     const data = results.map((r) => ({
       [s.table.colMark]: r.friendlyName,
       [s.table.colNumber]: r.phoneNumber,
-      [s.table.colService]: r.service,
-      SID: r.id,
+      [s.table.colService]: serviceLabel(r.service),
+      [s.table.colSid]: r.id,
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, "Senders")
+    XLSX.utils.book_append_sheet(wb, ws, s.table.sheetName)
     const wbout = XLSX.write(wb, {
       bookType: "xlsx",
       type: "array",
@@ -430,7 +436,7 @@ export function ListNumbersForm() {
                                 : "secondary"
                             }
                           >
-                            {row.service}
+                            {serviceLabel(row.service)}
                           </Badge>
                         </td>
                       </tr>

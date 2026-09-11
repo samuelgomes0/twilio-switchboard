@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { fetchTask } from "@/features/taskrouter/lib/fetch-task"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -13,7 +14,10 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   const workspaceSid =
@@ -22,21 +26,21 @@ export async function POST(req: NextRequest) {
 
   if (!workspaceSid) {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!taskSid) {
     return Response.json(
-      { error: "O campo 'taskSid' é obrigatório" },
+      { error: strings.common.validation.taskRequired },
       { status: 400 }
     )
   }
 
   if (!/^WT[a-f0-9]{32}$/i.test(taskSid)) {
     return Response.json(
-      { error: "Task SID inválido. Formato esperado: WT + 32 caracteres hex" },
+      { error: strings.common.validation.invalidTaskSid },
       { status: 400 }
     )
   }
@@ -54,7 +58,10 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const appErr = fromTwilioError(err, "taskrouter/fetch-task")
     if (appErr.kind === "not_found") {
-      return Response.json({ error: `Task não encontrada: ${taskSid}` }, { status: 404 })
+      return Response.json(
+        { error: strings.taskrouter.searchTasks.log.taskNotFound(taskSid) },
+        { status: 404 }
+      )
     }
     return toApiResponse(appErr)
   }

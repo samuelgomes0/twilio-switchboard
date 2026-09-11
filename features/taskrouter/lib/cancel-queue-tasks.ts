@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { sseEvent, withRetry } from "@/features/conversations/lib/close"
 import {
   CONCURRENCY_LIMIT,
@@ -16,7 +17,7 @@ const IGNORE_STATUSES = new Set([
 const CANCEL_STATUSES = new Set(["pending", "reserved"])
 
 export const DEFAULT_CLOSE_MESSAGE =
-  "Infelizmente tivemos um problema com a nossa conversa e ela precisará ser reiniciada. Por favor, envie uma nova mensagem."
+  strings.taskrouter.cancelQueueTasks.defaultCloseMessage
 
 interface TaskAttributes {
   conversationSid?: unknown
@@ -87,11 +88,11 @@ async function processSingleTask(
         .tasks(task.sid)
         .update({
           assignmentStatus: "canceled",
-          reason: `Limpeza em massa da fila ${taskQueueName}`,
+          reason: strings.taskrouter.cancelQueueTasks.log.reason(taskQueueName),
         }),
     RETRY_ATTEMPTS,
     RETRY_DELAY_MS,
-    `Cancelar task ${task.sid}`,
+    strings.taskrouter.cancelQueueTasks.log.cancelLabel(task.sid),
     emit
   )
 
@@ -101,7 +102,7 @@ async function processSingleTask(
     emit(
       sseEvent(
         "success",
-        `Task ${task.sid}: cancelada (sem conversa associada)`
+        strings.taskrouter.cancelQueueTasks.log.noConversation(task.sid)
       )
     )
     return "success"
@@ -115,14 +116,17 @@ async function processSingleTask(
         .messages.create({ body: message }),
     RETRY_ATTEMPTS,
     RETRY_DELAY_MS,
-    `Enviar mensagem para conversa ${conversationSid}`,
+    strings.taskrouter.cancelQueueTasks.log.messageLabel(conversationSid),
     emit
   )
   if (msgResult === null) {
     emit(
       sseEvent(
         "warning",
-        `Task ${task.sid}: cancelada, mas falha ao enviar mensagem para ${conversationSid}`
+        strings.taskrouter.cancelQueueTasks.log.messageFailed(
+          task.sid,
+          conversationSid
+        )
       )
     )
   }
@@ -135,21 +139,24 @@ async function processSingleTask(
         .update({ state: "closed" }),
     RETRY_ATTEMPTS,
     RETRY_DELAY_MS,
-    `Fechar conversa ${conversationSid}`,
+    strings.conversations.close.log.closeLabel(conversationSid),
     emit
   )
   if (closeResult === null) {
     emit(
       sseEvent(
         "warning",
-        `Task ${task.sid}: cancelada, mas falha ao fechar conversa ${conversationSid}`
+        strings.taskrouter.cancelQueueTasks.log.closeFailed(
+          task.sid,
+          conversationSid
+        )
       )
     )
   } else {
     emit(
       sseEvent(
         "success",
-        `Task ${task.sid}: cancelada, mensagem enviada, conversa fechada (${status} → canceled)`
+        strings.taskrouter.cancelQueueTasks.log.closed(task.sid, status)
       )
     )
   }
@@ -176,7 +183,12 @@ export async function cancelQueueTasks(
 }> {
   const message = closeMessage?.trim() || DEFAULT_CLOSE_MESSAGE
 
-  emit(sseEvent("info", `Buscando tasks da fila "${taskQueueName}"...`))
+  emit(
+    sseEvent(
+      "info",
+      strings.taskrouter.cancelQueueTasks.log.searching(taskQueueName)
+    )
+  )
 
   const tasks = await withRetry(
     () =>
@@ -186,7 +198,7 @@ export async function cancelQueueTasks(
       }),
     RETRY_ATTEMPTS,
     RETRY_DELAY_MS,
-    `Listar tasks da fila ${taskQueueName}`,
+    strings.taskrouter.cancelQueueTasks.log.searchLabel(taskQueueName),
     emit
   )
 
@@ -205,7 +217,11 @@ export async function cancelQueueTasks(
   emit(
     sseEvent(
       "info",
-      `${tasks.length} task(s) encontrada(s). Elegíveis: ${cancellableTasks.length} · ignoradas: ${ignoredCount}`
+      strings.taskrouter.cancelQueueTasks.log.found(
+        tasks.length,
+        cancellableTasks.length,
+        ignoredCount
+      )
     )
   )
 
@@ -227,9 +243,16 @@ export async function cancelQueueTasks(
       const outcome = await processSingleTask(task, taskArgs, client, emit)
       processed++
       emit(
-        sseEvent("info", `Progresso: ${processed}/${cancellableTasks.length}`, {
-          progress: { current: processed, total: cancellableTasks.length },
-        })
+        sseEvent(
+          "info",
+          strings.taskrouter.cancelQueueTasks.log.progress(
+            processed,
+            cancellableTasks.length
+          ),
+          {
+            progress: { current: processed, total: cancellableTasks.length },
+          }
+        )
       )
       return outcome
     }

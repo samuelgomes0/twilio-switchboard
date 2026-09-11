@@ -126,11 +126,9 @@ export function EnvironmentForm({
         setTestState("error")
         setTestError(json.error ?? strings.environments.form.testError)
       }
-    } catch (err) {
+    } catch {
       setTestState("error")
-      setTestError(
-        err instanceof Error ? err.message : strings.common.networkError
-      )
+      setTestError(strings.common.networkError)
     }
   }
 
@@ -156,7 +154,7 @@ export function EnvironmentForm({
         </Label>
         <Input
           id="env-sid"
-          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          placeholder={strings.common.placeholders.accountSid}
           value={form.accountSid}
           onChange={(e) => handleChange("accountSid", e.target.value)}
           className="font-mono text-sm"

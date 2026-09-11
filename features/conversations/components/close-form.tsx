@@ -230,8 +230,7 @@ export function CloseForm() {
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -333,7 +332,7 @@ export function CloseForm() {
                       )
                     }
                   }}
-                  placeholder="11987654321"
+                  placeholder={strings.common.placeholders.closePhone}
                   disabled={status === "running"}
                   prefix="whatsapp:+55"
                   containerClassName="flex-1"

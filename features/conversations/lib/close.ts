@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { sanitizeExternalError } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -31,19 +32,15 @@ export async function withRetry<T>(
         emit(
           sseEvent(
             "warning",
-            `${label}: tentativa ${attempt} falhou: ${safeMessage}. Tentando novamente...`
+            strings.common.retry.attemptFailed(label, attempt, safeMessage)
           )
         )
         await sleep(delayMs)
       } else {
-        console.error(
-          `[withRetry] ${label}: falhou após ${attempts} tentativas`,
-          err
-        )
         emit(
           sseEvent(
             "error",
-            `${label}: falhou após ${attempts} tentativas: ${safeMessage}`
+            strings.common.retry.failed(label, attempts, safeMessage)
           )
         )
       }
@@ -70,7 +67,7 @@ export async function closeConversations(
     const address = formatPhoneNumber(raw)
 
     emit(
-      sseEvent("info", `Buscando conversas para ${address}...`, {
+      sseEvent("info", strings.conversations.close.log.searching(address), {
         progress: { current: idx + 1, total: participants.length },
       })
     )
@@ -83,7 +80,7 @@ export async function closeConversations(
         }),
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,
-      `Busca de conversas (${address})`,
+      strings.conversations.close.log.searchLabel(address),
       emit
     )
 
@@ -96,7 +93,7 @@ export async function closeConversations(
 
     if (active.length === 0) {
       emit(
-        sseEvent("warning", `Nenhuma conversa ativa encontrada para ${address}`)
+        sseEvent("warning", strings.conversations.close.log.noActive(address))
       )
       continue
     }
@@ -104,7 +101,7 @@ export async function closeConversations(
     emit(
       sseEvent(
         "info",
-        `${active.length} conversa(s) ativa(s) encontrada(s) para ${address}`
+        strings.conversations.close.log.found(active.length, address)
       )
     )
 
@@ -117,13 +114,13 @@ export async function closeConversations(
             .update({ state: "closed" }),
         RETRY_ATTEMPTS,
         RETRY_DELAY_MS,
-        `Fechar conversa ${sid}`,
+        strings.conversations.close.log.closeLabel(sid),
         emit
       )
 
       if (result !== null) {
         totalClosed++
-        emit(sseEvent("success", `Conversa ${sid} fechada com sucesso`))
+        emit(sseEvent("success", strings.conversations.close.log.closed(sid)))
       } else {
         totalErrors++
       }

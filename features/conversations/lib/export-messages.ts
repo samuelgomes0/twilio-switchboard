@@ -27,7 +27,7 @@ export function exportMessages(sid: string, messages: ConversationMessage[]) {
   )
   const downloadLink = document.createElement("a")
   downloadLink.href = url
-  downloadLink.download = `conversation-${sid}.csv`
+  downloadLink.download = strings.conversations.history.export.filename(sid)
   downloadLink.click()
   URL.revokeObjectURL(url)
 }

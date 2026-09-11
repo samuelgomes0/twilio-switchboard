@@ -1,3 +1,4 @@
+import { strings } from "@/lib/strings"
 import { searchTasks } from "@/features/taskrouter/lib/search-tasks"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -13,7 +14,10 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json()
   } catch {
-    return Response.json({ error: "Corpo da requisição inválido" }, { status: 400 })
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
   }
 
   const workspaceSid =
@@ -23,21 +27,21 @@ export async function POST(req: NextRequest) {
 
   if (!workspaceSid) {
     return Response.json(
-      { error: "O campo 'workspaceSid' é obrigatório" },
+      { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
   }
 
   if (!phoneNumber) {
     return Response.json(
-      { error: "O campo 'phoneNumber' é obrigatório" },
+      { error: strings.common.validation.phoneRequired },
       { status: 400 }
     )
   }
 
   if (!/^WS[a-f0-9]{32}$/i.test(workspaceSid)) {
     return Response.json(
-      { error: "Workspace SID inválido. Formato esperado: WS + 32 caracteres hex" },
+      { error: strings.common.validation.invalidWorkspaceSid },
       { status: 400 }
     )
   }
@@ -56,7 +60,10 @@ export async function POST(req: NextRequest) {
     const appErr = fromTwilioError(err, "taskrouter/search-tasks")
     if (appErr.kind === "not_found") {
       return Response.json(
-        { error: `Workspace não encontrado: ${workspaceSid}` },
+        {
+          error:
+            strings.taskrouter.searchTasks.log.workspaceNotFound(workspaceSid),
+        },
         { status: 404 }
       )
     }

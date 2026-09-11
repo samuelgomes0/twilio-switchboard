@@ -252,7 +252,7 @@ export function ContactsManager() {
                 <div className="flex shrink-0 gap-1">
                   <button
                     type="button"
-                    aria-label="Editar contato"
+                    aria-label={strings.contacts.manager.editTitle}
                     onClick={() => {
                       setEditingId(contact.id)
                       setShowAddForm(false)
@@ -264,7 +264,7 @@ export function ContactsManager() {
                   </button>
                   <button
                     type="button"
-                    aria-label="Excluir contato"
+                    aria-label={strings.contacts.manager.deleteAriaLabel}
                     onClick={() => {
                       setConfirmDeleteId(contact.id)
                       setEditingId(null)
