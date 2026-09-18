@@ -206,7 +206,7 @@ export function ListNumbersForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/numbers"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -219,10 +219,10 @@ export function ListNumbersForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <Hash className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
           <p className="text-sm text-muted-foreground">{s.subtitle}</p>
         </div>
@@ -305,7 +305,7 @@ export function ListNumbersForm() {
         <div className="mt-6 space-y-4">
           {/* Controls */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {SERVICE_FILTER_OPTIONS.map((opt) => (
                 <button
                   aria-pressed={serviceFilter === opt.value}
@@ -324,7 +324,7 @@ export function ListNumbersForm() {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="relative sm:w-56">
+              <div className="relative w-full min-w-0 sm:w-56">
                 <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   aria-label={s.table.searchLabel}
@@ -376,7 +376,7 @@ export function ListNumbersForm() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-border">
-              <div className="max-h-[420px] overflow-y-auto">
+              <div className="max-h-[420px] overflow-auto">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 z-10 border-b border-border bg-card">
                     <tr>

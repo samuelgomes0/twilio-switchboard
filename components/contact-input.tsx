@@ -23,6 +23,9 @@ interface ContactInputProps {
   containerClassName?: string
   className?: string
   id?: string
+  "aria-labelledby"?: string
+  "aria-describedby"?: string
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"]
   /** Text shown as a visual prefix overlay inside the input (e.g. "whatsapp:+55") */
   prefix?: string
 }
@@ -35,6 +38,9 @@ export function ContactInput({
   containerClassName,
   className,
   id,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   prefix,
 }: ContactInputProps) {
   const nameInputId = React.useId()
@@ -100,6 +106,9 @@ export function ContactInput({
       )}
       <input
         id={id}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}

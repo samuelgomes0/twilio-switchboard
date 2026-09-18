@@ -47,7 +47,7 @@ export function EnvironmentsManager() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/settings"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -61,12 +61,12 @@ export function EnvironmentsManager() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+      <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Settings2 className="size-4 text-primary" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight">
               {strings.environments.manager.title}
             </h1>
@@ -152,7 +152,7 @@ export function EnvironmentsManager() {
                 <p className="mb-3 text-sm font-medium text-destructive">
                   {strings.environments.manager.deleteConfirm(env.name)}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="destructive"

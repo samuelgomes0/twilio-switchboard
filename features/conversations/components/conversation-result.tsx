@@ -36,7 +36,7 @@ function QueryFeedback({
   return error ? (
     <div
       role="alert"
-      className="space-y-3 rounded-lg border border-destructive/30 p-4"
+      className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
     >
       <p>{error}</p>
       <Button variant="outline" onClick={retry}>

@@ -138,13 +138,14 @@ export function EnvironmentForm({
         <Label htmlFor="env-name">{strings.environments.form.nameLabel}</Label>
         <Input
           id="env-name"
+          aria-describedby={errors.name ? "env-name-error" : undefined}
           placeholder={strings.environments.form.namePlaceholder}
           value={form.name}
           onChange={(e) => handleChange("name", e.target.value)}
           aria-invalid={!!errors.name}
         />
         {errors.name && (
-          <p className="text-xs text-destructive">{errors.name}</p>
+          <p id="env-name-error" className="text-xs text-destructive">{errors.name}</p>
         )}
       </div>
 
@@ -154,6 +155,7 @@ export function EnvironmentForm({
         </Label>
         <Input
           id="env-sid"
+          aria-describedby={errors.accountSid ? "env-sid-error env-sid-hint" : "env-sid-hint"}
           placeholder={strings.common.placeholders.accountSid}
           value={form.accountSid}
           onChange={(e) => handleChange("accountSid", e.target.value)}
@@ -164,9 +166,9 @@ export function EnvironmentForm({
           aria-invalid={!!errors.accountSid}
         />
         {errors.accountSid && (
-          <p className="text-xs text-destructive">{errors.accountSid}</p>
+          <p id="env-sid-error" className="text-xs text-destructive">{errors.accountSid}</p>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p id="env-sid-hint" className="text-xs text-muted-foreground">
           {strings.environments.form.accountSidHint}
         </p>
       </div>
@@ -178,6 +180,7 @@ export function EnvironmentForm({
         <div className="relative flex items-center">
           <Input
             id="env-token"
+            aria-describedby={errors.authToken ? "env-token-error env-token-hint" : "env-token-hint"}
             type={showToken ? "text" : "password"}
             placeholder={strings.environments.form.authTokenPlaceholder}
             value={form.authToken}
@@ -206,15 +209,15 @@ export function EnvironmentForm({
           </button>
         </div>
         {errors.authToken && (
-          <p className="text-xs text-destructive">{errors.authToken}</p>
+          <p id="env-token-error" className="text-xs text-destructive">{errors.authToken}</p>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p id="env-token-hint" className="text-xs text-muted-foreground">
           {strings.environments.form.authTokenHint}
         </p>
       </div>
 
       {/* Test credentials */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button
           aria-busy={testState === "loading"}
           type="button"
@@ -247,7 +250,7 @@ export function EnvironmentForm({
         )}
       </div>
 
-      <div className="flex gap-2 pt-1">
+      <div className="flex flex-wrap gap-2 pt-1">
         <Button type="submit" size="sm" className="gap-1.5">
           <Check className="size-3.5" />
           {strings.environments.form.saveButton}

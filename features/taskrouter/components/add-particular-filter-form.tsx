@@ -319,7 +319,7 @@ export function AddParticularFilterForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -334,11 +334,11 @@ export function AddParticularFilterForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <Filter className="size-4 text-primary" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
               {strings.taskrouter.addParticularFilter.title}
             </h1>
@@ -379,6 +379,8 @@ export function AddParticularFilterForm() {
           </Label>
           <StoredInput
             id="workspaceSid"
+            aria-describedby={wsSidError ? "filter-workspace-error" : undefined}
+            aria-invalid={!!wsSidError}
             storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -390,7 +392,7 @@ export function AddParticularFilterForm() {
             disabled={status === "running"}
           />
           {wsSidError && (
-            <p className="text-xs text-destructive">{wsSidError}</p>
+            <p id="filter-workspace-error" className="text-xs text-destructive">{wsSidError}</p>
           )}
         </div>
 
@@ -401,6 +403,8 @@ export function AddParticularFilterForm() {
           </Label>
           <Input
             id="filterName"
+            aria-describedby={filterNameError ? "filter-name-error" : undefined}
+            aria-invalid={!!filterNameError}
             value={filterName}
             onChange={(e) => {
               setFilterName(e.target.value)
@@ -412,20 +416,20 @@ export function AddParticularFilterForm() {
             disabled={status === "running"}
           />
           {filterNameError && (
-            <p className="text-xs text-destructive">{filterNameError}</p>
+            <p id="filter-name-error" className="text-xs text-destructive">{filterNameError}</p>
           )}
         </div>
 
         {/* Workflow / Task Queue pairs */}
         <div className="space-y-2">
           {/* Column headers */}
-          <div className="grid grid-cols-[1fr_1fr_2.25rem] gap-2">
-            <Label>
+          <div className="hidden gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
+            <p className="text-sm font-medium">
               {strings.taskrouter.addParticularFilter.workflowSidColLabel}
-            </Label>
-            <Label>
+            </p>
+            <p className="text-sm font-medium">
               {strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
-            </Label>
+            </p>
             <div />
           </div>
 
@@ -433,9 +437,15 @@ export function AddParticularFilterForm() {
           <div className="space-y-2">
             {rows.map((row, i) => (
               <div key={i} className="space-y-1">
-                <div className="grid grid-cols-[1fr_1fr_2.25rem] items-start gap-2">
-                  <div className="space-y-1">
+                <div className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
+                  <div className="col-start-1 space-y-1 sm:col-auto">
+                    <Label htmlFor={`filter-workflow-${i}`} className="sm:sr-only">
+                      {strings.taskrouter.addParticularFilter.workflowSidColLabel}
+                    </Label>
                     <Input
+                      id={`filter-workflow-${i}`}
+                      aria-describedby={rowErrors[i]?.workflowSid ? `filter-workflow-error-${i}` : undefined}
+                      aria-invalid={!!rowErrors[i]?.workflowSid}
                       aria-label={strings.taskrouter.addParticularFilter.workflowSidColLabel}
                       value={row.workflowSid}
                       onChange={(e) =>
@@ -449,13 +459,19 @@ export function AddParticularFilterForm() {
                       )}
                     />
                     {rowErrors[i]?.workflowSid && (
-                      <p className="text-xs text-destructive">
+                      <p id={`filter-workflow-error-${i}`} className="text-xs text-destructive">
                         {rowErrors[i].workflowSid}
                       </p>
                     )}
                   </div>
-                  <div className="space-y-1">
+                  <div className="col-start-1 space-y-1 sm:col-auto">
+                    <Label htmlFor={`filter-queue-${i}`} className="sm:sr-only">
+                      {strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
+                    </Label>
                     <Input
+                      id={`filter-queue-${i}`}
+                      aria-describedby={rowErrors[i]?.taskQueueSid ? `filter-queue-error-${i}` : undefined}
+                      aria-invalid={!!rowErrors[i]?.taskQueueSid}
                       aria-label={strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
                       value={row.taskQueueSid}
                       onChange={(e) =>
@@ -469,7 +485,7 @@ export function AddParticularFilterForm() {
                       )}
                     />
                     {rowErrors[i]?.taskQueueSid && (
-                      <p className="text-xs text-destructive">
+                      <p id={`filter-queue-error-${i}`} className="text-xs text-destructive">
                         {rowErrors[i].taskQueueSid}
                       </p>
                     )}
@@ -480,7 +496,7 @@ export function AddParticularFilterForm() {
                     type="button"
                     disabled={status === "running" || rows.length === 1}
                     onClick={() => removeRow(i)}
-                    className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
+                    className="col-start-2 row-start-1 mt-6 text-muted-foreground hover:border-destructive/50 hover:text-destructive sm:col-auto sm:row-auto sm:mt-0"
                     aria-label={strings.common.remove}
                   >
                     <Trash2 className="size-3.5" />
@@ -505,7 +521,7 @@ export function AddParticularFilterForm() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>

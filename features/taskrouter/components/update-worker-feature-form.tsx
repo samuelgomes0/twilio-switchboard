@@ -60,7 +60,7 @@ export function UpdateWorkerFeatureForm() {
     <div className="mx-auto max-w-3xl">
       <nav
         data-worker-page-header
-        className="mb-5 flex items-center gap-1 text-sm"
+        className="mb-5 flex flex-wrap items-center gap-1 text-sm"
       >
         <Link
           href="/taskrouter"
@@ -77,11 +77,11 @@ export function UpdateWorkerFeatureForm() {
         </span>
       </nav>
       <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <Settings2 className="size-4 text-primary" aria-hidden="true" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
               {messages.title}
             </h1>
@@ -91,7 +91,7 @@ export function UpdateWorkerFeatureForm() {
         </div>
       </div>
       {!activeEnvironment && (
-        <p role="alert" className="mb-5 text-sm text-destructive">
+        <p role="alert" className="mb-5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
           {strings.common.noEnvironmentSelected.message}
         </p>
       )}
@@ -135,7 +135,7 @@ export function UpdateWorkerFeatureForm() {
                     )
                   }
                   placeholder={messages.workersPlaceholder}
-                  className="flex-1"
+                  className="min-w-0 flex-1"
                 />
                 <Button
                   size="icon"
@@ -193,7 +193,7 @@ export function UpdateWorkerFeatureForm() {
             </select>
           </div>
         </fieldset>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             aria-busy={running}
             type="submit"
@@ -257,11 +257,14 @@ export function UpdateWorkerFeatureForm() {
       </AlertDialogRoot>
       {logs.length > 0 && (
         <section
-          className="mt-6"
+          className="mt-5 space-y-2"
           role="log"
           aria-label={strings.common.logOfOperations}
           aria-live="polite"
         >
+          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+            {strings.common.logOfOperations}
+          </p>
           <LogOutput entries={logs} />
         </section>
       )}

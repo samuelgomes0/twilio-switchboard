@@ -52,7 +52,7 @@ export function ConversationDetails({
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
           <div>
             <p className="mb-0.5 text-xs text-muted-foreground">
               {strings.conversations.fetch.result.dateCreated}
@@ -70,11 +70,11 @@ export function ConversationDetails({
             </p>
           </div>
           {conversation.messagingServiceSid && (
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <p className="mb-0.5 text-xs text-muted-foreground">
                 {strings.conversations.fetch.result.messagingServiceSid}
               </p>
-              <p className="font-mono text-xs">
+              <p className="font-mono text-xs break-all">
                 {conversation.messagingServiceSid}
               </p>
             </div>

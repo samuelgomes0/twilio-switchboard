@@ -45,7 +45,7 @@ function ContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="contact-name">
@@ -71,7 +71,7 @@ function ContactForm({
           />
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" disabled={nameError || phoneError}>
           {strings.contacts.form.saveButton}
         </Button>
@@ -118,7 +118,7 @@ export function ContactsManager() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/settings"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -132,12 +132,12 @@ export function ContactsManager() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+      <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <BookUser className="size-4 text-primary" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-xl font-semibold tracking-tight">
               {strings.contacts.manager.title}
             </h1>
@@ -219,7 +219,7 @@ export function ContactsManager() {
                 <p className="mb-3 text-sm font-medium text-destructive">
                   {strings.contacts.manager.deleteConfirm(contact.name)}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     variant="destructive"

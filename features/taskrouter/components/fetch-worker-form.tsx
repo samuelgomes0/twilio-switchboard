@@ -192,7 +192,7 @@ export function FetchWorkerForm() {
       {/* Breadcrumb */}
       <nav
         data-worker-page-header
-        className="mb-5 flex items-center gap-1 text-sm"
+        className="mb-5 flex flex-wrap items-center gap-1 text-sm"
       >
         <Link
           href="/taskrouter"
@@ -208,10 +208,10 @@ export function FetchWorkerForm() {
 
       {/* Header */}
       <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <User className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">
             {strings.taskrouter.fetchWorker.title}
           </h1>
@@ -243,13 +243,15 @@ export function FetchWorkerForm() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div data-worker-workspace-field className="space-y-2">
-          <Label htmlFor="workspaceSid">
+          <Label htmlFor="fetch-worker-workspace">
             {strings.taskrouter.fetchWorker.workspaceSidLabel}
           </Label>
           <StoredInput
-            id="workspaceSid"
+            id="fetch-worker-workspace"
+            aria-describedby={wsSidError ? "fetch-workspace-error" : undefined}
+            aria-invalid={!!wsSidError}
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -261,7 +263,7 @@ export function FetchWorkerForm() {
             disabled={loading}
           />
           {wsSidError && (
-            <p className="text-xs text-destructive">{wsSidError}</p>
+            <p id="fetch-workspace-error" className="text-xs text-destructive">{wsSidError}</p>
           )}
         </div>
 
@@ -269,16 +271,17 @@ export function FetchWorkerForm() {
           <Label htmlFor="identifier">
             {strings.taskrouter.fetchWorker.identifierLabel}
           </Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <StoredInput
               id="identifier"
+              aria-describedby="worker-identifier-hint"
               storageKey={WORKER_IDS_KEY}
               environmentId={activeEnvironment?.id}
               value={identifier}
               onChange={setIdentifier}
               placeholder={strings.common.placeholders.worker}
               disabled={loading}
-              containerClassName="flex-1"
+              containerClassName="w-full min-w-0 flex-1"
               className="font-sans text-sm placeholder:font-sans"
             />
             <Button
@@ -295,7 +298,7 @@ export function FetchWorkerForm() {
               {strings.common.search}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p id="worker-identifier-hint" className="text-xs text-muted-foreground">
             {strings.taskrouter.fetchWorker.identifierHint}
           </p>
         </div>
@@ -345,7 +348,7 @@ export function FetchWorkerForm() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-sm text-muted-foreground">
+                  <p className="font-mono text-sm text-muted-foreground break-all">
                     {data.worker.sid}
                   </p>
                   <CardTitle className="mt-1 text-base">
@@ -417,7 +420,7 @@ export function FetchWorkerForm() {
               )}
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
                 <div>
                   <p className="mb-0.5 text-muted-foreground">
                     {strings.taskrouter.fetchWorker.result.dateCreated}
@@ -434,7 +437,7 @@ export function FetchWorkerForm() {
                     {formatDate(data.worker.dateUpdated)}
                   </p>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <p className="mb-0.5 text-muted-foreground">
                     {strings.taskrouter.fetchWorker.result.dateStatusChanged}
                   </p>

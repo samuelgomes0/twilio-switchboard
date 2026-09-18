@@ -111,11 +111,12 @@ function VariableGroupSection({
       <div className="px-4 py-3">
         {state.showAdd && (
           <div className="mb-3 space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-            <Label className="text-xs">{s.valueLabel}</Label>
-            <div className="flex gap-2">
+            <Label htmlFor={`variable-add-${group.key}`} className="text-xs">{s.valueLabel}</Label>
+            <div className="flex flex-wrap gap-2">
               <Input
+                id={`variable-add-${group.key}`}
                 aria-label={s.valueLabel}
-                className="h-8 font-mono text-xs"
+                className="h-8 w-full min-w-0 font-mono text-xs sm:flex-1"
                 value={state.addValue}
                 onChange={(e) => set({ addValue: e.target.value })}
                 placeholder={s.valuePlaceholder}
@@ -153,10 +154,14 @@ function VariableGroupSection({
           <div className="space-y-1">
             {state.values.map((val, i) =>
               state.editingIndex === i ? (
-                <div key={i} className="flex gap-2">
+                <div key={i} className="flex flex-wrap gap-2">
+                  <Label htmlFor={`variable-edit-${group.key}-${i}`} className="sr-only">
+                    {s.valueLabel}
+                  </Label>
                   <Input
+                    id={`variable-edit-${group.key}-${i}`}
                     aria-label={s.valueLabel}
-                    className="h-8 font-mono text-xs"
+                    className="h-8 w-full min-w-0 font-mono text-xs sm:flex-1"
                     value={state.editValue}
                     onChange={(e) => set({ editValue: e.target.value })}
                     onKeyDown={(e) => {
@@ -264,7 +269,7 @@ export function VariablesManager() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/settings"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -277,10 +282,10 @@ export function VariablesManager() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <SlidersHorizontal className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
           <p className="text-sm text-muted-foreground">{s.subtitle}</p>
         </div>

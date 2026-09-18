@@ -227,7 +227,7 @@ export function CloseForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/conversations"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -242,11 +242,11 @@ export function CloseForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <MessageSquareOff className="size-4 text-primary" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
               {strings.conversations.close.title}
             </h1>
@@ -281,7 +281,7 @@ export function CloseForm() {
 
       <form onSubmit={handleFormSubmit} className="space-y-5">
         <div className="space-y-2">
-          <Label>
+          <Label id="close-phones-label">
             {strings.conversations.close.phoneLabel}{" "}
             <span className="font-normal text-muted-foreground">
               {strings.conversations.close.phoneLabelHint}
@@ -291,6 +291,10 @@ export function CloseForm() {
             {phones.map((phone, i) => (
               <div key={i} className="flex items-center gap-2">
                 <ContactInput
+                  id={`close-phone-${i}`}
+                  aria-labelledby="close-phones-label"
+                  aria-describedby={fieldErrors.length > 0 ? "close-phones-error" : undefined}
+                  aria-invalid={fieldErrors.includes(phone.trim())}
                   value={phone}
                   onChange={(v) => {
                     setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
@@ -303,7 +307,7 @@ export function CloseForm() {
                   placeholder={strings.common.placeholders.closePhone}
                   disabled={status === "running"}
                   prefix="whatsapp:+55"
-                  containerClassName="flex-1"
+                  containerClassName="min-w-0 flex-1"
                   className="pl-[7.5rem]"
                 />
                 <Button
@@ -334,7 +338,7 @@ export function CloseForm() {
             {strings.conversations.close.addPhone}
           </Button>
           {fieldErrors.length > 0 && (
-            <p className="text-xs text-destructive">
+            <p id="close-phones-error" className="text-xs text-destructive">
               {strings.common.phoneDigitsOnly}: {fieldErrors.join(", ")}
             </p>
           )}
@@ -345,7 +349,7 @@ export function CloseForm() {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             aria-busy={status === "running"}
             variant="destructive"

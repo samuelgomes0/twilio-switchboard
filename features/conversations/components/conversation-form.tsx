@@ -68,15 +68,17 @@ function EnvironmentConversationForm({
         <Label htmlFor="conversation-sid">
           {strings.conversations.history.sidLabel}
         </Label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <StoredInput
             id="conversation-sid"
+            aria-describedby="conversation-sid-feedback"
+            aria-invalid={!!sid.trim() && !valid}
             storageKey={STORED_KEYS.conversationSids}
             environmentId={environment.id}
             value={sid}
             onChange={setSid}
             placeholder={strings.conversations.history.sidPlaceholder}
-            containerClassName="flex-1"
+            containerClassName="w-full min-w-0 flex-1"
           />
           <Button type="submit" disabled={!valid} className="gap-2">
             <Search aria-hidden="true" className="size-3.5" />
@@ -84,6 +86,7 @@ function EnvironmentConversationForm({
           </Button>
         </div>
         <p
+          id="conversation-sid-feedback"
           className={
             sid.trim() && !valid
               ? "text-xs text-destructive"
@@ -134,7 +137,7 @@ export function ConversationForm(props: ConversationFormProps) {
   const labels = strings.conversations.consult
   return (
     <div className="mx-auto max-w-3xl">
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           href="/conversations"
@@ -153,7 +156,7 @@ export function ConversationForm(props: ConversationFormProps) {
         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <FileSearch2 aria-hidden="true" className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">
             {labels.title}
           </h1>
@@ -169,10 +172,12 @@ export function ConversationForm(props: ConversationFormProps) {
       ) : (
         <div
           role="alert"
-          className="rounded-lg border border-destructive/30 p-4 text-sm"
+          className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5 text-sm"
         >
-          <p>{strings.common.noEnvironmentSelected.title}</p>
-          <p>
+          <p className="font-medium text-destructive">
+            {strings.common.noEnvironmentSelected.title}
+          </p>
+          <p className="mt-0.5 text-destructive/80">
             {strings.common.noEnvironmentSelected.message}{" "}
             <Link className="underline focus-visible:outline-2 focus-visible:outline-ring" href="/settings/environments">
               {strings.common.noEnvironmentSelected.link}

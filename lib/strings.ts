@@ -339,7 +339,7 @@ export const strings = {
           `${count} conversa(s) ativa(s) encontrada(s) para ${address}`,
       },
       breadcrumb: "Encerrar por Número",
-      title: "Encerrar Conversations por Número",
+      title: "Encerrar Conversations por número",
       subtitle:
         "Encerre Conversations ativas vinculadas aos números informados.",
       metadata: {
@@ -372,7 +372,7 @@ export const strings = {
       loadingPage: "Carregando Conversations por Número…",
       loadingResults: "Buscando Conversations vinculadas ao número…",
       breadcrumb: "Conversations por Número",
-      title: "Conversations por Número",
+      title: "Conversations por número",
       subtitle: "Localize Conversations vinculadas a um número do WhatsApp.",
       metadata: {
         title: "Conversations por Número",
@@ -435,7 +435,7 @@ export const strings = {
       },
       httpMethods: { post: "POST", get: "GET" },
       breadcrumb: "Configurar Endereço",
-      title: "Configurar Endereço de Canal",
+      title: "Configurar endereço de canal",
       subtitle: "Crie um endereço e configure a entrada de mensagens no Flex.",
       metadata: {
         title: "Configurar Endereço de Canal no Flex",
@@ -530,10 +530,10 @@ export const strings = {
       },
     },
     updateWorkerFeature: {
-      title: "Configurar Plugins do Flex",
+      title: "Configurar plugins do Flex",
       subtitle:
         "Habilite ou desabilite um plugin do Flex para um ou vários Workers.",
-      workspaceLabel: "SID do Workspace",
+      workspaceLabel: "Workspace SID",
       workspacePlaceholder: "WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       workersLabel: "Workers",
       workerLabel: (position: number) => `Worker ${position}`,
@@ -615,7 +615,7 @@ export const strings = {
           `Skill "${skill}" adicionada ao worker ${identifier} (${workerSid})`,
       },
       breadcrumb: "Adicionar Skill a Workers",
-      title: "Adicionar Skill a Workers",
+      title: "Adicionar skill a Workers",
       subtitle: "Adicione uma skill a vários Workers por e-mail ou SID.",
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
@@ -805,7 +805,7 @@ export const strings = {
       defaultCloseMessage:
         "Infelizmente tivemos um problema com a nossa conversa e ela precisará ser reiniciada. Por favor, envie uma nova mensagem.",
       breadcrumb: "Encerrar Tasks por Fila",
-      title: "Encerrar Tasks por Fila",
+      title: "Encerrar Tasks por fila",
       subtitle: "Encerre Tasks abertas e suas Conversations associadas.",
       metadata: {
         title: "Encerrar Tasks por Fila",
@@ -848,7 +848,7 @@ export const strings = {
           `Erro ao processar workflow ${workflowSid}: ${message}`,
       },
       breadcrumb: "Adicionar Filtro a Workflows",
-      title: "Adicionar Filtro a Workflows",
+      title: "Adicionar filtro a Workflows",
       subtitle: "Adicione uma regra de roteamento a Workflows e Task Queues.",
       metadata: {
         title: "Adicionar Filtro a Workflows",
@@ -897,7 +897,7 @@ export const strings = {
     manager: {
       deleteAriaLabel: "Excluir contato",
       breadcrumb: "Contatos Salvos",
-      title: "Contatos Salvos",
+      title: "Contatos salvos",
       subtitle: "Associe nomes aos números usados nos formulários.",
       metadata: {
         title: "Contatos Salvos",
@@ -940,7 +940,7 @@ export const strings = {
       editAriaLabel: "Editar valor salvo",
       deleteAriaLabel: "Excluir valor salvo",
       breadcrumb: "Valores de Autocomplete",
-      title: "Valores de Autocomplete",
+      title: "Valores de autocomplete",
       subtitle: "Gerencie valores reutilizáveis por campo e ambiente.",
       metadata: {
         title: "Valores de Autocomplete",

@@ -234,7 +234,7 @@ export function CreateWorkflowForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -249,11 +249,11 @@ export function CreateWorkflowForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <GitBranch className="size-4 text-primary" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
               {strings.taskrouter.createWorkflow.title}
             </h1>
@@ -294,6 +294,8 @@ export function CreateWorkflowForm() {
           </Label>
           <StoredInput
             id="workspaceSid"
+            aria-describedby={wsSidError ? "create-workspace-error" : undefined}
+            aria-invalid={!!wsSidError}
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -305,7 +307,7 @@ export function CreateWorkflowForm() {
             disabled={status === "running"}
           />
           {wsSidError && (
-            <p className="text-xs text-destructive">{wsSidError}</p>
+            <p id="create-workspace-error" className="text-xs text-destructive">{wsSidError}</p>
           )}
         </div>
 
@@ -333,6 +335,7 @@ export function CreateWorkflowForm() {
           </Label>
           <Input
             id="csvFile"
+            aria-describedby={csvFile ? "workflow-csv-selected" : undefined}
             type="file"
             accept=".csv"
             onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
@@ -340,14 +343,14 @@ export function CreateWorkflowForm() {
             className="cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted/80"
           />
           {csvFile && (
-            <p className="text-xs text-muted-foreground">
+            <p id="workflow-csv-selected" className="text-xs text-muted-foreground">
               {strings.taskrouter.createWorkflow.csvSelected(csvFile.name)}
             </p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>

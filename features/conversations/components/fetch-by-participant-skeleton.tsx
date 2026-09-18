@@ -25,7 +25,7 @@ function ResultCardsSkeleton() {
               </div>
               <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Skeleton className="h-3 w-full" />
               <Skeleton className="h-3 w-full" />
             </div>
@@ -72,9 +72,9 @@ export function FetchByParticipantPageSkeleton() {
           </div>
         </div>
         <Skeleton className="mb-2 h-4 w-52" />
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Skeleton className="h-9 min-w-0 flex-1 rounded-lg" />
-          <Skeleton className="h-9 w-24 rounded-full" />
+          <Skeleton className="h-9 w-full rounded-full sm:w-24" />
         </div>
         <Skeleton className="mt-5 mb-2 h-4 w-20" />
         <div className="flex gap-2">

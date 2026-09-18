@@ -78,7 +78,12 @@ function LogOutput({
               >
                 {levelPrefixes[entry.level]}
               </span>
-              <span className={cn(levelStyles[entry.level])}>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 [overflow-wrap:anywhere]",
+                  levelStyles[entry.level]
+                )}
+              >
                 {entry.message}
               </span>
             </div>

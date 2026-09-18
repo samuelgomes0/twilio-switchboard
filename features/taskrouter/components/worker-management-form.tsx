@@ -50,7 +50,7 @@ export function WorkerManagementForm({
       }}
     >
       <div className="mx-auto max-w-3xl">
-        <nav className="mb-5 flex items-center gap-1 text-sm">
+        <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
           <Link
             href="/taskrouter"
             className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -66,11 +66,11 @@ export function WorkerManagementForm({
           </span>
         </nav>
         <header className="mb-6 flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
             <Users className="size-4 text-primary" aria-hidden="true" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-semibold tracking-tight">
                 {labels.title}
               </h1>

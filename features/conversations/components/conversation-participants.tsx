@@ -32,7 +32,7 @@ export function ConversationParticipants({
                 {idx > 0 && <Separator className="mb-3" />}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className="font-mono text-xs text-muted-foreground break-all">
                       {p.sid}
                     </span>
                     {p.identity && (
@@ -57,7 +57,7 @@ export function ConversationParticipants({
                           <span className="w-16 shrink-0 text-muted-foreground">
                             {strings.conversations.fetch.result.address}
                           </span>
-                          <span className="font-mono">
+                          <span className="font-mono break-all">
                             {p.messagingBinding.address}
                           </span>
                         </div>
@@ -67,7 +67,7 @@ export function ConversationParticipants({
                           <span className="w-16 shrink-0 text-muted-foreground">
                             {strings.conversations.fetch.result.proxy}
                           </span>
-                          <span className="font-mono">
+                          <span className="font-mono break-all">
                             {p.messagingBinding.proxy_address}
                           </span>
                         </div>
@@ -75,7 +75,7 @@ export function ConversationParticipants({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-x-4 text-xs">
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
                     <div>
                       <span className="text-muted-foreground">
                         {strings.conversations.fetch.result.added}{" "}

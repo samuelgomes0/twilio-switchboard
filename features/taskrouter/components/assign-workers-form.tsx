@@ -258,7 +258,7 @@ export function AssignWorkersForm() {
       {/* Breadcrumb */}
       <nav
         data-worker-page-header
-        className="mb-5 flex items-center gap-1 text-sm"
+        className="mb-5 flex flex-wrap items-center gap-1 text-sm"
       >
         <Link
           href="/taskrouter"
@@ -274,11 +274,11 @@ export function AssignWorkersForm() {
 
       {/* Header */}
       <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <UserPlus className="size-4 text-primary" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-xl font-semibold tracking-tight">
               {strings.taskrouter.assignWorkers.title}
             </h1>
@@ -314,11 +314,13 @@ export function AssignWorkersForm() {
       <form onSubmit={handleFormSubmit} className="space-y-5">
         {/* Workspace SID */}
         <div data-worker-workspace-field className="space-y-2">
-          <Label htmlFor="workspaceSid">
+          <Label htmlFor="skill-workspace">
             {strings.taskrouter.assignWorkers.workspaceSidLabel}
           </Label>
           <StoredInput
-            id="workspaceSid"
+            id="skill-workspace"
+            aria-describedby={fieldErrors.workspaceSid ? "skill-workspace-error" : undefined}
+            aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -335,7 +337,7 @@ export function AssignWorkersForm() {
             disabled={status === "running"}
           />
           {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">
+            <p id="skill-workspace-error" className="text-xs text-destructive">
               {fieldErrors.workspaceSid}
             </p>
           )}
@@ -361,7 +363,7 @@ export function AssignWorkersForm() {
                   )
                 }
                 placeholder={strings.taskrouter.assignWorkers.workerPlaceholder}
-                className="flex-1"
+                className="min-w-0 flex-1"
               />
               <Button
                 size="icon"
@@ -433,7 +435,7 @@ export function AssignWorkersForm() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>

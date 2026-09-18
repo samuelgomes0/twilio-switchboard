@@ -242,7 +242,7 @@ export function FetchByParticipantForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/conversations"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -257,10 +257,10 @@ export function FetchByParticipantForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <AtSign className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">
             {strings.conversations.fetchByParticipant.title}
           </h1>
@@ -292,7 +292,7 @@ export function FetchByParticipantForm() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="phone">
             {strings.conversations.fetchByParticipant.phoneLabel}{" "}
@@ -300,9 +300,11 @@ export function FetchByParticipantForm() {
               {strings.conversations.fetchByParticipant.phoneLabelHint}
             </span>
           </Label>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <ContactInput
               id="phone"
+              aria-describedby={phoneError ? "participant-phone-error" : undefined}
+              aria-invalid={!!phoneError}
               value={phone}
               onChange={(v) => {
                 setPhone(v)
@@ -311,7 +313,7 @@ export function FetchByParticipantForm() {
               placeholder={strings.common.placeholders.localPhone}
               disabled={loading}
               prefix="whatsapp:+55"
-              containerClassName="flex-1"
+              containerClassName="w-full min-w-0 flex-1"
               className="pl-[7.5rem]"
             />
             <Button
@@ -330,12 +332,12 @@ export function FetchByParticipantForm() {
           </div>
         </div>
 
-        {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+        {phoneError && <p id="participant-phone-error" className="text-xs text-destructive">{phoneError}</p>}
 
         {/* State filter */}
         <div className="space-y-2">
           <Label>{strings.conversations.fetchByParticipant.filterLabel}</Label>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {STATE_OPTIONS.map((opt) => (
               <button
                 aria-pressed={stateFilter === opt.value}
@@ -435,7 +437,7 @@ export function FetchByParticipantForm() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-mono text-xs text-muted-foreground">
+                          <p className="font-mono text-xs text-muted-foreground break-all">
                             {pc.conversationSid}
                           </p>
                           {pc.conversationFriendlyName && (
@@ -448,7 +450,7 @@ export function FetchByParticipantForm() {
                           {pc.conversationState}
                         </Badge>
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
+                      <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 text-xs text-muted-foreground sm:grid-cols-2">
                         <span>
                           {
                             strings.conversations.fetchByParticipant.results
@@ -470,7 +472,7 @@ export function FetchByParticipantForm() {
                             strings.conversations.fetchByParticipant.results
                               .identity
                           }{" "}
-                          <span className="font-mono">
+                          <span className="font-mono break-all">
                             {pc.participantIdentity}
                           </span>
                         </p>

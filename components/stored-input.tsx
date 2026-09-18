@@ -20,6 +20,8 @@ interface StoredInputProps {
   /** Applied to the inner <input> element */
   className?: string
   id?: string
+  "aria-describedby"?: string
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"]
 }
 
 export function StoredInput({
@@ -32,6 +34,8 @@ export function StoredInput({
   containerClassName,
   className,
   id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: StoredInputProps) {
   const effectiveKey = environmentId
     ? `${storageKey}:${environmentId}`
@@ -84,6 +88,8 @@ export function StoredInput({
     >
       <input
         id={id}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}

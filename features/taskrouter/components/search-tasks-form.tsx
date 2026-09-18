@@ -198,7 +198,7 @@ function TaskCard({ task }: { task: SearchTaskResult }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
           <div>
             <p className="mb-0.5 text-muted-foreground">
               {strings.taskrouter.searchTasks.result.priority}
@@ -231,7 +231,7 @@ function TaskCard({ task }: { task: SearchTaskResult }) {
 
         <Separator />
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
           <div>
             <p className="mb-0.5 text-muted-foreground">
               {strings.taskrouter.searchTasks.result.dateCreated}
@@ -421,7 +421,7 @@ export function SearchTasksForm() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -436,10 +436,10 @@ export function SearchTasksForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <Search className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">
             {strings.taskrouter.searchTasks.title}
           </h1>
@@ -503,13 +503,15 @@ export function SearchTasksForm() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.searchTasks.workspaceSidLabel}
           </Label>
           <StoredInput
             id="workspaceSid"
+            aria-describedby={fieldErrors.workspaceSid ? "task-workspace-error" : undefined}
+            aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -526,7 +528,7 @@ export function SearchTasksForm() {
             disabled={loading}
           />
           {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">
+            <p id="task-workspace-error" className="text-xs text-destructive">
               {fieldErrors.workspaceSid}
             </p>
           )}
@@ -537,9 +539,10 @@ export function SearchTasksForm() {
             <Label htmlFor="taskSid">
               {strings.taskrouter.searchTasks.taskSidLabel}
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 id="taskSid"
+                aria-describedby="task-sid-feedback"
                 value={taskSid}
                 onChange={(e) => {
                   setTaskSid(e.target.value)
@@ -552,7 +555,7 @@ export function SearchTasksForm() {
                 }}
                 placeholder={strings.common.placeholders.taskSid}
                 disabled={loading}
-                className="flex-1 font-mono text-sm"
+                className="min-w-0 flex-1 font-mono text-sm"
                 aria-invalid={!!fieldErrors.taskSid}
               />
               <Button
@@ -570,9 +573,9 @@ export function SearchTasksForm() {
               </Button>
             </div>
             {fieldErrors.taskSid ? (
-              <p className="text-xs text-destructive">{fieldErrors.taskSid}</p>
+              <p id="task-sid-feedback" className="text-xs text-destructive">{fieldErrors.taskSid}</p>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p id="task-sid-feedback" className="text-xs text-muted-foreground">
                 {strings.taskrouter.searchTasks.taskSidHint}
               </p>
             )}
@@ -582,14 +585,15 @@ export function SearchTasksForm() {
             <Label htmlFor="phone">
               {strings.taskrouter.searchTasks.phoneLabel}
             </Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 id="phone"
+                aria-describedby="task-phone-hint"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder={strings.common.placeholders.phone}
                 disabled={loading}
-                className="flex-1"
+                className="min-w-0 flex-1"
               />
               <Button
                 aria-busy={loading}
@@ -605,7 +609,7 @@ export function SearchTasksForm() {
                 {strings.taskrouter.searchTasks.submit}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p id="task-phone-hint" className="text-xs text-muted-foreground">
               {strings.taskrouter.searchTasks.phoneLabelHint}
             </p>
           </div>

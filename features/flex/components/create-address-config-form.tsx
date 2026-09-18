@@ -217,7 +217,7 @@ export function CreateAddressConfigForm() {
   return (
     <div className="mx-auto max-w-2xl">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/flex"
           className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
@@ -230,10 +230,10 @@ export function CreateAddressConfigForm() {
 
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
           <MapPin className="size-4 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
           <p className="text-sm text-muted-foreground">{s.subtitle}</p>
         </div>
@@ -377,10 +377,11 @@ export function CreateAddressConfigForm() {
                 environmentId={activeEnvironment?.id}
                 value={studioFlowSid}
                 onChange={setStudioFlowSid}
+                aria-describedby="studio-flow-hint"
                 placeholder={s.studioFlowPlaceholder}
                 disabled={loading}
               />
-              <p className="text-xs text-muted-foreground">
+              <p id="studio-flow-hint" className="text-xs text-muted-foreground">
                 {s.studioFlowHint}
               </p>
             </div>
@@ -388,7 +389,7 @@ export function CreateAddressConfigForm() {
 
           {/* Webhook fields */}
           {integrationType === "webhook" && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="webhookUrl">
                   <span className="mr-0.5 text-destructive">*</span>
@@ -423,7 +424,7 @@ export function CreateAddressConfigForm() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-3 pt-1">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="submit" disabled={!canSubmit} className="gap-2">
             {loading && <Loader2 className="size-3.5 animate-spin" />}
             {s.submit}
@@ -493,12 +494,12 @@ export function CreateAddressConfigForm() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
                   <p className="mb-0.5 text-xs text-muted-foreground">
                     {s.result.address}
                   </p>
-                  <p className="font-mono text-xs font-medium">
+                  <p className="font-mono text-xs font-medium break-all">
                     {result.address}
                   </p>
                 </div>
@@ -551,12 +552,12 @@ export function CreateAddressConfigForm() {
                   )}
                 </div>
                 {result.autoCreation?.webhookUrl && (
-                  <p className="mt-2 font-mono text-xs text-muted-foreground">
+                  <p className="mt-2 font-mono text-xs text-muted-foreground break-all">
                     {result.autoCreation.webhookUrl}
                   </p>
                 )}
                 {result.autoCreation?.studioFlowSid && (
-                  <p className="mt-2 font-mono text-xs text-muted-foreground">
+                  <p className="mt-2 font-mono text-xs text-muted-foreground break-all">
                     {result.autoCreation.studioFlowSid}
                   </p>
                 )}
