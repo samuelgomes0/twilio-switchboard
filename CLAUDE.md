@@ -8,11 +8,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev        # Start dev server (Next.js + Turbopack)
 npm run build      # Production build
 npm run typecheck  # TypeScript check (no emit)
+npm test           # Run all existing Node.js tests with mocked Twilio calls
 npm run lint       # ESLint
 npm run format     # Prettier (ts/tsx files)
 ```
 
-Node >= 22 required. Focused Worker feature tests run with `node --test tests/update-worker-feature.test.mjs`; they use the existing TypeScript compiler and mock Twilio without network calls. No general test suite is configured.
+Node >= 22 required. `npm test` runs the Node.js suites for Conversation consultation, operation messages, Worker features and the shared TypeScript loader. They use the existing TypeScript compiler and mock Twilio without network calls. Browser/component coverage is not configured.
+
+`tests/typescript-loader.mjs` shares CommonJS/ES2022 transpilation, `@/` alias resolution and module overrides. `createLoader(overrides)` owns its cache per instance, preserving class identity in operation-message tests. `load(relative, overrides)` disables TypeScript caching for Conversation consultation and Worker-feature tests, including nested imports. Native modules still use Node's require cache; relative TypeScript imports still need explicit overrides.
 
 ## Architecture
 
@@ -20,7 +23,7 @@ Switchboard is a Next.js 16 (App Router) dashboard for Twilio operations — Con
 
 ### Directory layout
 
-- `app/(pages)/` — page components (Client Components wrapping feature forms)
+- `app/(pages)/` — Server Component page wrappers around feature forms, plus compatibility redirects
 - `app/api/` — Next.js Route Handlers (server-side Twilio API calls)
 - `features/<domain>/` — self-contained domain modules:
   - `components/` — form components (Client Components)
@@ -38,6 +41,8 @@ Twilio credentials are stored entirely in the browser's `localStorage` (never se
 
 Long-running operations (close conversations, cancel queue tasks, assign workers) return `text/event-stream` responses from Route Handlers. The form component opens a `ReadableStream` reader and parses `data:` lines. Each event is a JSON object `{ level, message, done?, totalClosed?, totalErrors?, progress? }` where `level` is one of `"info" | "success" | "warning" | "error"`. The `LogOutput` component renders the accumulated entries in a terminal-style panel. All forms hold an `AbortController` ref so users can cancel mid-operation.
 
+The six SSE consumers share `consumeSseStream(reader, onDataLine)` from `lib/sse-reader.ts` for incremental UTF-8 decoding, LF-delimited frames and the first data line. JSON parsing, callback errors, completion, state and reader ownership remain local: five forms ignore malformed events, while Worker Feature validates payloads, requires completion and releases the reader. Only Worker Feature propagates cancellation through its Route Handler to the operation. The six routes share `SSE_HEADERS` from `lib/sse-headers.ts`; stream lifecycle remains in each route. See `docs/fase-2d-sse.md` for the compatibility matrix and preserved limitations. `tests/sse-client.test.mjs` characterizes actual submit functions through AST extraction; `tests/sse-server.test.mjs` covers route transport with mocked operations.
+
 ### Conversation consultation
 
 Message bubbles show the original author without customer/service labels. A question-mark button at the top right reveals the Message SID on hover or keyboard focus and copies it on click/Enter/Space. The revealed SID also supports click-to-copy and text selection; clipboard success/failure is announced accessibly.
@@ -48,7 +53,7 @@ Each result from `/conversations/fetch-by-participant` has one “Consultar Conv
 
 Consultation loading uses domain-specific skeletons for route navigation, the summary, details/participants and message filters/chat bubbles. The messages skeleton also covers the lazy component download. Skeletons expose a single screen-reader status per loading region, hide decorative placeholders and respect reduced-motion preferences. Existing tabs and the SID remain usable during API loading; errors retain their retry action.
 
-`/conversations/consult` combines details and messages behind one SID input and accessible tabs. Legacy `/conversations/fetch` and `/conversations/history` links redirect with the SID and target tab preserved. Links prefill the SID; the user submits the query. Details and messages retain separate POST endpoints; messages load only on first opening their tab. Tab changes preserve filters and loaded results; explicit refresh resets the query and reloads requested data. Filters and CSV export apply only to the loaded messages (at most the latest 1,000).
+`/conversations/consult` combines details and messages behind one SID input and accessible tabs. Legacy `/conversations/fetch` and `/conversations/history` links redirect with the SID and target tab preserved. A valid SID from a link prefills the input and starts the query automatically; manually entered SIDs require submission. Details and messages retain separate POST endpoints; messages load only on first opening their tab. Tab changes preserve filters and loaded results; explicit refresh resets the query and reloads requested data. Filters and CSV export apply only to the loaded messages (at most the latest 1,000).
 
 The Conversation SID, state and refresh action form the header of the main Details card.
 
@@ -62,6 +67,8 @@ Messages render as chronological chat bubbles: WhatsApp/SMS customer participant
 
 ### Worker feature overrides
 
+Task queries share `map-task.ts` for their response fields and the environment-independent `infer-channel.ts` for channel classification. `SearchTaskResult` composes `TaskData` with the channel field. Conversation details, Worker details and Task results share `components/json-block.tsx`; Task results supply their existing wrapping and overflow classes explicitly.
+
 `/taskrouter/update-worker-feature` enables or disables a Flex plugin by updating its `enabled` boolean in `config_overrides.features`. It accepts one to ten Workers by SID or email, resolves each identifier and fetches the current attributes before merging. Other attributes and existing plugin properties are preserved; malformed attribute structures fail without a write. Processing is sequential with SSE results and client/server cancellation checks. Cancellation stops subsequent writes but cannot undo or interrupt an update already sent to Twilio. Writes are not automatically retried, and concurrent edits from other tools can still race with the read/update operation.
 
 `/taskrouter/workers` combines Worker details, skill assignment and feature configuration in accessible tabs with one shared Workspace SID. A Worker found in Details can be sent directly to either write operation. The legacy Worker page URLs redirect to the matching tab, while their API routes remain separate so each operation keeps its own validation and streaming behavior.
@@ -73,7 +80,9 @@ All feature history sections use the shared `RecentHistory` and `RecentHistoryIt
 Two separate layers:
 
 - **StoredInput / StoredTextarea autocomplete**: per-key arrays (up to 10 items) managed by `lib/variables.ts` (`readVariables`, `addVariable`), keyed by constants in `lib/stored-keys.ts`, optionally scoped to an environment ID.
-- **Operation history**: last 5 entries per form, stored under form-specific keys like `switchboard:close-history`, read/written directly inside each form component.
+- **Operation history**: shared `readHistory<T>(key)` and `pushHistory(key, entry)` in `lib/operation-history.ts` preserve existing form-specific keys and JSON formats. Prepending keeps duplicates and limits writes to `MAX_HISTORY` (5); reading does not trim or validate existing entries. Forms retain payload construction, state hydration and clear actions. The specialized Conversation consultation history hook remains separate for validation, deduplication and legacy fallback.
+
+Autocomplete persistence uses `lib/variables.ts`. `addVariable` and `deleteVariable` accept an optional fourth argument containing the component's current values; StoredInput and StoredTextarea pass that snapshot to preserve local-state updates without rereading storage. Existing callers omit it and continue reading storage before writes. StoredInput retains optional environment scoping, StoredTextarea remains global, and EnvironmentCard reads the explicit `baseKey:environmentId` key. No storage-event synchronization is introduced. Invalid JSON and read failures return an empty array; valid JSON with an unexpected shape retains the previous unchecked behavior. Write failures remain silent.
 
 `ContactInput` is a specialised `StoredInput` for phone numbers that also reads named contacts from `lib/contacts.ts`.
 
@@ -100,7 +109,7 @@ Page headers contain a concise title and subtitle. Longer introductory descripti
 5. Add strings to `lib/strings.ts`
 6. If the feature introduces new autocomplete fields, add keys to `lib/stored-keys.ts` (`STORED_KEYS` + `STORED_KEY_LABELS`) and add the group to `VARIABLE_GROUPS` in `lib/variables.ts` so it appears in the Variables settings page.
 
-The `available` boolean on each `Tool` in `tools.ts` controls whether the item renders normally or as a "coming soon" card on the domain landing page.
+`lib/tool.ts` defines the shared `Tool` contract for the four domain catalogs and the home/settings lists. Those lists remain separate from each other and from sidebar navigation. `components/tool-card.tsx` renders their identical card markup as a Server Component: available tools link to their href; unavailable tools retain the noninteractive card and "coming soon" badge. Page introductions and grid layouts remain with each page.
 
 ### Key shared components
 
@@ -108,6 +117,7 @@ The `available` boolean on each `Tool` in `tools.ts` controls whether the item r
 | ---------------------------------------- | ------------------------------------------------ |
 | `StoredInput` / `StoredTextarea`         | Text inputs with localStorage autocomplete       |
 | `ContactInput`                           | Phone input backed by saved contacts             |
+| `ToolCard`                               | Tool links and unavailable-tool presentation     |
 | `LogOutput` + `createLogEntry`           | Terminal-style SSE log panel                     |
 | `WarningBadge`                           | Badge shown on destructive/write-operation forms |
 | `EnvironmentProvider` / `useEnvironment` | Active Twilio credential context                 |

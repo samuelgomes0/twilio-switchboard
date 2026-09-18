@@ -15,12 +15,6 @@ function DropdownMenuTrigger(
   return <DropdownMenu.Trigger data-slot="dropdown-menu-trigger" {...props} />
 }
 
-function DropdownMenuPortal(
-  props: React.ComponentProps<typeof DropdownMenu.Portal>
-) {
-  return <DropdownMenu.Portal {...props} />
-}
-
 function DropdownMenuContent({
   className,
   sideOffset = 4,
@@ -42,28 +36,6 @@ function DropdownMenuContent({
         {...props}
       />
     </DropdownMenu.Portal>
-  )
-}
-
-function DropdownMenuGroup(
-  props: React.ComponentProps<typeof DropdownMenu.Group>
-) {
-  return <DropdownMenu.Group data-slot="dropdown-menu-group" {...props} />
-}
-
-function DropdownMenuLabel({
-  className,
-  ...props
-}: React.ComponentProps<typeof DropdownMenu.Label>) {
-  return (
-    <DropdownMenu.Label
-      data-slot="dropdown-menu-label"
-      className={cn(
-        "px-2 py-1.5 text-xs font-semibold text-muted-foreground",
-        className
-      )}
-      {...props}
-    />
   )
 }
 
@@ -101,10 +73,7 @@ function DropdownMenuItem({
 export {
   DropdownMenuRoot,
   DropdownMenuTrigger,
-  DropdownMenuPortal,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuItem,
 }

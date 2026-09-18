@@ -1,3 +1,4 @@
+import { SSE_HEADERS } from "@/lib/sse-headers"
 import { strings } from "@/lib/strings"
 import { assignWorkersToQueue } from "@/features/taskrouter/lib/assign-workers"
 import { sseEvent } from "@/features/conversations/lib/close"
@@ -118,11 +119,6 @@ export async function POST(req: NextRequest) {
   })
 
   return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
+    headers: SSE_HEADERS,
   })
 }

@@ -49,7 +49,7 @@ function extractConversationSid(attributes: TaskAttributes): string | null {
   return null
 }
 
-type TaskOutcome = "success" | "skipped" | "error"
+type TaskOutcome = "success" | "error"
 
 async function processInBatches<T, R>(
   items: T[],
@@ -73,8 +73,6 @@ async function processSingleTask(
 ): Promise<TaskOutcome> {
   const { workspaceSid, taskQueueName, message } = args
   const status = task.assignmentStatus ?? ""
-
-  if (!CANCEL_STATUSES.has(status)) return "skipped"
 
   const attributes = parseTaskAttributes(task.attributes)
   const rawSid = extractConversationSid(attributes)
@@ -260,12 +258,11 @@ export async function cancelQueueTasks(
 
   let totalSuccess = 0
   let totalErrors = 0
-  let totalSkipped = ignoredCount + otherCount
+  const totalSkipped = ignoredCount + otherCount
 
   for (const result of results) {
     if (result.status === "fulfilled") {
       if (result.value === "success") totalSuccess++
-      else if (result.value === "skipped") totalSkipped++
       else totalErrors++
     } else {
       totalErrors++

@@ -1,24 +1,6 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
-import { createRequire } from "node:module"
-import path from "node:path"
 import test from "node:test"
-import ts from "typescript"
-
-const require = createRequire(import.meta.url)
-function load(relative, overrides = {}) {
-  const source = ts.transpileModule(readFileSync(path.resolve(relative), "utf8"), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText
-  const exports = {}
-  const localRequire = id => {
-    if (id in overrides) return overrides[id]
-    if (id.startsWith("@/")) return load(`${id.slice(2)}.ts`, overrides)
-    return require(id)
-  }
-  new Function("require", "exports", source)(localRequire, exports)
-  return exports
-}
+import { load } from "./typescript-loader.mjs"
 
 const sid = `CH${"0".repeat(32)}`
 const credentials = { accountSid: `AC${"1".repeat(32)}`, authToken: "2".repeat(32) }

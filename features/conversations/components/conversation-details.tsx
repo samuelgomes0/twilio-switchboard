@@ -1,3 +1,4 @@
+import { JsonBlock } from "@/components/json-block"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -5,36 +6,6 @@ import { Separator } from "@/components/ui/separator"
 import type { ConversationData } from "@/features/conversations/types"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
 import { strings } from "@/lib/strings"
-
-function tryParseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function JsonBlock({ value }: { value: string }) {
-  const parsed = tryParseJson(value)
-  const isEmpty =
-    parsed === null ||
-    parsed === "" ||
-    (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
-
-  if (isEmpty) {
-    return (
-      <span className="text-xs text-muted-foreground italic">
-        {strings.common.empty}
-      </span>
-    )
-  }
-
-  return (
-    <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
-      {JSON.stringify(parsed, null, 2)}
-    </pre>
-  )
-}
 
 export function ConversationDetails({
   conversation,

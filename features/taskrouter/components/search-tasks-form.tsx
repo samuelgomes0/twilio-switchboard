@@ -1,4 +1,6 @@
 "use client"
+import { JsonBlock } from "@/components/json-block"
+import { inferChannel } from "@/features/taskrouter/lib/infer-channel"
 
 import * as React from "react"
 import Link from "next/link"
@@ -33,6 +35,7 @@ import { useEnvironment } from "@/features/environments/context"
 import type { SearchTaskResult, TaskData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
@@ -64,28 +67,6 @@ type HistoryEntry = SidHistoryEntry | PhoneHistoryEntry
 const HISTORY_KEY = "switchboard:search-tasks-history"
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 const TASK_SID_RE = /^WT[a-fA-F0-9]{32}$/i
-
-// ─── localStorage helpers ────────────────────────────────────────────────────
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 // ─── Formatting ──────────────────────────────────────────────────────────────
 
@@ -122,54 +103,11 @@ function formatAge(sec: number): string {
 
 // ─── Channel inference ───────────────────────────────────────────────────────
 
-function inferChannel(
-  attributes: string,
-  taskChannel: string | null
-): "whatsapp" | "voice" | "unknown" {
-  try {
-    const attrs = JSON.parse(attributes) as Record<string, unknown>
-    const from = typeof attrs.from === "string" ? attrs.from : ""
-    if (from.startsWith("whatsapp:")) return "whatsapp"
-    if (from.startsWith("+") || /^\d+$/.test(from)) return "voice"
-  } catch {}
-  if (taskChannel === "voice") return "voice"
-  return "unknown"
-}
-
 function taskDataToResult(task: TaskData): SearchTaskResult {
   return {
     ...task,
     channel: inferChannel(task.attributes, task.taskChannelUniqueName),
   }
-}
-
-// ─── JSON block ──────────────────────────────────────────────────────────────
-
-function tryParseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function JsonBlock({ value }: { value: string }) {
-  const parsed = tryParseJson(value)
-  const isEmpty =
-    parsed === null ||
-    parsed === "" ||
-    (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
-  if (isEmpty)
-    return (
-      <span className="text-xs text-muted-foreground italic">
-        {strings.common.empty}
-      </span>
-    )
-  return (
-    <pre className="max-h-64 overflow-x-auto overflow-y-auto rounded-md bg-muted/60 px-3 py-2 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
-      {JSON.stringify(parsed, null, 2)}
-    </pre>
-  )
 }
 
 // ─── Badge variants ──────────────────────────────────────────────────────────
@@ -306,7 +244,10 @@ function TaskCard({ task }: { task: SearchTaskResult }) {
           <p className="mb-1.5 text-xs text-muted-foreground">
             {strings.taskrouter.searchTasks.result.attributes}
           </p>
-          <JsonBlock value={task.attributes} />
+          <JsonBlock
+            value={task.attributes}
+            className="max-h-64 overflow-x-auto overflow-y-auto rounded-md bg-muted/60 px-3 py-2 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap"
+          />
         </div>
       </CardContent>
     </Card>
@@ -331,7 +272,7 @@ export function SearchTasksForm() {
   const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   function handleModeChange(newMode: SearchMode) {
@@ -396,7 +337,7 @@ export function SearchTasksForm() {
           assignmentStatus: result.assignmentStatus,
           taskQueueFriendlyName: result.taskQueueFriendlyName,
         }
-        pushHistory(entry)
+        pushHistory(HISTORY_KEY, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       } else {
         const res = await fetch("/api/taskrouter/search-tasks", {
@@ -426,7 +367,7 @@ export function SearchTasksForm() {
           phone: json.phone,
           count: json.tasks.length,
         }
-        pushHistory(entry)
+        pushHistory(HISTORY_KEY, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       }
     } catch {

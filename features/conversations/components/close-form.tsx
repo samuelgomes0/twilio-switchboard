@@ -35,7 +35,9 @@ import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
+import { consumeSseStream } from "@/lib/sse-reader"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -59,26 +61,6 @@ interface Progress {
 const HISTORY_KEY = "switchboard:close-history"
 const PHONE_RE = /^\d+$/
 
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
-
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -101,7 +83,7 @@ export function CloseForm() {
   const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const participants = phones.map((p) => p.trim()).filter(Boolean)
@@ -175,53 +157,38 @@ export function CloseForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalClosed?: number
-              totalErrors?: number
-              progress?: Progress
-            }
-
-            if (payload.progress) setProgress(payload.progress)
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const closed = payload.totalClosed ?? 0
-              const errors = payload.totalErrors ?? 0
-              setSummary({ totalClosed: closed, totalErrors: errors })
-              setStatus("done")
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                total: participants.length,
-                closed,
-                errors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
+      await consumeSseStream(reader, (dataLine) => {
+        try {
+          const payload = JSON.parse(dataLine.slice(5).trim()) as {
+            level: LogEntry["level"]
+            message: string
+            done?: boolean
+            totalClosed?: number
+            totalErrors?: number
+            progress?: Progress
           }
+
+          if (payload.progress) setProgress(payload.progress)
+          addLog(payload.level, payload.message)
+
+          if (payload.done) {
+            const closed = payload.totalClosed ?? 0
+            const errors = payload.totalErrors ?? 0
+            setSummary({ totalClosed: closed, totalErrors: errors })
+            setStatus("done")
+            const entry: HistoryEntry = {
+              ts: Date.now(),
+              total: participants.length,
+              closed,
+              errors,
+            }
+            pushHistory(HISTORY_KEY, entry)
+            setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+          }
+        } catch {
+          // Invalid events are ignored because the stream can contain partial data.
         }
-      }
+      })
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {

@@ -78,8 +78,6 @@ export const strings = {
     save: "Salvar",
     comingSoon: "Em breve",
     logOfOperations: "Log de Operações",
-    lastQueries: "Últimas consultas",
-    lastOperations: "Últimas operações",
     recentHistory: {
       title: "Últimas consultas neste ambiente",
       reuse: "Executar novamente esta consulta",
@@ -130,75 +128,44 @@ export const strings = {
       numbers: {
         listNumbers: {
           label: "Classificar Senders",
-          description: "Identifica o serviço usado por cada número WhatsApp",
         },
       },
       conversations: {
-        fetch: {
-          label: "Detalhes por SID",
-          description: "Consulta dados e participantes de uma Conversation",
-        },
         fetchByParticipant: {
           label: "Conversations por Número",
-          description: "Localiza Conversations vinculadas a um número",
-        },
-        history: {
-          label: "Mensagens por SID",
-          description: "Pesquisa e exporta mensagens de uma Conversation",
         },
         close: {
           label: "Encerrar por Número",
-          description: "Encerra Conversations ativas vinculadas a números",
         },
       },
       flex: {
         createAddressConfig: {
           label: "Configurar Endereço",
-          description: "Cria um canal com integração Flex e Studio ou webhook",
         },
       },
       taskrouter: {
-        assignWorkers: {
-          label: "Adicionar Skill a Workers",
-          description: "Atualiza os atributos de vários workers",
-        },
         createWorkflow: {
           label: "Criar Workflow por CSV",
-          description: "Importa filtros e filas de um arquivo CSV",
-        },
-        fetchTask: {
-          label: "Buscar Task",
-          description: "Retorna detalhes de uma task por SID",
-        },
-        fetchWorker: {
-          label: "Detalhes do Worker",
-          description: "Consulta um worker por SID, e-mail ou nome",
         },
         cancelQueueTasks: {
           label: "Encerrar Tasks por Fila",
-          description: "Encerra tasks abertas e suas Conversations",
         },
         searchTasks: {
           label: "Consultar Task",
-          description: "Consulta uma Task ou localiza atendimentos do contato",
         },
         addParticularFilter: {
           label: "Adicionar Filtro a Workflows",
-          description: "Direciona uma regra de negócio para Task Queues",
         },
       },
       config: {
         manageEnvironments: {
           label: "Ambientes Twilio",
-          description: "Cadastre credenciais separadas por ambiente",
         },
         manageContacts: {
           label: "Contatos Salvos",
-          description: "Associe nomes a números usados nos formulários",
         },
         manageVariables: {
           label: "Valores de Autocomplete",
-          description: "Gerencie valores reutilizáveis nos formulários",
         },
       },
     },
@@ -286,22 +253,12 @@ export const strings = {
         "Não foi possível consultar a Conversation. Verifique o SID e as credenciais e tente novamente.",
     },
     fetch: {
-      breadcrumb: "Detalhes por SID",
-      title: "Consultar Conversation por SID",
-      subtitle: "Consulte os detalhes e participantes de uma Conversation.",
       metadata: {
         title: "Detalhes da Conversation por SID",
         description:
           "Consulte dados gerais, atributos e participantes de uma Conversation pelo SID.",
       },
-      sidLabel: "Conversation SID",
-      sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
-      sidInvalid: "Deve começar com CH e ter 34 caracteres",
-      confirmTitle: "Buscar conversa?",
-      confirmDescription: (sid: string, env: string) =>
-        `Buscar dados da conversa ${sid} no ambiente ${env}?`,
       result: {
-        noFriendlyName: "Sem nome amigável",
         dateCreated: "Criada em",
         dateUpdated: "Atualizada em",
         attributes: "Atributos",
@@ -313,17 +270,9 @@ export const strings = {
         added: "Adicionado:",
         updated: "Atualizado:",
         messagingServiceSid: "Messaging Service SID",
-        viewHistory: "Ver histórico",
-      },
-      history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
       },
     },
     history: {
-      breadcrumb: "Mensagens por SID",
-      title: "Consultar Mensagens por SID",
-      subtitle: "Pesquise, filtre e exporte mensagens de uma Conversation.",
       sidLabel: "Conversation SID",
       sidPlaceholder: "CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
@@ -354,17 +303,8 @@ export const strings = {
           "Anexos",
         ],
       },
-      recent: {
-        title: "Últimas consultas",
-        clear: "Limpar",
-        messages: (count: number) => `${count} mensagem(ns)`,
-        reuse: (sid: string) => `Usar novamente o Conversation SID ${sid}`,
-      },
       result: {
-        noFriendlyName: "Sem nome amigável",
-        viewDetails: "Ver detalhes",
         messagesHeading: "Mensagens",
-        messageCount: (count: number) => `${count} mensagem(ns)`,
         filteredMessageCount: (filtered: number, total: number) =>
           `${filtered} de ${total} mensagem(ns)`,
         empty: "Nenhuma mensagem encontrada nesta Conversation.",
@@ -408,7 +348,6 @@ export const strings = {
       },
       phoneLabel: "Números de telefone",
       phoneLabelHint: "(DDD + número, sem dígito 9)",
-      detected: (n: number) => `${n} número(s) detectado(s)`,
       maxExceeded: (max: number) => `; máximo de ${max} por vez`,
       addPhone: "Adicionar número",
       removePhone: "Remover número",
@@ -423,8 +362,6 @@ export const strings = {
         errors: (n: number) => `${n} erro(s)`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (total: number, closed: number) =>
           `${total} número(s) · ${closed} encerrada(s)`,
         itemErrors: (n: number) => ` — ${n} erro(s)`,
@@ -467,8 +404,6 @@ export const strings = {
         consultConversation: "Consultar Conversation",
       },
       history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
         item: (n: number) => `${n} conversa(s)`,
       },
     },
@@ -563,10 +498,7 @@ export const strings = {
         `Criar configuração para o endereço ${address} no ambiente ${env}?`,
       confirmAction: "Sim, criar",
       result: {
-        sid: "SID da configuração",
         address: "Endereço",
-        type: "Tipo",
-        friendlyName: "Nome amigável",
         noFriendlyName: "Sem nome amigável",
         addressCountry: "País",
         noCountry: "Não informado",
@@ -575,10 +507,6 @@ export const strings = {
         autoCreation: "Integração Flex",
         autoCreationEnabled: "Habilitada",
         autoCreationDisabled: "Desabilitada",
-      },
-      history: {
-        title: "Últimas criações",
-        clear: "Limpar",
       },
     },
   },
@@ -688,11 +616,6 @@ export const strings = {
       breadcrumb: "Adicionar Skill a Workers",
       title: "Adicionar Skill a Workers",
       subtitle: "Adicione uma skill a vários Workers por e-mail ou SID.",
-      metadata: {
-        title: "Adicionar Skill a Workers",
-        description:
-          "Adicione uma skill aos atributos de vários Workers do TaskRouter por e-mail ou SID.",
-      },
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
@@ -713,8 +636,6 @@ export const strings = {
         errors: (n: number) => `${n} erros`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (n: number) => `${n} atualizado(s)`,
         itemSkipped: (n: number) => ` — ${n} ignorado(s)`,
         itemErrors: (n: number) => ` — ${n} erro(s)`,
@@ -767,36 +688,7 @@ export const strings = {
         filters: (n: number) => `${n} filtro(s)`,
       },
       history: {
-        title: "Últimas criações",
-        clear: "Limpar",
         itemFilters: (n: number) => `${n} filtro(s)`,
-      },
-    },
-    fetchTask: {
-      breadcrumb: "Buscar Task",
-      title: "Consultar Task por SID",
-      subtitle: "Consulte os detalhes e o estado atual de uma Task.",
-      workspaceSidLabel: "Workspace SID",
-      taskSidLabel: "Task SID",
-      taskSidHint: "Formato: WT seguido de 32 caracteres hexadecimais",
-      taskSidInvalid: "Deve começar com WT e ter 34 caracteres",
-      confirmTitle: "Buscar task?",
-      confirmDescription: (taskSid: string, env: string) =>
-        `Buscar dados da task ${taskSid} no ambiente ${env}?`,
-      result: {
-        priority: "Prioridade",
-        age: "Idade",
-        channel: "Canal",
-        workflow: "Workflow",
-        queue: "Fila",
-        reason: "Motivo",
-        dateCreated: "Criada em",
-        dateUpdated: "Atualizada em",
-        attributes: "Atributos",
-      },
-      history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
       },
     },
     fetchWorker: {
@@ -804,11 +696,6 @@ export const strings = {
       title: "Detalhes do Worker",
       subtitle:
         "Consulte atividade, skills e atributos por SID, e-mail ou nome.",
-      metadata: {
-        title: "Detalhes do Worker",
-        description:
-          "Consulte atividade, skills e atributos de um Worker do TaskRouter por SID, e-mail ou nome.",
-      },
       workspaceSidLabel: "Workspace SID",
       identifierLabel: "Worker SID ou e-mail",
       identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
@@ -822,10 +709,6 @@ export const strings = {
         dateUpdated: "Atualizado em",
         dateStatusChanged: "Atividade alterada em",
         fullAttributes: "Atributos completos",
-      },
-      history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
       },
     },
     searchTasks: {
@@ -868,10 +751,8 @@ export const strings = {
       result: {
         count: (n: number) => `${n} task(s) encontrada(s)`,
         none: "Nenhuma task encontrada para esse número.",
-        channel: "Canal",
         workflow: "Workflow",
         queue: "Fila",
-        status: "Status",
         priority: "Prioridade",
         age: "Idade",
         dateCreated: "Criada em",
@@ -883,8 +764,6 @@ export const strings = {
         sidCopied: "Copiado!",
       },
       history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
         itemPhone: (n: number) => `${n} task(s)`,
       },
     },
@@ -946,8 +825,6 @@ export const strings = {
         errors: (n: number) => `${n} erro(s)`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (n: number) => `${n} encerrada(s)`,
         itemSkipped: (n: number) => ` — ${n} ignorada(s)`,
         itemErrors: (n: number) => ` — ${n} erro(s)`,
@@ -1003,8 +880,6 @@ export const strings = {
         errors: (n: number) => `${n} erro(s)`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (filterName: string, n: number) =>
           `${filterName} · ${n} adicionado(s)`,
         itemSkipped: (n: number) => ` — ${n} já existia(m)`,

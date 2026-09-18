@@ -1,6 +1,6 @@
 import { strings } from "@/lib/strings"
 
-export type ErrorKind =
+type ErrorKind =
   "validation" | "auth" | "not_found" | "conflict" | "external" | "internal"
 
 const STATUS_MAP: Record<ErrorKind, number> = {

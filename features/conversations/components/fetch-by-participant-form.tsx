@@ -33,6 +33,7 @@ import type {
 } from "@/features/conversations/lib/fetch-by-participant"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 
 type StateFilter = "all" | "active" | "inactive" | "closed"
@@ -46,26 +47,6 @@ interface HistoryEntry {
 
 const HISTORY_KEY = "switchboard:fetch-by-participant-history"
 const PHONE_RE = /^\d+$/
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -132,7 +113,7 @@ export function FetchByParticipantForm() {
   const [loadingMore, setLoadingMore] = React.useState(false)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const canSubmit = phone.trim().length > 0 && !loading && !!activeEnvironment
@@ -174,7 +155,7 @@ export function FetchByParticipantForm() {
         stateFilter: requestedStateFilter,
         count: json.conversations.length,
       }
-      pushHistory(entry)
+      pushHistory(HISTORY_KEY, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch {
       setError(strings.common.networkError)

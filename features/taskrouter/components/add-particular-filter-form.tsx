@@ -38,7 +38,9 @@ import { useEnvironment } from "@/features/environments/context"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
+import { consumeSseStream } from "@/lib/sse-reader"
 import { cn } from "@/lib/utils"
 
 type Status = "idle" | "running" | "done" | "error"
@@ -77,26 +79,6 @@ const WQ_SID_RE = /^WQ[a-fA-F0-9]{32}$/i
 const EMPTY_ROW: EntryRow = { workflowSid: "", taskQueueSid: "" }
 const EMPTY_ERROR: EntryError = { workflowSid: null, taskQueueSid: null }
 
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
-
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -129,7 +111,7 @@ export function AddParticularFilterForm() {
   const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const filledRows = rows.filter(
@@ -280,58 +262,43 @@ export function AddParticularFilterForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalAdded?: number
-              totalSkipped?: number
-              totalErrors?: number
-            }
-
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const totalAdded = payload.totalAdded ?? 0
-              const totalSkipped = payload.totalSkipped ?? 0
-              const totalErrors = payload.totalErrors ?? 0
-              setSummary({ totalAdded, totalSkipped, totalErrors })
-              setStatus(
-                totalAdded === 0 && totalSkipped === 0 ? "error" : "done"
-              )
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                workspaceSid: workspaceSid.trim(),
-                filterName: filterName.trim(),
-                totalEntries: pendingEntries.length,
-                totalAdded,
-                totalSkipped,
-                totalErrors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
+      await consumeSseStream(reader, (dataLine) => {
+        try {
+          const payload = JSON.parse(dataLine.slice(5).trim()) as {
+            level: LogEntry["level"]
+            message: string
+            done?: boolean
+            totalAdded?: number
+            totalSkipped?: number
+            totalErrors?: number
           }
+
+          addLog(payload.level, payload.message)
+
+          if (payload.done) {
+            const totalAdded = payload.totalAdded ?? 0
+            const totalSkipped = payload.totalSkipped ?? 0
+            const totalErrors = payload.totalErrors ?? 0
+            setSummary({ totalAdded, totalSkipped, totalErrors })
+            setStatus(
+              totalAdded === 0 && totalSkipped === 0 ? "error" : "done"
+            )
+            const entry: HistoryEntry = {
+              ts: Date.now(),
+              workspaceSid: workspaceSid.trim(),
+              filterName: filterName.trim(),
+              totalEntries: pendingEntries.length,
+              totalAdded,
+              totalSkipped,
+              totalErrors,
+            }
+            pushHistory(HISTORY_KEY, entry)
+            setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+          }
+        } catch {
+          // Invalid events are ignored because the stream can contain partial data.
         }
-      }
+      })
 
       setStatus((prev) => (prev !== "done" && prev !== "error" ? "done" : prev))
     } catch (err) {

@@ -49,7 +49,7 @@ export async function withRetry<T>(
   return null
 }
 
-export function formatPhoneNumber(raw: string): string {
+function formatPhoneNumber(raw: string): string {
   const cleaned = raw.trim().replace(/\s+/g, "")
   return `whatsapp:+55${cleaned}`
 }

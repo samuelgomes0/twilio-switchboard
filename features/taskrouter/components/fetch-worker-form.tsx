@@ -1,4 +1,5 @@
 "use client"
+import { JsonBlock } from "@/components/json-block"
 
 import * as React from "react"
 import Link from "next/link"
@@ -31,6 +32,7 @@ import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
 
@@ -47,26 +49,6 @@ const HISTORY_KEY = "switchboard:fetch-worker-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const WORKER_IDS_KEY = STORED_KEYS.workerIdentifiers
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -88,33 +70,6 @@ function formatDate(d: Date | null | string): string {
     minute: "2-digit",
     second: "2-digit",
   })
-}
-
-function tryParseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function JsonBlock({ value }: { value: string }) {
-  const parsed = tryParseJson(value)
-  const isEmpty =
-    parsed === null ||
-    parsed === "" ||
-    (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
-  if (isEmpty)
-    return (
-      <span className="text-xs text-muted-foreground italic">
-        {strings.common.empty}
-      </span>
-    )
-  return (
-    <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
-      {JSON.stringify(parsed, null, 2)}
-    </pre>
-  )
 }
 
 type ActivityVariant = "success" | "secondary" | "outline"
@@ -154,7 +109,7 @@ export function FetchWorkerForm() {
   const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const canSubmit =
@@ -203,7 +158,7 @@ export function FetchWorkerForm() {
         friendlyName: json.worker.friendlyName,
         activityName: json.worker.activityName,
       }
-      pushHistory(entry)
+      pushHistory(HISTORY_KEY, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch {
       setError(strings.common.networkError)

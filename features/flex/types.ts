@@ -10,7 +10,7 @@ export type AddressConfigType =
 
 export type AutoCreationType = "webhook" | "studio" | "default"
 
-export interface AutoCreationConfig {
+interface AutoCreationConfig {
   enabled: boolean
   type?: string
   conversationServiceSid?: string

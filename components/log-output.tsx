@@ -4,7 +4,7 @@ import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import * as React from "react"
 
-export type LogLevel = "info" | "success" | "warning" | "error"
+type LogLevel = "info" | "success" | "warning" | "error"
 
 export interface LogEntry {
   id: string

@@ -37,7 +37,9 @@ import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
+import { consumeSseStream } from "@/lib/sse-reader"
 import { useWorkerManagement } from "./worker-management-context"
 
 type Status = "idle" | "running" | "done" | "error"
@@ -66,26 +68,6 @@ const HISTORY_KEY = "switchboard:assign-workers-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const SKILLS_KEY = STORED_KEYS.skillNames
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -119,7 +101,7 @@ export function AssignWorkersForm() {
   const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const emails = [
@@ -198,61 +180,46 @@ export function AssignWorkersForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalUpdated?: number
-              totalSkipped?: number
-              totalErrors?: number
-              progress?: Progress
-            }
-
-            if (payload.progress) setProgress(payload.progress)
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const updated = payload.totalUpdated ?? 0
-              const skipped = payload.totalSkipped ?? 0
-              const errors = payload.totalErrors ?? 0
-              setSummary({
-                totalUpdated: updated,
-                totalSkipped: skipped,
-                totalErrors: errors,
-              })
-              setStatus("done")
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                workspaceSid: workspaceSid.trim(),
-                skill: skill.trim(),
-                updated,
-                skipped,
-                errors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
+      await consumeSseStream(reader, (dataLine) => {
+        try {
+          const payload = JSON.parse(dataLine.slice(5).trim()) as {
+            level: LogEntry["level"]
+            message: string
+            done?: boolean
+            totalUpdated?: number
+            totalSkipped?: number
+            totalErrors?: number
+            progress?: Progress
           }
+
+          if (payload.progress) setProgress(payload.progress)
+          addLog(payload.level, payload.message)
+
+          if (payload.done) {
+            const updated = payload.totalUpdated ?? 0
+            const skipped = payload.totalSkipped ?? 0
+            const errors = payload.totalErrors ?? 0
+            setSummary({
+              totalUpdated: updated,
+              totalSkipped: skipped,
+              totalErrors: errors,
+            })
+            setStatus("done")
+            const entry: HistoryEntry = {
+              ts: Date.now(),
+              workspaceSid: workspaceSid.trim(),
+              skill: skill.trim(),
+              updated,
+              skipped,
+              errors,
+            }
+            pushHistory(HISTORY_KEY, entry)
+            setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+          }
+        } catch {
+          // Invalid events are ignored because the stream can contain partial data.
         }
-      }
+      })
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {

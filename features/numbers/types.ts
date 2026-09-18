@@ -6,7 +6,3 @@ export interface NumberRecord {
   friendlyName: string
   service: PhoneNumberService
 }
-
-export interface ListNumbersResponse {
-  numbers: NumberRecord[]
-}

@@ -6,6 +6,7 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { type TwilioEnvironment } from "@/features/environments/storage"
 import { STORED_KEY_LABELS, STORED_KEYS } from "@/lib/stored-keys"
+import { readVariables } from "@/lib/variables"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import { MaskedToken } from "@/features/environments/components/masked-token"
@@ -17,16 +18,6 @@ const SCOPED_FIELDS: { key: StoredKeyName; label: string }[] = (
 )
   .filter((k) => k !== "closeMessages")
   .map((k) => ({ key: k, label: STORED_KEY_LABELS[k] }))
-
-function readScoped(baseKey: string, envId: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(`${baseKey}:${envId}`)
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
 
 function truncate(value: string, max = 34): string {
   return value.length > max ? value.slice(0, max) + "…" : value
@@ -52,7 +43,7 @@ export function EnvironmentCard({
   React.useEffect(() => {
     const groups = SCOPED_FIELDS.map(({ key, label }) => ({
       label,
-      values: readScoped(STORED_KEYS[key], env.id),
+      values: readVariables(`${STORED_KEYS[key]}:${env.id}`),
     })).filter((g) => g.values.length > 0)
 
     setSavedValues(groups)

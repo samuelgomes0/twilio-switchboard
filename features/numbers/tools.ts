@@ -1,15 +1,7 @@
 import { Hash } from "lucide-react"
-import { ElementType } from "react"
 
 import { strings } from "@/lib/strings"
-
-interface Tool {
-  label: string
-  description: string
-  href: string
-  icon: ElementType
-  available: boolean
-}
+import type { Tool } from "@/lib/tool"
 
 export const numbersTools: Tool[] = [
   {

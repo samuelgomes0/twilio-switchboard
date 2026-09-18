@@ -24,7 +24,7 @@ Read this document **in full** before modifying any file.
 
 - **Clarity over abstraction**: readable code is preferable to "clever" code.
 - **Single responsibility**: each module, component, and function does one thing.
-- **Secure by default**: credentials never leave the browser; the server receives them via POST and discards them after the request.
+- **Secure by default**: browser-managed credentials are persisted only in the browser; the server receives them via POST to call Twilio and does not persist them.
 - **UI language**: every user-visible string is in **pt-BR**.
 
 ---
@@ -86,7 +86,7 @@ Each domain registers its navigation items in **two mandatory places**:
 1. `components/sidebar-nav.tsx` — `NavItem[]` array used by the sidebar
 2. `features/<domain>/tools.ts` — `Tool[]` array used by the domain landing page
 
-The `available: boolean` field on `Tool` controls whether the item renders normally or as a "coming soon" card.
+The shared `Tool` contract lives in `lib/tool.ts`. `ToolCard` renders the catalogs on landing pages; its `available: boolean` field controls whether an item is a link or a "coming soon" card. Keep domain catalogs and sidebar navigation separate.
 
 ---
 
@@ -152,6 +152,7 @@ for (const p of participants) {}
 - **No prop drilling beyond 2 levels.** Use Context or composition.
 - **Destructive operations require `WarningBadge`.** Any form that modifies Twilio data must render `<WarningBadge />`.
 - **Cancellation is mandatory in SSE forms.** Forms that consume SSE must hold an `AbortController` in a ref and expose a cancel button.
+- Existing SSE consumers share `consumeSseStream` from `lib/sse-reader.ts`, with JSON parsing, completion and reader cleanup kept local. Routes share `SSE_HEADERS` from `lib/sse-headers.ts`. Preserve each flow's documented semantics in `docs/fase-2d-sse.md`; do not infer server cancellation from a client AbortController.
 
 ### SSE form pattern
 
@@ -288,7 +289,7 @@ Two persistence patterns coexist — do not mix them:
 
 ### Operation history
 
-- Managed directly in each form component via `localStorage.getItem/setItem`.
+- Shared reading and prepending use `lib/operation-history.ts`. Forms retain their keys, entry types, payload transformations, state updates and clear actions. The specialized Conversation consultation history remains in its own hook.
 - Key format: `switchboard:<domain>-history`.
 - Limit of 5 entries (`MAX_HISTORY`).
 
@@ -328,11 +329,11 @@ Two persistence patterns coexist — do not mix them:
 
 ## 13. Testing
 
-This project has no configured test suite. Until one is set up:
+Run `npm test` for the existing Node.js suites, including focused Route Handler and business-logic scenarios with mocked Twilio calls and shared-loader regression tests; they do not replace manual UI validation. Use `tests/typescript-loader.mjs`: `createLoader(overrides)` provides a cache isolated to that instance, while `load(relative, overrides)` reloads TypeScript modules without caching. Preserve each suite's existing cache policy.
 
 - Manually validate the golden path and edge cases of every new feature before declaring the task complete.
 - For destructive operations (closing conversations, cancelling tasks, assigning workers), also validate cancellation behavior via `AbortController`.
-- When a test suite is added, follow: integration tests over Route Handlers (invalid input, missing credentials, SSE response), component tests for complex form logic.
+- When extending the suite, prioritize integration tests over Route Handlers (invalid input, missing credentials, SSE response) and component tests for complex form logic.
 
 ---
 

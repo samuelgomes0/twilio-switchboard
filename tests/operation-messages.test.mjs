@@ -1,39 +1,161 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
-import { createRequire } from "node:module"
-import path from "node:path"
 import test from "node:test"
-import ts from "typescript"
-
-const require = createRequire(import.meta.url)
-
-function createLoader(overrides = {}) {
-  const cache = new Map()
-  function load(relative) {
-    if (cache.has(relative)) return cache.get(relative)
-    const source = ts.transpileModule(
-      readFileSync(path.resolve(relative), "utf8"),
-      {
-        compilerOptions: {
-          module: ts.ModuleKind.CommonJS,
-          target: ts.ScriptTarget.ES2022,
-        },
-      }
-    ).outputText
-    const exports = {}
-    cache.set(relative, exports)
-    const localRequire = (id) => {
-      if (id in overrides) return overrides[id]
-      if (id.startsWith("@/")) return load(`${id.slice(2)}.ts`)
-      return require(id)
-    }
-    new Function("require", "exports", source)(localRequire, exports)
-    return exports
-  }
-  return load
-}
+import { createLoader } from "./typescript-loader.mjs"
 
 const privateDetail = "upstream-private-detail"
+
+function mockStorage(t, initial = {}) {
+  const descriptors = ["window", "localStorage"].map((key) =>
+    [key, Object.getOwnPropertyDescriptor(globalThis, key)]
+  )
+  const values = new Map(Object.entries(initial))
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  }
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {} })
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage })
+  t.after(() => {
+    for (const [key, descriptor] of descriptors) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor)
+      else delete globalThis[key]
+    }
+  })
+  return { values, storage }
+}
+
+test("storage readers preserve old arrays and recover from malformed JSON", (t) => {
+  const { values, storage } = mockStorage(t)
+  const load = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })
+  const { readVariables } = load("lib/variables.ts")
+  const { readHistory } = load("lib/operation-history.ts")
+  for (const read of [readVariables, readHistory]) {
+    for (const raw of ["", "{broken", "[]"]) {
+      values.set("key", raw)
+      assert.deepEqual(read("key"), [])
+    }
+    assert.deepEqual(read("missing"), [])
+    const entries = Array.from({ length: 12 }, (_, i) => `valor-${i}`)
+    values.set("key", JSON.stringify(entries))
+    assert.deepEqual(read("key"), entries)
+  }
+  storage.getItem = () => { throw new Error("denied") }
+  assert.deepEqual(readVariables("key"), [])
+  assert.deepEqual(readHistory("key"), [])
+})
+
+test("autocomplete preserves order, deduplication, limits and individual deletion", (t) => {
+  const { values } = mockStorage(t, { key: JSON.stringify(["a", "b", "a"]) })
+  const { addVariable, deleteVariable } = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })("lib/variables.ts")
+  assert.deepEqual(addVariable("key", " a "), ["a", "b"])
+  assert.deepEqual(deleteVariable("key", "a"), ["b"])
+  const special = 'ação\n"texto" 😀'
+  assert.deepEqual(addVariable("key", special), [special, "b"])
+  assert.deepEqual(JSON.parse(values.get("key")), [special, "b"])
+  values.set("key", JSON.stringify(Array.from({ length: 10 }, (_, i) => String(i))))
+  assert.deepEqual(addVariable("key", "new"), ["new", ...Array.from({ length: 9 }, (_, i) => String(i))])
+})
+
+test("autocomplete snapshots preserve stale-instance writes without rereading storage", (t) => {
+  const { values, storage } = mockStorage(t, { key: '["other-instance"]' })
+  const { addVariable, deleteVariable } = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })("lib/variables.ts")
+  storage.getItem = () => { throw new Error("must not read") }
+  assert.deepEqual(addVariable("key", "new", undefined, ["local"]), ["new", "local"])
+  assert.equal(values.get("key"), '["new","local"]')
+  assert.deepEqual(deleteVariable("key", "local", undefined, ["local", "kept"]), ["kept"])
+  assert.equal(values.get("key"), '["kept"]')
+  assert.throws(() => addVariable("key", "new", undefined, null), TypeError)
+  assert.throws(() => deleteVariable("key", "old", undefined, null), TypeError)
+})
+
+test("autocomplete keeps global and environment keys isolated", (t) => {
+  const { values } = mockStorage(t)
+  const { addVariable, readVariables } = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })("lib/variables.ts")
+  addVariable("key", "global")
+  addVariable("key", "env-a", "a")
+  addVariable("key", "env-b", "b")
+  assert.deepEqual(readVariables("key", ""), ["global"])
+  assert.deepEqual(readVariables("key", "a"), ["env-a"])
+  assert.deepEqual(readVariables("key", "b"), ["env-b"])
+  assert.equal(values.get("key"), '["global"]')
+  assert.equal(values.get("key:a"), '["env-a"]')
+  values.set("key:", '["explicit-empty-suffix"]')
+  assert.deepEqual(readVariables("key:"), ["explicit-empty-suffix"])
+})
+
+test("operation history prepends without deduplication and preserves entry payloads", (t) => {
+  const entry = { ts: 1, mode: "sid", attributes: 'ação\n"😀"', extra: null }
+  const { values } = mockStorage(t, { key: JSON.stringify([entry, 2, 3, 4, 5]), other: "[]" })
+  const { pushHistory, readHistory } = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })("lib/operation-history.ts")
+  assert.equal(pushHistory("key", entry), undefined)
+  assert.deepEqual(readHistory("key"), [entry, entry, 2, 3, 4])
+  assert.equal(values.get("other"), "[]")
+  assert.equal(values.get("key"), JSON.stringify([entry, entry, 2, 3, 4]))
+})
+
+test("storage write failures preserve return values and do not escape history writes", (t) => {
+  const { storage } = mockStorage(t, { key: '["old"]' })
+  storage.setItem = () => { throw new Error("quota") }
+  const load = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })
+  const { addVariable, deleteVariable } = load("lib/variables.ts")
+  const { pushHistory } = load("lib/operation-history.ts")
+  assert.deepEqual(addVariable("key", "new"), ["new", "old"])
+  assert.deepEqual(deleteVariable("key", "old"), [])
+  assert.doesNotThrow(() => pushHistory("key", { ts: 2 }))
+})
+
+test("readers avoid storage during SSR and tolerate unavailable browser storage", (t) => {
+  const { storage } = mockStorage(t)
+  let reads = 0
+  storage.getItem = () => { reads++; throw new Error("unavailable") }
+  delete globalThis.window
+  const load = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })
+  const { readVariables } = load("lib/variables.ts")
+  const { readHistory, pushHistory } = load("lib/operation-history.ts")
+  assert.deepEqual(readVariables("key"), [])
+  assert.deepEqual(readHistory("key"), [])
+  assert.equal(reads, 0)
+  delete globalThis.localStorage
+  assert.doesNotThrow(() => pushHistory("key", "new"))
+})
+
+test("valid JSON with unexpected shape retains legacy read and write behavior", (t) => {
+  const { values } = mockStorage(t)
+  const load = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })
+  const { readVariables } = load("lib/variables.ts")
+  const { readHistory, pushHistory } = load("lib/operation-history.ts")
+  for (const raw of ["null", "{}", "42"]) {
+    values.set("key", raw)
+    assert.deepEqual(readVariables("key"), JSON.parse(raw))
+    assert.deepEqual(readHistory("key"), JSON.parse(raw))
+    assert.doesNotThrow(() => pushHistory("key", "new"))
+    assert.equal(values.get("key"), raw)
+  }
+})
+
+test("channel classification prioritizes sender attributes over the Task channel", () => {
+  const { inferChannel } = createLoader()("features/taskrouter/lib/infer-channel.ts")
+  assert.equal(inferChannel('{"from":"whatsapp:+5511999999999"}', "voice"), "whatsapp")
+  assert.equal(inferChannel('{"from":"+5511999999999"}', "chat"), "voice")
+  assert.equal(inferChannel('{"from":"5511999999999"}', null), "voice")
+})
+
+test("channel classification tolerates malformed or missing sender attributes", () => {
+  const { inferChannel } = createLoader()("features/taskrouter/lib/infer-channel.ts")
+  for (const attributes of ["invalid", "null", "[]", "{}", '{"from":123}', '{"from":"agent@example.com"}']) {
+    assert.equal(inferChannel(attributes, "voice"), "voice")
+    assert.equal(inferChannel(attributes, "chat"), "unknown")
+    assert.equal(inferChannel(attributes, null), "unknown")
+  }
+})
+
+test("channel classification preserves exact matching without normalizing sender text", () => {
+  const { inferChannel } = createLoader()("features/taskrouter/lib/infer-channel.ts")
+  for (const from of ["WHATSAPP:+5511999999999", " +5511999999999", "5511-99999999", ""]) {
+    assert.equal(inferChannel(JSON.stringify({ from }), null), "unknown")
+  }
+})
+
 const request = (body) =>
   new Request("http://localhost", {
     method: "POST",

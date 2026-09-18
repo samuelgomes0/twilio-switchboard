@@ -3,6 +3,7 @@
 import * as React from "react"
 import { X } from "lucide-react"
 
+import { readVariables, addVariable, deleteVariable } from "@/lib/variables"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
@@ -19,24 +20,6 @@ interface StoredInputProps {
   /** Applied to the inner <input> element */
   className?: string
   id?: string
-}
-
-const MAX_SAVED = 10
-
-function readSaved(key: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
-
-function writeSaved(key: string, values: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(values))
-  } catch {}
 }
 
 export function StoredInput({
@@ -58,7 +41,7 @@ export function StoredInput({
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    setSaved(readSaved(effectiveKey))
+    setSaved(readVariables(effectiveKey))
   }, [effectiveKey])
 
   const trimmed = value.trim()
@@ -71,19 +54,11 @@ export function StoredInput({
   function saveValue(val: string) {
     const t = val.trim()
     if (!t) return
-    setSaved((prev) => {
-      const next = [t, ...prev.filter((s) => s !== t)].slice(0, MAX_SAVED)
-      writeSaved(effectiveKey, next)
-      return next
-    })
+    setSaved((prev) => addVariable(effectiveKey, t, undefined, prev))
   }
 
   function deleteValue(val: string) {
-    setSaved((prev) => {
-      const next = prev.filter((s) => s !== val)
-      writeSaved(effectiveKey, next)
-      return next
-    })
+    setSaved((prev) => deleteVariable(effectiveKey, val, undefined, prev))
   }
 
   function handleBlur(e: React.FocusEvent) {

@@ -8,12 +8,6 @@ function AlertDialogRoot(props: React.ComponentProps<typeof AlertDialog.Root>) {
   return <AlertDialog.Root data-slot="alert-dialog" {...props} />
 }
 
-function AlertDialogTrigger(
-  props: React.ComponentProps<typeof AlertDialog.Trigger>
-) {
-  return <AlertDialog.Trigger data-slot="alert-dialog-trigger" {...props} />
-}
-
 function AlertDialogPortal(
   props: React.ComponentProps<typeof AlertDialog.Portal>
 ) {
@@ -149,9 +143,6 @@ function AlertDialogAction({
 
 export {
   AlertDialogRoot,
-  AlertDialogTrigger,
-  AlertDialogPortal,
-  AlertDialogOverlay,
   AlertDialogContent,
   AlertDialogHeader,
   AlertDialogFooter,

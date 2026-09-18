@@ -45,6 +45,7 @@ import type {
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 
 const s = strings.flex.createAddressConfig
@@ -77,26 +78,6 @@ const HISTORY_KEY = "switchboard:create-address-config-history"
 
 const selectClass =
   "flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -157,7 +138,7 @@ export function CreateAddressConfigForm() {
   const [history, setHistory] = React.useState<HistoryEntry[]>([])
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const canSubmit = address.trim().length > 0 && !loading && !!activeEnvironment
@@ -211,7 +192,7 @@ export function CreateAddressConfigForm() {
         type: json.type,
         sid: json.sid,
       }
-      pushHistory(entry)
+      pushHistory(HISTORY_KEY, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch {
       setError(strings.common.networkError)

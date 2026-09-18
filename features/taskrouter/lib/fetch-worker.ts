@@ -2,15 +2,7 @@ import { getTwilioClient } from "@/lib/twilio-client"
 import type { WorkerData } from "@/features/taskrouter/types"
 import { resolveWorker } from "@/features/taskrouter/lib/resolve-worker"
 
-type TwilioWorker = Awaited<
-  ReturnType<
-    ReturnType<
-      ReturnType<
-        ReturnType<typeof getTwilioClient>["taskrouter"]["v1"]["workspaces"]
-      >["workers"]
-    >["fetch"]
-  >
->
+type TwilioWorker = NonNullable<Awaited<ReturnType<typeof resolveWorker>>>
 
 function mapWorker(w: TwilioWorker): WorkerData {
   return {
@@ -33,5 +25,5 @@ export async function fetchWorker(
   client: ReturnType<typeof getTwilioClient>
 ): Promise<{ worker: WorkerData } | null> {
   const worker = await resolveWorker(client, workspaceSid, identifier)
-  return worker ? { worker: mapWorker(worker as TwilioWorker) } : null
+  return worker ? { worker: mapWorker(worker) } : null
 }

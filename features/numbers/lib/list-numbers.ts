@@ -3,7 +3,7 @@ import type { NumberRecord } from "@/features/numbers/types"
 
 // Strips the "whatsapp:" prefix and collapses whitespace so phone numbers
 // from different API sources can be compared reliably.
-export function normalizePhone(raw: string): string {
+function normalizePhone(raw: string): string {
   return raw
     .replace(/^whatsapp:/i, "")
     .replace(/\s+/g, "")

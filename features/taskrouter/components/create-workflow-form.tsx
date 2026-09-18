@@ -35,7 +35,9 @@ import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
+import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
+import { consumeSseStream } from "@/lib/sse-reader"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -57,26 +59,6 @@ const HISTORY_KEY = "switchboard:create-workflow-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const WF_NAMES_KEY = STORED_KEYS.workflowNames
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -101,7 +83,7 @@ export function CreateWorkflowForm() {
   const abortRef = React.useRef<AbortController | null>(null)
 
   React.useEffect(() => {
-    setHistory(readHistory())
+    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
   }, [])
 
   const canSubmit =
@@ -180,62 +162,47 @@ export function CreateWorkflowForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              workflowSid?: string
-              workflowName?: string
-              totalFilters?: number
-            }
-
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              if (payload.workflowSid) {
-                const wfSid = payload.workflowSid
-                const wfName = payload.workflowName ?? workflowName.trim()
-                const totalFilters = payload.totalFilters ?? 0
-                setSummary({
-                  workflowSid: wfSid,
-                  workflowName: wfName,
-                  totalFilters,
-                })
-                setStatus("done")
-                const entry: HistoryEntry = {
-                  ts: Date.now(),
-                  workspaceSid: workspaceSid.trim(),
-                  workflowName: wfName,
-                  workflowSid: wfSid,
-                  totalFilters,
-                }
-                pushHistory(entry)
-                setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-              } else {
-                setStatus("error")
-              }
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
+      await consumeSseStream(reader, (dataLine) => {
+        try {
+          const payload = JSON.parse(dataLine.slice(5).trim()) as {
+            level: LogEntry["level"]
+            message: string
+            done?: boolean
+            workflowSid?: string
+            workflowName?: string
+            totalFilters?: number
           }
+
+          addLog(payload.level, payload.message)
+
+          if (payload.done) {
+            if (payload.workflowSid) {
+              const wfSid = payload.workflowSid
+              const wfName = payload.workflowName ?? workflowName.trim()
+              const totalFilters = payload.totalFilters ?? 0
+              setSummary({
+                workflowSid: wfSid,
+                workflowName: wfName,
+                totalFilters,
+              })
+              setStatus("done")
+              const entry: HistoryEntry = {
+                ts: Date.now(),
+                workspaceSid: workspaceSid.trim(),
+                workflowName: wfName,
+                workflowSid: wfSid,
+                totalFilters,
+              }
+              pushHistory(HISTORY_KEY, entry)
+              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+            } else {
+              setStatus("error")
+            }
+          }
+        } catch {
+          // Invalid events are ignored because the stream can contain partial data.
         }
-      }
+      })
 
       setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {

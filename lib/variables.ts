@@ -3,7 +3,7 @@ import { STORED_KEYS } from "./stored-keys"
 
 const MAX_SAVED = 10
 
-export function effectiveKey(key: string, environmentId?: string): string {
+function effectiveKey(key: string, environmentId?: string): string {
   return environmentId ? `${key}:${environmentId}` : key
 }
 
@@ -23,17 +23,21 @@ function writeVariables(key: string, values: string[]) {
   } catch {}
 }
 
+// Autocomplete fields pass their local snapshot to preserve instance-local updates.
 export function addVariable(
   key: string,
   value: string,
-  environmentId?: string
+  environmentId?: string,
+  currentValues?: string[]
 ): string[] {
   const eKey = effectiveKey(key, environmentId)
   const t = value.trim()
   if (!t) return readVariables(key, environmentId)
+  const previous =
+    currentValues === undefined ? readVariables(key, environmentId) : currentValues
   const next = [
     t,
-    ...readVariables(key, environmentId).filter((v) => v !== t),
+    ...previous.filter((v) => v !== t),
   ].slice(0, MAX_SAVED)
   writeVariables(eKey, next)
   return next
@@ -55,13 +59,17 @@ export function updateVariable(
   return next
 }
 
+// Omitting the snapshot keeps the Variables manager's read-before-write behavior.
 export function deleteVariable(
   key: string,
   value: string,
-  environmentId?: string
+  environmentId?: string,
+  currentValues?: string[]
 ): string[] {
   const eKey = effectiveKey(key, environmentId)
-  const next = readVariables(key, environmentId).filter((v) => v !== value)
+  const previous =
+    currentValues === undefined ? readVariables(key, environmentId) : currentValues
+  const next = previous.filter((v) => v !== value)
   writeVariables(eKey, next)
   return next
 }

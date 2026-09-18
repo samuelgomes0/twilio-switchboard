@@ -1,3 +1,4 @@
+import { SSE_HEADERS } from "@/lib/sse-headers"
 import { sseEvent } from "@/features/conversations/lib/close"
 import { updateWorkerFeature } from "@/features/taskrouter/lib/update-worker-feature"
 import { MAX_ITEMS } from "@/lib/constants"
@@ -93,11 +94,6 @@ export async function POST(req: Request) {
     },
   })
   return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
+    headers: SSE_HEADERS,
   })
 }

@@ -1,4 +1,4 @@
-export interface MessagingBinding {
+interface MessagingBinding {
   type?: string
   address?: string
   proxy_address?: string

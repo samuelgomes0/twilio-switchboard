@@ -33,7 +33,7 @@ bun dev            # ou npm run dev
 
 Acesse [http://localhost:3000](http://localhost:3000) e cadastre suas credenciais em **Configurações → Gerenciar Ambientes**.
 
-> As credenciais são armazenadas apenas no navegador (localStorage) e nunca enviadas para nenhum servidor externo além da própria API Twilio.
+> As credenciais cadastradas são armazenadas no navegador (localStorage) e enviadas via POST ao servidor da aplicação para realizar chamadas à API Twilio. O servidor da aplicação não persiste essas credenciais.
 
 ## Como contribuir
 

@@ -1,5 +1,6 @@
 "use client"
 
+import { readVariables, addVariable, deleteVariable } from "@/lib/variables"
 import { strings } from "@/lib/strings"
 
 import { X } from "lucide-react"
@@ -18,24 +19,6 @@ interface StoredTextareaProps {
   rows?: number
 }
 
-const MAX_SAVED = 10
-
-function readSaved(key: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
-
-function writeSaved(key: string, values: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(values))
-  } catch {}
-}
-
 export function StoredTextarea({
   storageKey,
   value,
@@ -49,7 +32,7 @@ export function StoredTextarea({
   const [saved, setSaved] = React.useState<string[]>([])
 
   React.useEffect(() => {
-    setSaved(readSaved(storageKey))
+    setSaved(readVariables(storageKey))
   }, [storageKey])
 
   const trimmed = value.trim()
@@ -59,19 +42,11 @@ export function StoredTextarea({
   function saveValue(val: string) {
     const t = val.trim()
     if (!t) return
-    setSaved((prev) => {
-      const next = [t, ...prev.filter((s) => s !== t)].slice(0, MAX_SAVED)
-      writeSaved(storageKey, next)
-      return next
-    })
+    setSaved((prev) => addVariable(storageKey, t, undefined, prev))
   }
 
   function deleteValue(val: string) {
-    setSaved((prev) => {
-      const next = prev.filter((s) => s !== val)
-      writeSaved(storageKey, next)
-      return next
-    })
+    setSaved((prev) => deleteVariable(storageKey, val, undefined, prev))
   }
 
   return (
