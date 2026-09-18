@@ -209,7 +209,7 @@ export function ListNumbersForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/numbers"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.numbers}
         </Link>
@@ -240,7 +240,7 @@ export function ListNumbersForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -308,10 +308,11 @@ export function ListNumbersForm() {
             <div className="flex gap-1.5">
               {SERVICE_FILTER_OPTIONS.map((opt) => (
                 <button
+                  aria-pressed={serviceFilter === opt.value}
                   key={opt.value}
                   type="button"
                   onClick={() => setServiceFilter(opt.value)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                     serviceFilter === opt.value
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
@@ -326,6 +327,7 @@ export function ListNumbersForm() {
               <div className="relative sm:w-56">
                 <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
+                  aria-label={s.table.searchLabel}
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -382,7 +384,7 @@ export function ListNumbersForm() {
                         <button
                           type="button"
                           onClick={() => toggleSort("friendlyName")}
-                          className="flex items-center gap-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground"
+                          className="flex items-center gap-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                         >
                           {s.table.colMark}
                           <SortIcon
@@ -401,7 +403,7 @@ export function ListNumbersForm() {
                         <button
                           type="button"
                           onClick={() => toggleSort("service")}
-                          className="flex items-center gap-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground"
+                          className="flex items-center gap-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                         >
                           {s.table.colService}
                           <SortIcon
@@ -451,7 +453,7 @@ export function ListNumbersForm() {
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
             {s.submit}
           </button>

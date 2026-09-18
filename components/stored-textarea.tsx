@@ -70,15 +70,15 @@ export function StoredTextarea({
             <li key={s} className="group flex items-start gap-2 px-3 py-2">
               <button
                 type="button"
-                className="min-w-0 flex-1 text-left text-xs leading-relaxed text-muted-foreground transition-colors hover:text-foreground"
+                className="min-w-0 flex-1 text-left text-xs leading-relaxed text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 onClick={() => onChange(s)}
               >
                 <span className="line-clamp-2">{s}</span>
               </button>
               <button
                 type="button"
-                aria-label={strings.common.remove}
-                className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={strings.common.autocomplete.deleteValue}
+                className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => deleteValue(s)}
               >
                 <X className="size-3" />
@@ -89,7 +89,7 @@ export function StoredTextarea({
             <li>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="w-full px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 onClick={() => saveValue(trimmed)}
               >
                 {strings.common.autocomplete.saveMessage}

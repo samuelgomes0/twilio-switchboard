@@ -38,7 +38,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   }
 
   return (
-    <Link href={tool.href} className="group block">
+    <Link href={tool.href} className="group block focus-visible:outline-2 focus-visible:outline-ring">
       <Card className="h-full transition-colors group-hover:border-primary/50 group-hover:shadow-md">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

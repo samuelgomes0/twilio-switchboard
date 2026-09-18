@@ -53,7 +53,7 @@ export function WorkerManagementForm({
         <nav className="mb-5 flex items-center gap-1 text-sm">
           <Link
             href="/taskrouter"
-            className="text-muted-foreground transition-colors hover:text-foreground"
+            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           >
             {strings.sidebar.sections.taskrouter}
           </Link>

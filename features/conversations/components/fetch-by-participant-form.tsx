@@ -224,6 +224,7 @@ export function FetchByParticipantForm() {
   const loadMoreButton = nextPageToken ? (
     <div className="flex justify-center py-3">
       <Button
+        aria-busy={loadingMore}
         type="button"
         variant="outline"
         size="sm"
@@ -244,7 +245,7 @@ export function FetchByParticipantForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/conversations"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.conversations}
         </Link>
@@ -281,7 +282,7 @@ export function FetchByParticipantForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -314,6 +315,7 @@ export function FetchByParticipantForm() {
               className="pl-[7.5rem]"
             />
             <Button
+              aria-busy={loading}
               type="submit"
               disabled={!canSubmit}
               className="shrink-0 gap-2"
@@ -336,11 +338,12 @@ export function FetchByParticipantForm() {
           <div className="flex gap-1.5">
             {STATE_OPTIONS.map((opt) => (
               <button
+                aria-pressed={stateFilter === opt.value}
                 key={opt.value}
                 type="button"
                 onClick={() => setStateFilter(opt.value)}
                 disabled={loading}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                   stateFilter === opt.value
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"

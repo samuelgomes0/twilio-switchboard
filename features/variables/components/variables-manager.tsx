@@ -114,6 +114,7 @@ function VariableGroupSection({
             <Label className="text-xs">{s.valueLabel}</Label>
             <div className="flex gap-2">
               <Input
+                aria-label={s.valueLabel}
                 className="h-8 font-mono text-xs"
                 value={state.addValue}
                 onChange={(e) => set({ addValue: e.target.value })}
@@ -126,7 +127,7 @@ function VariableGroupSection({
               />
               <Button
                 size="sm"
-                className="h-8 shrink-0"
+                className="shrink-0"
                 onClick={handleAdd}
                 disabled={!state.addValue.trim()}
               >
@@ -135,7 +136,7 @@ function VariableGroupSection({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 shrink-0"
+                className="shrink-0"
                 onClick={() => set({ showAdd: false, addValue: "" })}
               >
                 {strings.common.cancel}
@@ -154,6 +155,7 @@ function VariableGroupSection({
               state.editingIndex === i ? (
                 <div key={i} className="flex gap-2">
                   <Input
+                    aria-label={s.valueLabel}
                     className="h-8 font-mono text-xs"
                     value={state.editValue}
                     onChange={(e) => set({ editValue: e.target.value })}
@@ -166,7 +168,7 @@ function VariableGroupSection({
                   />
                   <Button
                     size="sm"
-                    className="h-8 shrink-0"
+                    className="shrink-0"
                     onClick={() => handleUpdate(i)}
                     disabled={!state.editValue.trim()}
                   >
@@ -175,7 +177,7 @@ function VariableGroupSection({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 shrink-0"
+                    className="shrink-0"
                     onClick={() => set({ editingIndex: null, editValue: "" })}
                   >
                     {strings.common.cancel}
@@ -215,8 +217,10 @@ function VariableGroupSection({
                   <span className="min-w-0 flex-1 truncate font-mono text-xs">
                     {val}
                   </span>
-                  <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button
+                  <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
                       type="button"
                       aria-label={strings.variables.manager.editAriaLabel}
                       onClick={() =>
@@ -227,20 +231,22 @@ function VariableGroupSection({
                           confirmDeleteIndex: null,
                         })
                       }
-                      className="flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      className="text-muted-foreground"
                     >
                       <Pencil className="size-3" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      size="icon-xs"
+                      variant="ghost"
                       type="button"
                       aria-label={strings.variables.manager.deleteAriaLabel}
                       onClick={() =>
                         set({ confirmDeleteIndex: i, editingIndex: null })
                       }
-                      className="flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                     >
                       <Trash2 className="size-3" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )
@@ -261,7 +267,7 @@ export function VariablesManager() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/settings"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.environments.page.title}
         </Link>
@@ -291,7 +297,7 @@ export function VariablesManager() {
           </p>
           <Link
             href="/settings/environments"
-            className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
           >
             <Settings2 className="size-3" />
             {strings.common.noEnvironmentSelected.link}

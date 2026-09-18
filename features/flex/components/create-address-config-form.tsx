@@ -220,7 +220,7 @@ export function CreateAddressConfigForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/flex"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.flex}
         </Link>
@@ -254,7 +254,7 @@ export function CreateAddressConfigForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>

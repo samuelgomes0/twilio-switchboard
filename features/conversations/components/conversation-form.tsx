@@ -136,7 +136,7 @@ export function ConversationForm(props: ConversationFormProps) {
     <div className="mx-auto max-w-3xl">
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
           href="/conversations"
         >
           {strings.sidebar.sections.conversations}
@@ -174,7 +174,7 @@ export function ConversationForm(props: ConversationFormProps) {
           <p>{strings.common.noEnvironmentSelected.title}</p>
           <p>
             {strings.common.noEnvironmentSelected.message}{" "}
-            <Link className="underline" href="/settings/environments">
+            <Link className="underline focus-visible:outline-2 focus-visible:outline-ring" href="/settings/environments">
               {strings.common.noEnvironmentSelected.link}
             </Link>
           </p>

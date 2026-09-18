@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ChevronRight,
+  Loader2,
   Play,
   Plus,
   RotateCcw,
@@ -261,7 +262,7 @@ export function AssignWorkersForm() {
       >
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -301,7 +302,7 @@ export function AssignWorkersForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -362,7 +363,9 @@ export function AssignWorkersForm() {
                 placeholder={strings.taskrouter.assignWorkers.workerPlaceholder}
                 className="flex-1"
               />
-              <button
+              <Button
+                size="icon"
+                variant="outline"
                 type="button"
                 disabled={workers.length === 1}
                 onClick={() =>
@@ -370,24 +373,26 @@ export function AssignWorkersForm() {
                     previous.filter((_, position) => position !== index)
                   )
                 }
-                className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
                 aria-label={strings.taskrouter.assignWorkers.removeWorker(
                   index + 1
                 )}
               >
                 <Trash2 className="size-3.5" aria-hidden="true" />
-              </button>
+              </Button>
             </div>
           ))}
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
             type="button"
             disabled={workers.length >= MAX_ITEMS}
             onClick={() => setWorkers((previous) => [...previous, ""])}
-            className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+            className="text-muted-foreground"
           >
             <Plus className="size-3.5" aria-hidden="true" />
             {strings.taskrouter.assignWorkers.addWorker}
-          </button>
+          </Button>
         </fieldset>
 
         {/* Skill name */}
@@ -429,10 +434,10 @@ export function AssignWorkersForm() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
+          <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
                 {strings.common.processing}
               </>
             ) : (

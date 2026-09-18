@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { strings } from "@/lib/strings"
 
 import * as React from "react"
@@ -12,10 +13,12 @@ export function MaskedToken({ token }: { token: string }) {
       <span className="font-mono text-xs">
         {visible ? token : "••••••••••••••••"}
       </span>
-      <button
+      <Button
+        size="icon-xs"
+        variant="ghost"
         type="button"
         onClick={() => setVisible((v) => !v)}
-        className="text-muted-foreground transition-colors hover:text-foreground"
+        className="text-muted-foreground"
         aria-label={
           visible
             ? strings.environments.form.hideTokenAriaLabel
@@ -27,7 +30,7 @@ export function MaskedToken({ token }: { token: string }) {
         ) : (
           <Eye className="size-3.5" />
         )}
-      </button>
+      </Button>
     </span>
   )
 }

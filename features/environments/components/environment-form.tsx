@@ -191,7 +191,7 @@ export function EnvironmentForm({
           <button
             type="button"
             onClick={() => setShowToken((v) => !v)}
-            className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             aria-label={
               showToken
                 ? strings.environments.form.hideTokenAriaLabel
@@ -216,6 +216,7 @@ export function EnvironmentForm({
       {/* Test credentials */}
       <div className="flex items-center gap-3">
         <Button
+          aria-busy={testState === "loading"}
           type="button"
           variant="outline"
           size="sm"

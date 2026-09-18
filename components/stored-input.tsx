@@ -115,7 +115,7 @@ export function StoredInput({
               <button
                 type="button"
                 tabIndex={0}
-                aria-label={strings.common.remove}
+                aria-label={strings.common.autocomplete.deleteValue}
                 className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {

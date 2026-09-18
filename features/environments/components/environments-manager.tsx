@@ -50,7 +50,7 @@ export function EnvironmentsManager() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/settings"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.environments.page.title}
         </Link>
@@ -116,7 +116,7 @@ export function EnvironmentsManager() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="text-primary hover:underline"
+              className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
             >
               {strings.environments.manager.emptyHintLink}
             </button>{" "}

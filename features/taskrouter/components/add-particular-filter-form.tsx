@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ChevronRight,
+  Loader2,
   Filter,
   Play,
   Plus,
@@ -321,7 +322,7 @@ export function AddParticularFilterForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -361,7 +362,7 @@ export function AddParticularFilterForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -435,6 +436,7 @@ export function AddParticularFilterForm() {
                 <div className="grid grid-cols-[1fr_1fr_2.25rem] items-start gap-2">
                   <div className="space-y-1">
                     <Input
+                      aria-label={strings.taskrouter.addParticularFilter.workflowSidColLabel}
                       value={row.workflowSid}
                       onChange={(e) =>
                         updateRow(i, "workflowSid", e.target.value)
@@ -454,6 +456,7 @@ export function AddParticularFilterForm() {
                   </div>
                   <div className="space-y-1">
                     <Input
+                      aria-label={strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
                       value={row.taskQueueSid}
                       onChange={(e) =>
                         updateRow(i, "taskQueueSid", e.target.value)
@@ -471,38 +474,42 @@ export function AddParticularFilterForm() {
                       </p>
                     )}
                   </div>
-                  <button
+                  <Button
+                    size="icon"
+                    variant="outline"
                     type="button"
                     disabled={status === "running" || rows.length === 1}
                     onClick={() => removeRow(i)}
-                    className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
+                    className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
                     aria-label={strings.common.remove}
                   >
                     <Trash2 className="size-3.5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Add row */}
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
             type="button"
             disabled={status === "running" || rows.length >= MAX_ITEMS}
             onClick={addRow}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className="text-muted-foreground"
           >
             <Plus className="size-3.5" />
             {strings.taskrouter.addParticularFilter.addEntry}
-          </button>
+          </Button>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
+          <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
                 {strings.common.processing}
               </>
             ) : (

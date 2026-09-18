@@ -47,7 +47,7 @@ export function ConversationDetails({
             {stateLabel}
           </Badge>
         </div>
-        <Button variant="outline" onClick={onRefresh}>
+        <Button size="sm" variant="outline" onClick={onRefresh}>
           {labels.refresh}
         </Button>
       </CardHeader>

@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ChevronRight,
+  Loader2,
   GitBranch,
   Play,
   RotateCcw,
@@ -236,7 +237,7 @@ export function CreateWorkflowForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -276,7 +277,7 @@ export function CreateWorkflowForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -347,10 +348,10 @@ export function CreateWorkflowForm() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
+          <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
             {status === "running" ? (
               <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
                 {strings.common.processing}
               </>
             ) : (

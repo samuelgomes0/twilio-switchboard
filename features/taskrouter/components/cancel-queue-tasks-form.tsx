@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ChevronRight,
+  Loader2,
   ListX,
   Play,
   RotateCcw,
@@ -29,7 +30,7 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
@@ -244,7 +245,7 @@ export function CancelQueueTasksForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -284,7 +285,7 @@ export function CancelQueueTasksForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -358,6 +359,7 @@ export function CancelQueueTasksForm() {
         {/* Actions */}
         <div className="flex items-center gap-2">
           <Button
+            aria-busy={status === "running"}
             type="submit"
             disabled={!canSubmit}
             variant="destructive"
@@ -365,7 +367,7 @@ export function CancelQueueTasksForm() {
           >
             {status === "running" ? (
               <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
                 {strings.common.processing}
               </>
             ) : (
@@ -418,7 +420,7 @@ export function CancelQueueTasksForm() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
+            <AlertDialogAction className={buttonVariants({ variant: "destructive" })}
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()

@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ChevronRight,
+  Loader2,
   MessageSquareOff,
   Play,
   Plus,
@@ -30,7 +31,7 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
@@ -229,7 +230,7 @@ export function CloseForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/conversations"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.conversations}
         </Link>
@@ -269,7 +270,7 @@ export function CloseForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -305,29 +306,33 @@ export function CloseForm() {
                   containerClassName="flex-1"
                   className="pl-[7.5rem]"
                 />
-                <button
+                <Button
+                  size="icon"
+                  variant="outline"
                   type="button"
                   disabled={status === "running" || phones.length === 1}
                   onClick={() =>
                     setPhones((prev) => prev.filter((_, j) => j !== i))
                   }
-                  className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
+                  className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
                   aria-label={strings.conversations.close.removePhone}
                 >
                   <Trash2 className="size-3.5" />
-                </button>
+                </Button>
               </div>
             ))}
           </div>
-          <button
+          <Button
+            size="sm"
+            variant="ghost"
             type="button"
             disabled={status === "running" || phones.length >= MAX_ITEMS}
             onClick={() => setPhones((prev) => [...prev, ""])}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+            className="text-muted-foreground"
           >
             <Plus className="size-3.5" />
             {strings.conversations.close.addPhone}
-          </button>
+          </Button>
           {fieldErrors.length > 0 && (
             <p className="text-xs text-destructive">
               {strings.common.phoneDigitsOnly}: {fieldErrors.join(", ")}
@@ -341,10 +346,16 @@ export function CloseForm() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
+          <Button
+            aria-busy={status === "running"}
+            variant="destructive"
+            type="submit"
+            disabled={!canSubmit}
+            className="gap-2"
+          >
             {status === "running" ? (
               <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
                 {strings.common.processing}
               </>
             ) : (
@@ -397,7 +408,7 @@ export function CloseForm() {
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40"
+              className={buttonVariants({ variant: "destructive" })}
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()

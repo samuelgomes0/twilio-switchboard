@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronRight, Plus, Settings2, Trash2 } from "lucide-react"
+import { ChevronRight, Loader2, Play, Plus, Settings2, Square, Trash2 } from "lucide-react"
 import { LogOutput } from "@/components/log-output"
 import { StoredInput } from "@/components/stored-input"
 import { WarningBadge } from "@/components/warning-badge"
@@ -64,7 +64,7 @@ export function UpdateWorkerFeatureForm() {
       >
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -137,7 +137,9 @@ export function UpdateWorkerFeatureForm() {
                   placeholder={messages.workersPlaceholder}
                   className="flex-1"
                 />
-                <button
+                <Button
+                  size="icon"
+                  variant="outline"
                   type="button"
                   disabled={running || workers.length === 1}
                   onClick={() =>
@@ -145,22 +147,24 @@ export function UpdateWorkerFeatureForm() {
                       previous.filter((_, position) => position !== index)
                     )
                   }
-                  className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                  className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
                   aria-label={messages.removeWorker(index + 1)}
                 >
                   <Trash2 className="size-3.5" />
-                </button>
+                </Button>
               </div>
             ))}
-            <button
+            <Button
+              size="sm"
+              variant="ghost"
               type="button"
               disabled={running || workers.length >= MAX_ITEMS}
               onClick={() => setWorkers((previous) => [...previous, ""])}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+              className="text-muted-foreground"
             >
               <Plus className="size-3.5" />
               {messages.addWorker}
-            </button>
+            </Button>
           </fieldset>
           <div className="space-y-2">
             <Label htmlFor="feature-name">{messages.featureLabel}</Label>
@@ -191,14 +195,26 @@ export function UpdateWorkerFeatureForm() {
         </fieldset>
         <div className="flex gap-2">
           <Button
+            aria-busy={running}
             type="submit"
             disabled={!valid || !activeEnvironment || running}
             aria-label={messages.submit}
           >
-            {running ? strings.common.processing : messages.submit}
+            {running ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                {strings.common.processing}
+              </>
+            ) : (
+              <>
+                <Play className="size-3.5" aria-hidden="true" />
+                {messages.submit}
+              </>
+            )}
           </Button>
           {running && (
             <Button type="button" variant="outline" onClick={cancel}>
+              <Square className="size-3.5" aria-hidden="true" />
               {strings.common.cancel}
             </Button>
           )}

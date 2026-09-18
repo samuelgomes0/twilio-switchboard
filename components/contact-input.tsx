@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { strings } from "@/lib/strings"
 
 import * as React from "react"
@@ -188,7 +189,8 @@ export function ContactInput({
                   placeholder={strings.contacts.input.namePlaceholder}
                   className="h-7 flex-1 rounded border border-input bg-transparent px-2 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                 />
-                <button
+                <Button
+                  size="icon-xs"
                   type="button"
                   aria-label={strings.common.save}
                   disabled={!savingName.trim()}
@@ -196,10 +198,10 @@ export function ContactInput({
                   onClick={() => {
                     handleSave()
                   }}
-                  className="flex size-7 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="shrink-0"
                 >
                   <Check className="size-3" />
-                </button>
+                </Button>
               </div>
             </li>
           )}

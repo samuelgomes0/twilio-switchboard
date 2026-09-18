@@ -147,6 +147,7 @@ function NavSection({
       onClick={onNavigate}
       aria-current={sectionActive ? "page" : undefined}
       className={cn(
+        "focus-visible:outline-2 focus-visible:outline-ring",
         "group mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
         sectionActive
           ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
@@ -178,6 +179,7 @@ function NavSection({
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
             className={cn(
+              "focus-visible:outline-2 focus-visible:outline-ring",
               "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               isActive
                 ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
@@ -215,7 +217,7 @@ function SidebarNav() {
       {!mobileOpen && (
         <button
           type="button"
-          className="fixed top-4 left-4 z-50 flex size-9 items-center justify-center rounded-lg border border-border bg-card shadow-sm md:hidden"
+          className="fixed top-4 left-4 z-50 flex size-9 items-center justify-center rounded-lg border border-border bg-card shadow-sm md:hidden focus-visible:outline-2 focus-visible:outline-ring"
           onClick={() => setMobileOpen(true)}
           aria-label={strings.sidebar.toggleLabel}
           aria-expanded={false}
@@ -244,7 +246,7 @@ function SidebarNav() {
         <Link
           href="/"
           onClick={closeMenu}
-          className="flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-5 transition-opacity hover:opacity-80"
+          className="flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-5 transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-ring"
         >
           <div className="flex size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
             <Phone className="size-3.5" />

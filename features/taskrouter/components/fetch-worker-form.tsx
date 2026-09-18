@@ -196,7 +196,7 @@ export function FetchWorkerForm() {
       >
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -233,7 +233,7 @@ export function FetchWorkerForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -282,6 +282,7 @@ export function FetchWorkerForm() {
               className="font-sans text-sm placeholder:font-sans"
             />
             <Button
+              aria-busy={loading}
               type="submit"
               disabled={!canSubmit}
               className="shrink-0 gap-2"
@@ -362,6 +363,7 @@ export function FetchWorkerForm() {
               {management && (
                 <div className="flex flex-wrap gap-2">
                   <Button
+                    size="sm"
                     type="button"
                     variant="outline"
                     onClick={() =>
@@ -371,6 +373,7 @@ export function FetchWorkerForm() {
                     {strings.taskrouter.workerManagement.actions.addSkill}
                   </Button>
                   <Button
+                    size="sm"
                     type="button"
                     variant="outline"
                     onClick={() =>

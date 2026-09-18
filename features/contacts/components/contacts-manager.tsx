@@ -121,7 +121,7 @@ export function ContactsManager() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/settings"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.environments.page.title}
         </Link>
@@ -187,7 +187,7 @@ export function ContactsManager() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="text-primary hover:underline"
+              className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
             >
               {strings.contacts.manager.emptyHintLink}
             </button>{" "}
@@ -250,7 +250,9 @@ export function ContactsManager() {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-1">
-                  <button
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
                     type="button"
                     aria-label={strings.contacts.manager.editTitle}
                     onClick={() => {
@@ -258,21 +260,23 @@ export function ContactsManager() {
                       setShowAddForm(false)
                       setConfirmDeleteId(null)
                     }}
-                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="text-muted-foreground"
                   >
                     <Pencil className="size-3.5" />
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
                     type="button"
                     aria-label={strings.contacts.manager.deleteAriaLabel}
                     onClick={() => {
                       setConfirmDeleteId(contact.id)
                       setEditingId(null)
                     }}
-                    className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="size-3.5" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             )

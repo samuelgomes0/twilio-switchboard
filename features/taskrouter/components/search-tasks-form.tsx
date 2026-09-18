@@ -154,10 +154,12 @@ function CopySid({ sid }: { sid: string }) {
   }
 
   return (
-    <button
+    <Button
+      size="xs"
+      variant="ghost"
       type="button"
       onClick={handleCopy}
-      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="text-muted-foreground"
       title={strings.taskrouter.searchTasks.result.copySid}
     >
       {copied ? (
@@ -168,7 +170,7 @@ function CopySid({ sid }: { sid: string }) {
       {copied
         ? strings.taskrouter.searchTasks.result.sidCopied
         : strings.taskrouter.searchTasks.result.copySid}
-    </button>
+    </Button>
   )
 }
 
@@ -422,7 +424,7 @@ export function SearchTasksForm() {
       <nav className="mb-5 flex items-center gap-1 text-sm">
         <Link
           href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
         >
           {strings.sidebar.sections.taskrouter}
         </Link>
@@ -459,7 +461,7 @@ export function SearchTasksForm() {
               {strings.common.noEnvironmentSelected.message}{" "}
               <Link
                 href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
               >
                 {strings.common.noEnvironmentSelected.link}
               </Link>
@@ -471,9 +473,11 @@ export function SearchTasksForm() {
       {/* Mode toggle */}
       <div className="mb-4 flex rounded-lg border border-border bg-muted/40 p-0.5">
         <button
+          aria-pressed={mode === "sid"}
           type="button"
           onClick={() => handleModeChange("sid")}
           className={cn(
+            "focus-visible:outline-2 focus-visible:outline-ring",
             "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             mode === "sid"
               ? "bg-background text-foreground shadow-sm"
@@ -483,9 +487,11 @@ export function SearchTasksForm() {
           {strings.taskrouter.searchTasks.modeSid}
         </button>
         <button
+          aria-pressed={mode === "phone"}
           type="button"
           onClick={() => handleModeChange("phone")}
           className={cn(
+            "focus-visible:outline-2 focus-visible:outline-ring",
             "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             mode === "phone"
               ? "bg-background text-foreground shadow-sm"
@@ -550,6 +556,7 @@ export function SearchTasksForm() {
                 aria-invalid={!!fieldErrors.taskSid}
               />
               <Button
+                aria-busy={loading}
                 type="submit"
                 disabled={!canSubmit}
                 className="shrink-0 gap-2"
@@ -585,6 +592,7 @@ export function SearchTasksForm() {
                 className="flex-1"
               />
               <Button
+                aria-busy={loading}
                 type="submit"
                 disabled={!canSubmit}
                 className="shrink-0 gap-2"
