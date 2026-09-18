@@ -1,7 +1,7 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import {
-  AlertTriangle,
   AtSign,
   ChevronRight,
   FileSearch2,
@@ -231,7 +231,7 @@ export function FetchByParticipantForm() {
         disabled={loadingMore}
         onClick={() => void loadMoreResults()}
       >
-        {loadingMore && <Loader2 className="animate-spin" />}
+        {loadingMore && <Loader2 className="animate-spin" aria-hidden="true" />}
         {loadingMore
           ? strings.conversations.fetchByParticipant.results.loadingMore
           : strings.conversations.fetchByParticipant.results.loadMore}
@@ -272,23 +272,7 @@ export function FetchByParticipantForm() {
 
       {/* No environment warning */}
       {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+        <NoEnvironmentSelected />
       )}
 
       {/* Form */}
@@ -323,7 +307,7 @@ export function FetchByParticipantForm() {
               className="shrink-0 gap-2"
             >
               {loading ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
               ) : (
                 <Search className="size-3.5" />
               )}
@@ -391,7 +375,7 @@ export function FetchByParticipantForm() {
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div role="alert" className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}

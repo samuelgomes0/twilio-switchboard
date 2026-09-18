@@ -144,11 +144,11 @@ export function ConversationMessages({
         </Button>
       </div>
       {data.messages.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-sm text-muted-foreground">
           {strings.conversations.history.result.empty}
         </p>
       ) : filteredMessages.length === 0 ? (
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-sm text-muted-foreground">
           {strings.conversations.history.result.noFilteredMessages}
         </p>
       ) : (

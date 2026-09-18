@@ -228,7 +228,7 @@ export function EnvironmentForm({
           className="gap-1.5"
         >
           {testState === "loading" ? (
-            <Loader2 className="size-3.5 animate-spin" />
+            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
           ) : (
             <span className="size-3.5" />
           )}
@@ -237,13 +237,13 @@ export function EnvironmentForm({
             : strings.environments.form.testButton}
         </Button>
         {testState === "success" && (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <span role="status" className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="size-3.5" />
             {strings.environments.form.testSuccess}
           </span>
         )}
         {testState === "error" && (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+          <span role="alert" className="flex items-center gap-1.5 text-xs font-medium text-destructive">
             <WifiOff className="size-3.5" />
             {testError ?? strings.environments.form.testError}
           </span>

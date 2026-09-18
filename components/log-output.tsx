@@ -56,6 +56,10 @@ function LogOutput({
   return (
     <div
       data-slot="log-output"
+      role="log"
+      aria-label={strings.common.logOfOperations}
+      aria-live="polite"
+      aria-atomic="false"
       className={cn(
         "relative max-h-[480px] min-h-[200px] overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs",
         className

@@ -1,7 +1,7 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import {
-  AlertTriangle,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -230,23 +230,7 @@ export function ListNumbersForm() {
 
       {/* No environment warning */}
       {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+        <NoEnvironmentSelected />
       )}
 
       {/* Fetch button (idle state) */}
@@ -264,8 +248,8 @@ export function ListNumbersForm() {
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
+        <div role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           {strings.common.processing}
         </div>
       )}
@@ -295,7 +279,7 @@ export function ListNumbersForm() {
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div role="alert" className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}

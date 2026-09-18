@@ -1,5 +1,6 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import * as React from "react"
 import Link from "next/link"
 import { ChevronRight, Loader2, Play, Plus, Settings2, Square, Trash2 } from "lucide-react"
@@ -91,9 +92,7 @@ export function UpdateWorkerFeatureForm() {
         </div>
       </div>
       {!activeEnvironment && (
-        <p role="alert" className="mb-5 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5 text-sm text-destructive">
-          {strings.common.noEnvironmentSelected.message}
-        </p>
+        <NoEnvironmentSelected />
       )}
       <form
         onSubmit={(event) => {
@@ -258,9 +257,6 @@ export function UpdateWorkerFeatureForm() {
       {logs.length > 0 && (
         <section
           className="mt-5 space-y-2"
-          role="log"
-          aria-label={strings.common.logOfOperations}
-          aria-live="polite"
         >
           <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
             {strings.common.logOfOperations}

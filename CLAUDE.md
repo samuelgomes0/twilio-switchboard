@@ -13,9 +13,11 @@ npm run lint       # ESLint
 npm run format     # Prettier (ts/tsx files)
 ```
 
-Node >= 22 required. `npm test` runs the Node.js suites for Conversation consultation, operation messages, Worker features and the shared TypeScript loader. They use the existing TypeScript compiler and mock Twilio without network calls. Browser/component coverage is not configured.
+Node >= 22 required. `npm test` runs the Node.js suites for Conversation consultation, operation messages, Worker features, the shared TypeScript loader and UI feedback markup. They use the existing TypeScript compiler and mock Twilio without network calls. Browser coverage is not configured.
 
 `tests/typescript-loader.mjs` shares CommonJS/ES2022 transpilation, `@/` alias resolution and module overrides. `createLoader(overrides)` owns its cache per instance, preserving class identity in operation-message tests. `load(relative, overrides)` disables TypeScript caching for Conversation consultation and Worker-feature tests, including nested imports. Native modules still use Node's require cache; relative TypeScript imports still need explicit overrides.
+
+`tests/ui-feedback.test.mjs` validates feedback markup with React SSR and isolated TSX loading. Hook initializers are seeded in memory; effects, requests and handlers do not run. This does not provide browser or visual validation.
 
 ## Architecture
 
@@ -119,8 +121,11 @@ Page headers contain a concise title and subtitle. Longer introductory descripti
 | `ContactInput`                           | Phone input backed by saved contacts             |
 | `ToolCard`                               | Tool links and unavailable-tool presentation     |
 | `LogOutput` + `createLogEntry`           | Terminal-style SSE log panel                     |
+| `NoEnvironmentSelected`                 | Shared contextual notice; callers retain environment conditions |
 | `WarningBadge`                           | Badge shown on destructive/write-operation forms |
 | `EnvironmentProvider` / `useEnvironment` | Active Twilio credential context                 |
+
+Missing-environment notices compose `NoEnvironmentSelected`, with a nonurgent status, the existing blocking visual severity and the environments link. `LogOutput` owns the named polite log region; consumers should not add a second live log wrapper. Field errors stay associated with their inputs, operation errors stay inline, and batch summaries retain mixed outcomes without announcing a redundant success.
 
 ### Constants (`lib/constants.ts`)
 

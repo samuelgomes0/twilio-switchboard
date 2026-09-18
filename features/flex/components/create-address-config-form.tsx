@@ -1,7 +1,7 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import {
-  AlertTriangle,
   CheckCircle2,
   ChevronRight,
   Info,
@@ -244,23 +244,7 @@ export function CreateAddressConfigForm() {
 
       {/* No environment warning */}
       {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+        <NoEnvironmentSelected />
       )}
 
       {/* Form */}
@@ -425,8 +409,8 @@ export function CreateAddressConfigForm() {
 
         {/* Action buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
-            {loading && <Loader2 className="size-3.5 animate-spin" />}
+          <Button aria-busy={loading} type="submit" disabled={!canSubmit} className="gap-2">
+            {loading && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
             {s.submit}
           </Button>
           <Button
@@ -468,7 +452,7 @@ export function CreateAddressConfigForm() {
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div role="alert" className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}

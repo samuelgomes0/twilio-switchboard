@@ -1,5 +1,6 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import * as React from "react"
 import { ChevronRight, FileSearch2, Search } from "lucide-react"
 import Link from "next/link"
@@ -170,20 +171,7 @@ export function ConversationForm(props: ConversationFormProps) {
           environment={activeEnvironment}
         />
       ) : (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5 text-sm"
-        >
-          <p className="font-medium text-destructive">
-            {strings.common.noEnvironmentSelected.title}
-          </p>
-          <p className="mt-0.5 text-destructive/80">
-            {strings.common.noEnvironmentSelected.message}{" "}
-            <Link className="underline focus-visible:outline-2 focus-visible:outline-ring" href="/settings/environments">
-              {strings.common.noEnvironmentSelected.link}
-            </Link>
-          </p>
-        </div>
+        <NoEnvironmentSelected className="mb-0" />
       )}
     </div>
   )

@@ -1,11 +1,11 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import * as React from "react"
 import {
   ChevronRight,
   Pencil,
   Plus,
-  Settings2,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react"
@@ -292,22 +292,7 @@ export function VariablesManager() {
       </div>
 
       {!activeEnvironment ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
-          <SlidersHorizontal className="mx-auto mb-3 size-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">
-            {strings.common.noEnvironmentSelected.title}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {strings.common.noEnvironmentSelected.message}
-          </p>
-          <Link
-            href="/settings/environments"
-            className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            <Settings2 className="size-3" />
-            {strings.common.noEnvironmentSelected.link}
-          </Link>
-        </div>
+        <NoEnvironmentSelected className="mb-0" />
       ) : (
         <>
           <p className="mb-4 text-xs text-muted-foreground">

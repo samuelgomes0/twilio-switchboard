@@ -1,7 +1,7 @@
 "use client"
 
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import {
-  AlertTriangle,
   ChevronRight,
   Loader2,
   Filter,
@@ -352,23 +352,7 @@ export function AddParticularFilterForm() {
 
       {/* No environment warning */}
       {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+        <NoEnvironmentSelected />
       )}
 
       <form onSubmit={handleFormSubmit} className="space-y-5">
@@ -614,7 +598,7 @@ export function AddParticularFilterForm() {
             <>
               {" "}
               &middot;{" "}
-              <span className="text-destructive">
+              <span className="font-medium text-destructive">
                 {strings.taskrouter.addParticularFilter.summary.errors(
                   summary.totalErrors
                 )}
