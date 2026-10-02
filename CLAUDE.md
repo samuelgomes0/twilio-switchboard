@@ -37,7 +37,7 @@ Switchboard is a Next.js 16 (App Router) dashboard for Twilio operations — Con
 
 ### Shared interface
 
-`AppShell` owns the full-viewport white workspace without external margins or a width cap, 200px sidebar, sticky command/environment/theme header, main landmark and Radix Dialog mobile navigation. `SidebarNav` preserves separate domain navigation arrays, expands the active area (and Conversations/TaskRouter on the home page) and supports explicit group toggles. `CommandMenu` searches available tool labels/descriptions and settings with Ctrl/Cmd+K. Pages remain Server Component wrappers.
+`AppShell` owns the full-viewport shell with a single elevated right-hand surface: header and content share a 12px rounded panel, 8px inset and subtle shadow, with no overall width cap, 200px sidebar, sticky command/environment/theme header, main landmark and Radix Dialog mobile navigation. `SidebarNav` preserves separate domain navigation arrays, expands the active area (and Conversations/TaskRouter on the home page) and supports explicit group toggles. `CommandMenu` searches available tool labels/descriptions and settings with Ctrl/Cmd+K. Pages remain Server Component wrappers.
 
 `PageHeader`, `ToolCatalog`, `ActionBar`, `ActionButton`, `InputActions`, `EmptyState`, `ClipboardButton` and the UI controls define shared presentation. `TaskResultCard` renders Task results without owning requests. Tokens and responsive rules live in `app/globals.css`; all visible copy remains in `lib/strings.ts`. `ToolDirectory` presents 13 available tools in a compact searchable table with area filtering, catalog counts and browser environment context. The content aligns next to the sidebar rather than centering within excess empty space.
 
