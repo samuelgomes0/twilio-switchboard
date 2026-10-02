@@ -1,11 +1,13 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import * as React from "react"
+import { navigateSuggestions } from "@/components/suggestion-keyboard"
 import { X } from "lucide-react"
+import * as React from "react"
 
-import { readVariables, addVariable, deleteVariable } from "@/lib/variables"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
+import { addVariable, deleteVariable, readVariables } from "@/lib/variables"
 
 interface StoredInputProps {
   storageKey: string
@@ -40,13 +42,13 @@ export function StoredInput({
   const effectiveKey = environmentId
     ? `${storageKey}:${environmentId}`
     : storageKey
-  const [saved, setSaved] = React.useState<string[]>([])
+  const [saved, setSaved] = useBrowserState<string[]>(
+    () => readVariables(effectiveKey),
+    [],
+    effectiveKey
+  )
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    setSaved(readVariables(effectiveKey))
-  }, [effectiveKey])
 
   const trimmed = value.trim()
   const filtered = trimmed
@@ -85,6 +87,12 @@ export function StoredInput({
       ref={containerRef}
       className={cn("relative", containerClassName)}
       onBlur={handleBlur}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false)
+          event.stopPropagation()
+        } else if (showDropdown) navigateSuggestions(event)
+      }}
     >
       <input
         id={id}
@@ -99,7 +107,7 @@ export function StoredInput({
         autoComplete="off"
         spellCheck={false}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 font-mono text-xs shadow-xs transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "field-control font-mono placeholder:font-sans",
           className
         )}
       />
@@ -110,7 +118,7 @@ export function StoredInput({
               <button
                 type="button"
                 tabIndex={0}
-                className="min-w-0 flex-1 px-3 py-1.5 text-left font-mono text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
+                className="min-w-0 flex-1 px-3 py-2.5 text-left font-mono text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   handleSelect(s)
@@ -122,7 +130,7 @@ export function StoredInput({
                 type="button"
                 tabIndex={0}
                 aria-label={strings.common.autocomplete.deleteValue}
-                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                className="mr-1 flex size-9 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   deleteValue(s)

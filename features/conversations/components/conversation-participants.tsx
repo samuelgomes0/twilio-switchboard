@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import type { Participant } from "@/features/conversations/types"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
+import type { Participant } from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
 
 export function ConversationParticipants({
@@ -32,11 +32,11 @@ export function ConversationParticipants({
                 {idx > 0 && <Separator className="mb-3" />}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground break-all">
+                    <span className="font-mono text-xs break-all text-muted-foreground">
                       {p.sid}
                     </span>
                     {p.identity && (
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-xs">
                         {p.identity}
                       </Badge>
                     )}

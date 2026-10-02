@@ -1,7 +1,7 @@
 "use client"
 
-import * as React from "react"
 import { MAX_HISTORY } from "@/lib/constants"
+import * as React from "react"
 
 interface HistoryEntry {
   sid: string

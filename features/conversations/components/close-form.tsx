@@ -1,26 +1,25 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import {
-  ChevronRight,
-  Loader2,
-  MessageSquareOff,
-  Play,
-  Plus,
-  RotateCcw,
-  Square,
-  Trash2,
-} from "lucide-react"
-import Link from "next/link"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import { ContactInput } from "@/components/contact-input"
-import { WarningBadge } from "@/components/warning-badge"
 import {
   LogOutput,
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -31,14 +30,15 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
+import { buttonVariants } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { WarningBadge } from "@/components/warning-badge"
+import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { readHistory, pushHistory } from "@/lib/operation-history"
-import { strings } from "@/lib/strings"
+import { pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
+import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -60,7 +60,6 @@ interface Progress {
 }
 
 const HISTORY_KEY = "switchboard:close-history"
-const PHONE_RE = /^\d+$/
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -78,14 +77,13 @@ export function CloseForm() {
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => readHistory<HistoryEntry>(HISTORY_KEY),
+    []
+  )
   const [fieldErrors, setFieldErrors] = React.useState<string[]>([])
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
-  }, [])
 
   const participants = phones.map((p) => p.trim()).filter(Boolean)
   const canSubmit =
@@ -212,7 +210,7 @@ export function CloseForm() {
 
     const errs: string[] = []
     for (const phone of participants) {
-      if (!PHONE_RE.test(phone)) {
+      if (normalizeClosePhone(phone) === null) {
         errs.push(phone)
       }
     }
@@ -225,157 +223,130 @@ export function CloseForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/conversations"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.conversations}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.conversations.close.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <MessageSquareOff className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.conversations.close.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.conversations.close.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.conversations.close.title}
+        description={strings.conversations.close.subtitle}
+        parent={{
+          href: "/conversations",
+          label: strings.sidebar.sections.conversations,
+        }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      <form onSubmit={handleFormSubmit} className="operation-form space-y-5">
         <div className="space-y-2">
-          <Label id="close-phones-label">
+          <Label id="close-phones-label" htmlFor="close-phone-0">
             {strings.conversations.close.phoneLabel}{" "}
             <span className="font-normal text-muted-foreground">
               {strings.conversations.close.phoneLabelHint}
             </span>
           </Label>
-          <div className="space-y-2">
-            {phones.map((phone, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <ContactInput
-                  id={`close-phone-${i}`}
-                  aria-labelledby="close-phones-label"
-                  aria-describedby={fieldErrors.length > 0 ? "close-phones-error" : undefined}
-                  aria-invalid={fieldErrors.includes(phone.trim())}
-                  value={phone}
-                  onChange={(v) => {
-                    setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
-                    if (fieldErrors.includes(v.trim())) {
-                      setFieldErrors((prev) =>
-                        prev.filter((e) => e !== v.trim())
-                      )
-                    }
-                  }}
-                  placeholder={strings.common.placeholders.closePhone}
-                  disabled={status === "running"}
-                  prefix="whatsapp:+55"
-                  containerClassName="min-w-0 flex-1"
-                  className="pl-[7.5rem]"
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  type="button"
-                  disabled={status === "running" || phones.length === 1}
-                  onClick={() =>
-                    setPhones((prev) => prev.filter((_, j) => j !== i))
-                  }
-                  className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
-                  aria-label={strings.conversations.close.removePhone}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
+          <InputActions>
+            <div className="min-w-0 flex-1">
+              <div className="space-y-2">
+                {phones.map((phone, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <ContactInput
+                      id={`close-phone-${i}`}
+                      aria-labelledby="close-phones-label"
+                      aria-describedby={
+                        fieldErrors.length > 0
+                          ? "close-phones-error"
+                          : undefined
+                      }
+                      aria-invalid={fieldErrors.includes(phone.trim())}
+                      value={phone}
+                      onChange={(v) => {
+                        setPhones((prev) =>
+                          prev.map((p, j) => (j === i ? v : p))
+                        )
+                        if (fieldErrors.includes(v.trim())) {
+                          setFieldErrors((prev) =>
+                            prev.filter((e) => e !== v.trim())
+                          )
+                        }
+                      }}
+                      placeholder={strings.common.placeholders.localPhone}
+                      disabled={status === "running"}
+                      prefix="whatsapp:+55"
+                      containerClassName="min-w-0 flex-1"
+                      className="pl-[7.5rem]"
+                    />
+                    <ActionButton
+                      action="remove"
+                      iconOnly
+                      type="button"
+                      disabled={status === "running" || phones.length === 1}
+                      onClick={() =>
+                        setPhones((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      aria-label={strings.conversations.close.removePhone}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            type="button"
-            disabled={status === "running" || phones.length >= MAX_ITEMS}
-            onClick={() => setPhones((prev) => [...prev, ""])}
-            className="text-muted-foreground"
-          >
-            <Plus className="size-3.5" />
-            {strings.conversations.close.addPhone}
-          </Button>
+            </div>
+            <ActionBar className="sm:max-w-56">
+              <ActionButton
+                action="destructive"
+                aria-busy={status === "running"}
+                type="submit"
+                disabled={!canSubmit}
+              >
+                {status === "running" ? (
+                  <>
+                    <Loader2
+                      className="size-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                    {strings.common.processing}
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-3.5" />
+                    {strings.conversations.close.submit}
+                  </>
+                )}
+              </ActionButton>
+
+              {status === "running" && (
+                <ActionButton action="stop" type="button" onClick={handleAbort}>
+                  {strings.common.cancel}
+                </ActionButton>
+              )}
+
+              {(logs.length > 0 || status !== "idle") &&
+                status !== "running" && (
+                  <ActionButton action="clear" type="button" onClick={clearAll}>
+                    {strings.common.clear}
+                  </ActionButton>
+                )}
+              <ActionButton
+                action="add"
+                type="button"
+                disabled={status === "running" || phones.length >= MAX_ITEMS}
+                onClick={() => setPhones((prev) => [...prev, ""])}
+              >
+                {strings.conversations.close.addPhone}
+              </ActionButton>
+            </ActionBar>
+          </InputActions>
+
           {fieldErrors.length > 0 && (
             <p id="close-phones-error" className="text-xs text-destructive">
-              {strings.common.phoneDigitsOnly}: {fieldErrors.join(", ")}
+              {strings.conversations.close.invalidPhone}:{" "}
+              {fieldErrors.join(", ")}
             </p>
           )}
           {participants.length > MAX_ITEMS && (
             <p className="text-xs text-destructive">
               {strings.conversations.close.maxExceeded(MAX_ITEMS)}
             </p>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            aria-busy={status === "running"}
-            variant="destructive"
-            type="submit"
-            disabled={!canSubmit}
-            className="gap-2"
-          >
-            {status === "running" ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.conversations.close.submit}
-              </>
-            )}
-          </Button>
-
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={clearAll}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
           )}
         </div>
       </form>
@@ -443,7 +414,7 @@ export function CloseForm() {
           <span className="font-medium">
             {strings.conversations.close.summary.prefix}
           </span>{" "}
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.conversations.close.summary.closed(summary.totalClosed)}
           </span>
           {summary.totalErrors > 0 && (
@@ -463,7 +434,7 @@ export function CloseForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />

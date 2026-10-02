@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
-import { redirect } from "next/navigation"
 import { strings } from "@/lib/strings"
+import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: strings.conversations.fetch.metadata.title,

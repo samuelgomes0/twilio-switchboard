@@ -1,19 +1,20 @@
 "use client"
 
+import { PageHeader } from "@/components/page-header"
+
+import { ActionBar } from "@/components/action-bar"
+import { ActionButton } from "@/components/action-button"
+import { InputActions } from "@/components/input-actions"
+
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import {
   ChevronDown,
-  ChevronRight,
   ChevronUp,
   ChevronsUpDown,
-  Download,
   Hash,
   Loader2,
-  Search,
 } from "lucide-react"
-import Link from "next/link"
 import * as React from "react"
-import * as XLSX from "xlsx"
 
 import {
   AlertDialogAction,
@@ -33,9 +34,9 @@ import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import type { NumberRecord, PhoneNumberService } from "@/features/numbers/types"
+import { SearchInput } from "@/components/search-input"
 import { useEnvironment } from "@/features/environments/context"
+import type { NumberRecord, PhoneNumberService } from "@/features/numbers/types"
 import { strings } from "@/lib/strings"
 
 type ServiceFilter = "all" | PhoneNumberService
@@ -140,7 +141,8 @@ export function ListNumbersForm() {
     URL.revokeObjectURL(url)
   }
 
-  function exportExcel() {
+  async function exportExcel() {
+    const XLSX = await import("xlsx")
     if (!results) return
     const data = results.map((r) => ({
       [s.table.colMark]: r.friendlyName,
@@ -204,34 +206,16 @@ export function ListNumbersForm() {
   const isFiltered = serviceFilter !== "all" || search.trim() !== ""
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/numbers"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.numbers}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{s.breadcrumb}</span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Hash className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
-          <p className="text-sm text-muted-foreground">{s.subtitle}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={s.title}
+        description={s.subtitle}
+        parent={{ href: "/numbers", label: strings.sidebar.sections.numbers }}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Fetch button (idle state) */}
       {results === null && !loading && (
@@ -248,7 +232,10 @@ export function ListNumbersForm() {
 
       {/* Loading */}
       {loading && (
-        <div role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div
+          role="status"
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+        >
           <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           {strings.common.processing}
         </div>
@@ -279,7 +266,10 @@ export function ListNumbersForm() {
 
       {/* Error */}
       {error && (
-        <div role="alert" className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
@@ -288,7 +278,7 @@ export function ListNumbersForm() {
       {displayedResults !== null && (
         <div className="mt-6 space-y-4">
           {/* Controls */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
             <div className="flex flex-wrap gap-1.5">
               {SERVICE_FILTER_OPTIONS.map((opt) => (
                 <button
@@ -307,43 +297,45 @@ export function ListNumbersForm() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="relative w-full min-w-0 sm:w-56">
-                <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
+            <InputActions>
+              <div className="w-full min-w-0 sm:flex-1">
+                <SearchInput
                   aria-label={s.table.searchLabel}
-                  type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={s.table.searchPlaceholder}
-                  className="pl-8"
                 />
               </div>
-              <DropdownMenuRoot>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0 gap-1.5"
-                  >
-                    <Download className="size-3.5" />
-                    {s.table.export}
-                    <ChevronDown className="size-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={exportCsv}>
-                    {s.table.exportCsv}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={exportExcel}>
-                    {s.table.exportExcel}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenuRoot>
-            </div>
+              <ActionBar>
+                <ActionButton
+                  action="refresh"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  {strings.common.refresh}
+                </ActionButton>
+                <DropdownMenuRoot>
+                  <DropdownMenuTrigger asChild>
+                    <ActionButton action="export" type="button">
+                      {s.table.export}
+                      <ChevronDown className="size-3.5" />
+                    </ActionButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={exportCsv}>
+                      {s.table.exportCsv}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={exportExcel}>
+                      {s.table.exportExcel}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenuRoot>
+              </ActionBar>
+            </InputActions>
           </div>
 
+          <p className="text-xs text-muted-foreground">
+            {strings.interface.exportScope}
+          </p>
           {/* Count */}
           <p className="text-xs text-muted-foreground">
             {isFiltered
@@ -359,16 +351,27 @@ export function ListNumbersForm() {
               </p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-border">
-              <div className="max-h-[420px] overflow-auto">
-                <table className="w-full text-sm">
+            <div className="overflow-hidden rounded-xl bg-card">
+              <div className="max-h-[min(60svh,36rem)] overflow-auto">
+                <table className="numbers-table w-full text-sm">
+                  <caption className="sr-only">{s.title}</caption>
                   <thead className="sticky top-0 z-10 border-b border-border bg-card">
                     <tr>
-                      <th className="px-4 py-3 text-left">
+                      <th
+                        scope="col"
+                        aria-sort={
+                          sortField === "friendlyName"
+                            ? sortDir === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                        }
+                        className="px-4 py-3 text-left"
+                      >
                         <button
                           type="button"
                           onClick={() => toggleSort("friendlyName")}
-                          className="flex items-center gap-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                          className="flex items-center gap-1 text-xs font-semibold tracking-normal text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                         >
                           {s.table.colMark}
                           <SortIcon
@@ -378,16 +381,26 @@ export function ListNumbersForm() {
                           />
                         </button>
                       </th>
-                      <th className="px-4 py-3 text-left">
-                        <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                      <th scope="col" className="px-4 py-3 text-left">
+                        <span className="text-xs font-semibold tracking-normal text-muted-foreground">
                           {s.table.colNumber}
                         </span>
                       </th>
-                      <th className="px-4 py-3 text-left">
+                      <th
+                        scope="col"
+                        aria-sort={
+                          sortField === "service"
+                            ? sortDir === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                        }
+                        className="px-4 py-3 text-left"
+                      >
                         <button
                           type="button"
                           onClick={() => toggleSort("service")}
-                          className="flex items-center gap-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                          className="flex items-center gap-1 text-xs font-semibold tracking-normal text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                         >
                           {s.table.colService}
                           <SortIcon
@@ -405,13 +418,13 @@ export function ListNumbersForm() {
                         key={row.id}
                         className="border-b border-border transition-colors last:border-0 hover:bg-muted/30"
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-4">
                           <p className="font-medium">{row.friendlyName}</p>
-                          <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                             {row.id}
                           </p>
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs">
+                        <td className="px-4 py-4 font-mono text-sm">
                           {row.phoneNumber}
                         </td>
                         <td className="px-4 py-3">
@@ -432,15 +445,6 @@ export function ListNumbersForm() {
               </div>
             </div>
           )}
-
-          {/* Refresh */}
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            {s.submit}
-          </button>
         </div>
       )}
     </div>

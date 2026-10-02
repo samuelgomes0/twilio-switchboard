@@ -1,25 +1,22 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+import { TaskCard } from "./task-result-card"
+
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import { JsonBlock } from "@/components/json-block"
 import { inferChannel } from "@/features/taskrouter/lib/infer-channel"
 
+import { Loader2, Search } from "lucide-react"
 import * as React from "react"
-import Link from "next/link"
-import {
-  Check,
-  ChevronRight,
-  Copy,
-  Loader2,
-  Search,
-} from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { StoredInput } from "@/components/stored-input"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,12 +27,13 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { StoredInput } from "@/components/stored-input"
+import { SearchInput } from "@/components/search-input"
+import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { SearchTaskResult, TaskData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
+import { pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
-import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
@@ -79,28 +77,6 @@ function fmtTs(ts: number) {
   })
 }
 
-function formatDate(d: Date | null | string): string {
-  if (!d) return strings.common.notAvailable
-  const date = typeof d === "string" ? new Date(d) : d
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })
-}
-
-function formatAge(sec: number): string {
-  if (sec < 60) return strings.taskrouter.searchTasks.duration.seconds(sec)
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  if (m < 60) return strings.taskrouter.searchTasks.duration.minutes(m, s)
-  const h = Math.floor(m / 60)
-  return strings.taskrouter.searchTasks.duration.hours(h, m % 60)
-}
-
 // ─── Channel inference ───────────────────────────────────────────────────────
 
 function taskDataToResult(task: TaskData): SearchTaskResult {
@@ -112,149 +88,7 @@ function taskDataToResult(task: TaskData): SearchTaskResult {
 
 // ─── Badge variants ──────────────────────────────────────────────────────────
 
-type BadgeVariant =
-  "success" | "warning" | "destructive" | "secondary" | "info" | "outline"
-
-function statusVariant(s: string): BadgeVariant {
-  if (s === "assigned") return "success"
-  if (s === "reserved") return "info"
-  if (s === "pending") return "warning"
-  if (s === "wrapping") return "warning"
-  if (s === "canceled") return "destructive"
-  if (s === "completed") return "secondary"
-  return "outline"
-}
-
-function channelLabel(channel: "whatsapp" | "voice" | "unknown"): string {
-  if (channel === "whatsapp")
-    return strings.taskrouter.searchTasks.result.channelWhatsapp
-  if (channel === "voice")
-    return strings.taskrouter.searchTasks.result.channelVoice
-  return strings.taskrouter.searchTasks.result.channelUnknown
-}
-
-function channelVariant(
-  channel: "whatsapp" | "voice" | "unknown"
-): BadgeVariant {
-  if (channel === "whatsapp") return "success"
-  if (channel === "voice") return "info"
-  return "outline"
-}
-
 // ─── Sub-components ──────────────────────────────────────────────────────────
-
-function CopySid({ sid }: { sid: string }) {
-  const [copied, setCopied] = React.useState(false)
-
-  function handleCopy() {
-    navigator.clipboard.writeText(sid).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <Button
-      size="xs"
-      variant="ghost"
-      type="button"
-      onClick={handleCopy}
-      className="text-muted-foreground"
-      title={strings.taskrouter.searchTasks.result.copySid}
-    >
-      {copied ? (
-        <Check className="size-3 text-emerald-500" />
-      ) : (
-        <Copy className="size-3" />
-      )}
-      {copied
-        ? strings.taskrouter.searchTasks.result.sidCopied
-        : strings.taskrouter.searchTasks.result.copySid}
-    </Button>
-  )
-}
-
-function TaskCard({ task }: { task: SearchTaskResult }) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-col gap-1">
-            <CardTitle className="font-mono text-sm leading-relaxed break-all">
-              {task.sid}
-            </CardTitle>
-            <CopySid sid={task.sid} />
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-1.5">
-            {task.channel !== "unknown" && (
-              <Badge variant={channelVariant(task.channel)}>
-                {channelLabel(task.channel)}
-              </Badge>
-            )}
-            <Badge variant={statusVariant(task.assignmentStatus)}>
-              {task.assignmentStatus}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
-          <div>
-            <p className="mb-0.5 text-muted-foreground">
-              {strings.taskrouter.searchTasks.result.priority}
-            </p>
-            <p className="font-medium">{task.priority}</p>
-          </div>
-          <div>
-            <p className="mb-0.5 text-muted-foreground">
-              {strings.taskrouter.searchTasks.result.age}
-            </p>
-            <p className="font-medium">{formatAge(task.age)}</p>
-          </div>
-          {task.workflowFriendlyName && (
-            <div>
-              <p className="mb-0.5 text-muted-foreground">
-                {strings.taskrouter.searchTasks.result.workflow}
-              </p>
-              <p className="font-medium">{task.workflowFriendlyName}</p>
-            </div>
-          )}
-          {task.taskQueueFriendlyName && (
-            <div>
-              <p className="mb-0.5 text-muted-foreground">
-                {strings.taskrouter.searchTasks.result.queue}
-              </p>
-              <p className="font-medium">{task.taskQueueFriendlyName}</p>
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
-          <div>
-            <p className="mb-0.5 text-muted-foreground">
-              {strings.taskrouter.searchTasks.result.dateCreated}
-            </p>
-            <p className="font-medium">{formatDate(task.dateCreated)}</p>
-          </div>
-        </div>
-
-        <Separator />
-
-        <div>
-          <p className="mb-1.5 text-xs text-muted-foreground">
-            {strings.taskrouter.searchTasks.result.attributes}
-          </p>
-          <JsonBlock
-            value={task.attributes}
-            className="max-h-64 overflow-x-auto overflow-y-auto rounded-md bg-muted/60 px-3 py-2 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap"
-          />
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 // ─── Main form ───────────────────────────────────────────────────────────────
 
@@ -270,12 +104,11 @@ export function SearchTasksForm() {
     {}
   )
   const [tasks, setTasks] = React.useState<SearchTaskResult[] | null>(null)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => readHistory<HistoryEntry>(HISTORY_KEY),
+    []
+  )
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-
-  React.useEffect(() => {
-    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
-  }, [])
 
   function handleModeChange(newMode: SearchMode) {
     if (newMode === mode) return
@@ -418,41 +251,38 @@ export function SearchTasksForm() {
           activeEnvironment?.name ?? ""
         )
 
-  return (
-    <div className="mx-auto max-w-3xl">
-      {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.searchTasks.breadcrumb}
-        </span>
-      </nav>
+  const searchAction = (
+    <ActionBar>
+      <ActionButton
+        action="search"
+        aria-busy={loading}
+        type="submit"
+        disabled={!canSubmit}
+      >
+        {loading ? (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        ) : (
+          <Search className="size-3.5" />
+        )}
+        {strings.taskrouter.searchTasks.submit}
+      </ActionButton>
+    </ActionBar>
+  )
 
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Search className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.taskrouter.searchTasks.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.searchTasks.subtitle}
-          </p>
-        </div>
-      </div>
+  return (
+    <div className="workspace-page">
+      {/* Breadcrumb */}
+      <PageHeader
+        title={strings.taskrouter.searchTasks.title}
+        description={strings.taskrouter.searchTasks.subtitle}
+        parent={{
+          href: "/taskrouter",
+          label: strings.sidebar.sections.taskrouter,
+        }}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Mode toggle */}
       <div className="mb-4 flex rounded-lg border border-border bg-muted/40 p-0.5">
@@ -464,7 +294,7 @@ export function SearchTasksForm() {
             "focus-visible:outline-2 focus-visible:outline-ring",
             "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             mode === "sid"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -478,7 +308,7 @@ export function SearchTasksForm() {
             "focus-visible:outline-2 focus-visible:outline-ring",
             "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             mode === "phone"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -487,14 +317,17 @@ export function SearchTasksForm() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="operation-form space-y-5">
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.searchTasks.workspaceSidLabel}
           </Label>
           <StoredInput
             id="workspaceSid"
-            aria-describedby={fieldErrors.workspaceSid ? "task-workspace-error" : undefined}
+            className="search-control"
+            aria-describedby={
+              fieldErrors.workspaceSid ? "task-workspace-error" : undefined
+            }
             aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
@@ -523,8 +356,8 @@ export function SearchTasksForm() {
             <Label htmlFor="taskSid">
               {strings.taskrouter.searchTasks.taskSidLabel}
             </Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
+            <InputActions>
+              <SearchInput
                 id="taskSid"
                 aria-describedby="task-sid-feedback"
                 value={taskSid}
@@ -539,27 +372,20 @@ export function SearchTasksForm() {
                 }}
                 placeholder={strings.common.placeholders.taskSid}
                 disabled={loading}
-                className="min-w-0 flex-1 font-mono text-sm"
+                className="min-w-0 flex-1 font-mono"
                 aria-invalid={!!fieldErrors.taskSid}
               />
-              <Button
-                aria-busy={loading}
-                type="submit"
-                disabled={!canSubmit}
-                className="shrink-0 gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Search className="size-3.5" />
-                )}
-                {strings.taskrouter.searchTasks.submit}
-              </Button>
-            </div>
+              {searchAction}
+            </InputActions>
             {fieldErrors.taskSid ? (
-              <p id="task-sid-feedback" className="text-xs text-destructive">{fieldErrors.taskSid}</p>
+              <p id="task-sid-feedback" className="text-xs text-destructive">
+                {fieldErrors.taskSid}
+              </p>
             ) : (
-              <p id="task-sid-feedback" className="text-xs text-muted-foreground">
+              <p
+                id="task-sid-feedback"
+                className="text-xs text-muted-foreground"
+              >
                 {strings.taskrouter.searchTasks.taskSidHint}
               </p>
             )}
@@ -569,8 +395,8 @@ export function SearchTasksForm() {
             <Label htmlFor="phone">
               {strings.taskrouter.searchTasks.phoneLabel}
             </Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
+            <InputActions>
+              <SearchInput
                 id="phone"
                 aria-describedby="task-phone-hint"
                 value={phone}
@@ -579,20 +405,8 @@ export function SearchTasksForm() {
                 disabled={loading}
                 className="min-w-0 flex-1"
               />
-              <Button
-                aria-busy={loading}
-                type="submit"
-                disabled={!canSubmit}
-                className="shrink-0 gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Search className="size-3.5" />
-                )}
-                {strings.taskrouter.searchTasks.submit}
-              </Button>
-            </div>
+              {searchAction}
+            </InputActions>
             <p id="task-phone-hint" className="text-xs text-muted-foreground">
               {strings.taskrouter.searchTasks.phoneLabelHint}
             </p>
@@ -627,14 +441,20 @@ export function SearchTasksForm() {
 
       {/* Error */}
       {error && (
-        <div role="alert" className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading && (
-        <div role="status" className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+        <div
+          role="status"
+          className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"
+        >
           <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           {strings.common.processing}
         </div>

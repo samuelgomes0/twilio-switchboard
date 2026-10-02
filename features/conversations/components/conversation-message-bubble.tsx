@@ -1,5 +1,5 @@
-import type { ConversationMessage } from "@/features/conversations/types"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
+import type { ConversationMessage } from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import { MessageSidButton } from "./message-sid-button"
@@ -25,10 +25,8 @@ export function ConversationMessageBubble({
     <li className={cn("flex", isCustomer ? "justify-end" : "justify-start")}>
       <article
         className={cn(
-          "max-w-[90%] min-w-0 space-y-2 rounded-2xl border px-4 py-3 shadow-sm sm:max-w-[80%]",
-          isCustomer
-            ? "rounded-br-sm border-primary/20 bg-primary/10"
-            : "rounded-bl-sm border-border bg-background"
+          "max-w-[94%] min-w-0 space-y-2 rounded-xl px-4 py-4 sm:max-w-[80%]",
+          isCustomer ? "rounded-br-sm bg-accent" : "rounded-bl-sm bg-card"
         )}
       >
         <div className="flex items-center justify-between gap-3">
@@ -60,7 +58,7 @@ export function ConversationMessageBubble({
             ))}
           </ul>
         )}
-        <div className="flex justify-end text-[10px] text-muted-foreground">
+        <div className="flex justify-end text-xs text-muted-foreground">
           <time
             dateTime={
               message.dateCreated

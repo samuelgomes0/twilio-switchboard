@@ -52,7 +52,7 @@ function render(file, name, { activeEnvironment = environment, states = {}, prop
           node.initializer && ts.isCallExpression(node.initializer)) {
         const key = node.name.elements[0]?.name?.getText(ast)
         if (Object.hasOwn(seeds, key)) {
-          const argument = node.initializer.arguments[0]
+          const argument = node.initializer.arguments[node.initializer.expression.getText(ast) === "useBrowserState" ? 1 : 0]
           const value = JSON.stringify(seeds[key]).replace(/"timestamp":"([^"]+)"/g, '"timestamp":new Date("$1")')
           edits.push([argument.getStart(ast), argument.end, value])
         }
@@ -168,7 +168,7 @@ test("partial batch results keep successful, skipped and failed counts together"
   for (const [file, name] of tools.filter(([file]) => /close-form|assign-workers|cancel-queue-tasks|add-particular-filter/.test(file))) {
     const html = render(file, name, { states: { [file]: { status: "done", summary } } })
     assert.match(html, /class="font-medium text-destructive">1 erro/)
-    assert.match(html, /text-emerald-600 dark:text-emerald-400">2 /)
+    assert.match(html, /text-success dark:text-success">2 /)
     assert.doesNotMatch(html, /role="alert"/)
     if (!file.includes("close-form")) assert.match(html, /text-muted-foreground">3 /)
   }
@@ -199,6 +199,7 @@ test("valid empty results and filtered emptiness remain distinct from failures",
     "features/conversations/components/use-message-filters.ts": { contentQuery: "ausente" },
   } })
   assert.ok(html.includes(strings.conversations.history.result.noFilteredMessages))
+  inspectInputActions(html, ["export", "clear"])
   assert.ok(!html.includes(strings.conversations.history.result.empty))
   assert.doesNotMatch(html, /role="alert"/)
 })
@@ -208,15 +209,124 @@ test("message truncation remains a nonblocking warning", () => {
     props: { participants: [], data: { messages: [], hasMore: true, conversation: { sid: "test" } } },
   })
   assert.ok(html.includes(strings.conversations.history.result.limitWarning))
-  assert.match(html, /bg-amber-500\/10/)
+  assert.match(html, /bg-warning-soft/)
   assert.doesNotMatch(html, /role="alert"/)
 })
 
-test("phone examples and hints match the existing digits-only format without removing the ninth digit", () => {
+test("phone examples and hints match each form's accepted format without removing the ninth digit", () => {
   for (const [file, name] of tools.filter(([file]) => /close-form|fetch-by-participant/.test(file))) {
     const html = render(file, name)
     assert.match(html, /placeholder="11999999999"/)
     assert.ok(html.includes("DDD + número, apenas dígitos, sem +55"))
+    assert.ok(html.includes("whatsapp:+55"))
     assert.ok(!html.includes("sem dígito 9"))
+  }
+})
+
+test("search actions sit beside their input and retain submit semantics in both task modes", () => {
+  for (const [file, name] of tools.filter(([file]) => /conversation-form|fetch-by-participant|fetch-worker|search-tasks/.test(file))) {
+    for (const mode of ["sid", "phone"]) {
+      const html = render(file, name, { states: { [file]: { mode } } })
+      const form = html.match(/<form\b[^>]*>(.*?)<\/form>/s)?.[1]
+      assert.ok(form, file)
+      const search = form.match(/<button\b[^>]*data-action="search"[^>]*>/g) ?? []
+      assert.equal(search.length, 1, file)
+      assert.match(search[0], /type="submit"/)
+      assert.match(search[0], /data-variant="default"/)
+      assert.match(search[0], /data-size="default"/)
+      const row = form.slice(form.indexOf('data-slot="input-actions"'))
+      assert.match(row, /class="[^"]*flex-col[^"]*lg:flex-row/)
+      assert.match(row, /<input\b[^>]*\/>\s*<\/div>\s*<div data-slot="action-bar"|<input\b[^>]*\/>\s*<div data-slot="action-bar"/)
+      assert.ok(row.indexOf('data-action="search"') > row.indexOf("<input"), file)
+      inspectReferences(html)
+    }
+  }
+})
+
+test("settings save and cancel share size and order beside the inputs", () => {
+  for (const [file, name, options] of [
+    ["features/contacts/components/contacts-manager.tsx", "ContactsManager", { states: {
+      "features/contacts/components/contacts-manager.tsx": { showAddForm: true },
+    } }],
+    ["features/environments/components/environment-form.tsx", "EnvironmentForm", { props: { onSave: noop, onCancel: noop } }],
+  ]) {
+    const html = render(file, name, options)
+    const footer = html.slice(html.lastIndexOf('data-slot="action-bar"'))
+    assert.ok(footer.indexOf('data-action="save"') < footer.indexOf('data-action="cancel"'))
+    assert.match(footer, /<button(?=[^>]*data-action="save")(?=[^>]*data-variant="default")(?=[^>]*data-size="default")/)
+    assert.match(footer, /<button(?=[^>]*data-action="cancel")(?=[^>]*data-variant="outline")(?=[^>]*data-size="default")/)
+    assert.ok(!footer.includes("<input"))
+    inspectInputActions(html, ["save", "cancel"])
+    inspectReferences(html)
+  }
+})
+
+test("number result actions precede the table and keep export available", () => {
+  const file = "features/numbers/components/list-numbers-form.tsx"
+  const html = render(file, "ListNumbersForm", { states: { [file]: {
+    results: [{ id: "sender", friendlyName: "Teste", phoneNumber: "11999999999", service: "Conversations" }],
+  } } })
+  for (const action of ["refresh", "export"]) {
+    assert.ok(html.indexOf(`data-action="${action}"`) < html.indexOf("<table"))
+    assert.match(html, new RegExp(`<button(?=[^>]*data-action="${action}")(?=[^>]*data-variant="outline")(?=[^>]*data-size="default")`))
+  }
+  assert.match(html, /<button(?=[^>]*data-action="export")(?=[^>]*aria-haspopup="menu")/)
+  inspectInputActions(html, ["refresh", "export"])
+})
+
+function inspectInputActions(html, actions) {
+  const ancestors = []
+  const found = new Set()
+  for (const match of html.matchAll(/<(\/?)([a-z][a-z0-9-]*)\b([^>]*)>/gi)) {
+    const [, closing, tag, attributes] = match
+    if (closing) {
+      ancestors.pop()
+      continue
+    }
+    const action = attributes.match(/data-action="([^"]+)"/)?.[1]
+    if (tag === "button" && actions.includes(action)) {
+      found.add(action)
+      assert.ok(ancestors.some(parent => parent.includes('data-slot="input-actions"')), action)
+      if (action === "stop") {
+        assert.doesNotMatch(attributes, /\bdisabled=/)
+        assert.ok(!ancestors.some(parent => /^fieldset\b.*\bdisabled=/.test(parent)))
+      }
+    }
+    if (!/^(input|br|hr|img|meta|link|area|base|col|embed|param|source|track|wbr)$/.test(tag) && !attributes.endsWith("/")) {
+      ancestors.push(`${tag} ${attributes}`)
+    }
+  }
+  for (const action of actions) assert.ok(found.has(action), action)
+}
+
+test("every batch form keeps submit and enabled cancellation beside inputs", () => {
+  for (const [file, name] of tools.filter(([file]) => /close-form|assign-workers|cancel-queue-tasks|create-workflow|add-particular-filter|update-worker-feature/.test(file))) {
+    const stateFile = file.includes("update-worker-feature") ? file.replace("update-worker-feature-form.tsx", "use-update-worker-feature.ts") : file
+    const html = render(file, name, { states: { [stateFile]: { status: "running" } } })
+    inspectInputActions(html, [/close-form|cancel-queue-tasks/.test(file) ? "destructive" : "primary", "stop"])
+    if (/close-form|assign-workers|add-particular-filter|update-worker-feature/.test(file)) inspectInputActions(html, ["add", "remove"])
+    inspectReferences(html)
+  }
+})
+
+test("Flex keeps exactly one submit beside its active integration input", () => {
+  const file = "features/flex/components/create-address-config-form.tsx"
+  for (const integrationType of ["default", "studio", "webhook"]) {
+    const html = render(file, "CreateAddressConfigForm", { states: { [file]: { integrationType } } })
+    assert.equal((html.match(/type="submit"/g) ?? []).length, 1)
+    inspectInputActions(html, ["primary", "cancel"])
+    inspectReferences(html)
+  }
+})
+
+test("variable add and edit actions stay beside their inputs", () => {
+  const file = "features/variables/components/variables-manager.tsx"
+  for (const showAdd of [true, false]) {
+    const html = render(file, "VariablesManager", { states: { [file]: { state: {
+      values: ["valor"], showAdd, addValue: "novo", editingIndex: showAdd ? null : 0,
+      editValue: "valor", confirmDeleteIndex: null,
+    } } } })
+    inspectInputActions(html, ["save", "cancel"])
+    inspectReferences(html)
   }
 })

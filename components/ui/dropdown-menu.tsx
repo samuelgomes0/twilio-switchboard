@@ -1,5 +1,5 @@
-import * as React from "react"
 import { DropdownMenu } from "radix-ui"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -71,9 +71,9 @@ function DropdownMenuItem({
 }
 
 export {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuSeparator,
   DropdownMenuItem,
+  DropdownMenuRoot,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 }

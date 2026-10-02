@@ -1,16 +1,23 @@
 "use client"
-import { Download, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+
+import { ActionBar } from "@/components/action-bar"
+import { InputActions } from "@/components/input-actions"
+
+import { ActionButton } from "@/components/action-button"
+
+import { EmptyState } from "@/components/empty-state"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { SearchInput } from "@/components/search-input"
 import { Label } from "@/components/ui/label"
-import { ConversationMessageBubble } from "./conversation-message-bubble"
+import { Select } from "@/components/ui/select"
+import { exportMessages } from "@/features/conversations/lib/export-messages"
 import { isCustomerMessage } from "@/features/conversations/lib/is-customer-message"
 import type {
   ConversationHistoryResponse,
   Participant,
 } from "@/features/conversations/types"
-import { exportMessages } from "@/features/conversations/lib/export-messages"
+import { ConversationMessageBubble } from "./conversation-message-bubble"
 import { useMessageFilters } from "./use-message-filters"
 
 import { strings } from "@/lib/strings"
@@ -36,6 +43,23 @@ export function ConversationMessages({
     hasActiveFilters,
     clearFilters,
   } = useMessageFilters(data.messages)
+  const resultActions = (
+    <ActionBar className="sm:max-w-56">
+      <ActionButton
+        action="export"
+        type="button"
+        disabled={filteredMessages.length === 0}
+        onClick={() => exportMessages(data.conversation.sid, filteredMessages)}
+      >
+        {strings.conversations.history.export.button}
+      </ActionButton>
+      {hasActiveFilters && (
+        <ActionButton action="clear" type="button" onClick={clearFilters}>
+          {strings.conversations.history.filters.clear}
+        </ActionButton>
+      )}
+    </ActionBar>
+  )
   return (
     <Card className="p-6">
       <p className="mb-4 text-sm text-muted-foreground" aria-live="polite">
@@ -45,7 +69,7 @@ export function ConversationMessages({
         )}
       </p>
       {data.hasMore && (
-        <p className="mb-4 rounded-md bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+        <p className="mb-4 rounded-md bg-warning-soft px-3 py-3 text-sm text-warning">
           {strings.conversations.history.result.limitWarning}
         </p>
       )}
@@ -56,25 +80,29 @@ export function ConversationMessages({
               <Label htmlFor="message-content-search">
                 {strings.conversations.history.filters.contentLabel}
               </Label>
-              <Input
-                id="message-content-search"
-                type="search"
-                value={contentQuery}
-                onChange={(event) => setContentQuery(event.target.value)}
-                placeholder={
-                  strings.conversations.history.filters.contentPlaceholder
-                }
-              />
+              <InputActions>
+                <SearchInput
+                  id="message-content-search"
+                  type="search"
+                  value={contentQuery}
+                  onChange={(event) => setContentQuery(event.target.value)}
+                  placeholder={
+                    strings.conversations.history.filters.contentPlaceholder
+                  }
+                  className="min-w-0 flex-1"
+                />
+                {resultActions}
+              </InputActions>
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="message-author-filter">
                 {strings.conversations.history.filters.authorLabel}
               </Label>
-              <select
+              <Select
                 id="message-author-filter"
                 value={authorFilter}
                 onChange={(event) => setAuthorFilter(event.target.value)}
-                className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="w-full"
               >
                 <option value="">
                   {strings.conversations.history.filters.allAuthors}
@@ -84,7 +112,7 @@ export function ConversationMessages({
                     {author}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="message-start-date">
@@ -111,46 +139,20 @@ export function ConversationMessages({
               />
             </div>
           </div>
-          {hasActiveFilters && (
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-              >
-                <X />
-                {strings.conversations.history.filters.clear}
-              </Button>
-            </div>
-          )}
         </div>
       )}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">
           {strings.conversations.history.result.messagesHeading}
         </h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={filteredMessages.length === 0}
-          onClick={() =>
-            exportMessages(data.conversation.sid, filteredMessages)
-          }
-        >
-          <Download />
-          {strings.conversations.history.export.button}
-        </Button>
+        {data.messages.length === 0 && resultActions}
       </div>
       {data.messages.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {strings.conversations.history.result.empty}
-        </p>
+        <EmptyState title={strings.conversations.history.result.empty} />
       ) : filteredMessages.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {strings.conversations.history.result.noFilteredMessages}
-        </p>
+        <EmptyState
+          title={strings.conversations.history.result.noFilteredMessages}
+        />
       ) : (
         <ol
           aria-label={strings.conversations.history.result.messagesHeading}

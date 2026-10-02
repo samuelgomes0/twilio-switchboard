@@ -1,17 +1,16 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import {
-  ChevronRight,
-  Loader2,
-  Play,
-  Plus,
-  RotateCcw,
-  Square,
-  Trash2,
-  UserPlus,
-} from "lucide-react"
-import Link from "next/link"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -19,7 +18,6 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
-import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
 import {
   AlertDialogAction,
@@ -31,16 +29,17 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { WarningBadge } from "@/components/warning-badge"
+
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { STORED_KEYS } from "@/lib/stored-keys"
-import { readHistory, pushHistory } from "@/lib/operation-history"
-import { strings } from "@/lib/strings"
+import { pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
 
 type Status = "idle" | "running" | "done" | "error"
@@ -94,16 +93,15 @@ export function AssignWorkersForm() {
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => readHistory<HistoryEntry>(HISTORY_KEY),
+    []
+  )
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
     {}
   )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
-  }, [])
 
   const emails = [
     ...new Set(workers.map((identifier) => identifier.trim()).filter(Boolean)),
@@ -254,131 +252,117 @@ export function AssignWorkersForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav
-        data-worker-page-header
-        className="mb-5 flex flex-wrap items-center gap-1 text-sm"
-      >
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.assignWorkers.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <UserPlus className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.assignWorkers.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.assignWorkers.subtitle}
-          </p>
-        </div>
-      </div>
-
-      {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
+      {!management && (
+        <PageHeader
+          title={strings.taskrouter.assignWorkers.title}
+          description={strings.taskrouter.assignWorkers.subtitle}
+          parent={{
+            href: "/taskrouter",
+            label: strings.sidebar.sections.taskrouter,
+          }}
+          badge={<WarningBadge />}
+          embedded
+        />
       )}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      {/* No environment warning */}
+      {!activeEnvironment && <NoEnvironmentSelected />}
+
+      <form onSubmit={handleFormSubmit} className="operation-form space-y-5">
         {/* Workspace SID */}
-        <div data-worker-workspace-field className="space-y-2">
-          <Label htmlFor="skill-workspace">
-            {strings.taskrouter.assignWorkers.workspaceSidLabel}
-          </Label>
-          <StoredInput
-            id="skill-workspace"
-            aria-describedby={fieldErrors.workspaceSid ? "skill-workspace-error" : undefined}
-            aria-invalid={!!fieldErrors.workspaceSid}
-            storageKey={WS_SIDS_KEY}
-            environmentId={activeEnvironment?.id}
-            value={workspaceSid}
-            onChange={(v) => {
-              setWorkspaceSid(v)
-              if (fieldErrors.workspaceSid)
-                setFieldErrors((prev) => {
-                  const next = { ...prev }
-                  delete next.workspaceSid
-                  return next
-                })
-            }}
-            placeholder={strings.common.placeholders.workspaceSid}
-            disabled={status === "running"}
-          />
-          {fieldErrors.workspaceSid && (
-            <p id="skill-workspace-error" className="text-xs text-destructive">
-              {fieldErrors.workspaceSid}
-            </p>
-          )}
-        </div>
+        {!management && (
+          <div data-worker-workspace-field className="space-y-2">
+            <Label htmlFor="skill-workspace">
+              {strings.taskrouter.assignWorkers.workspaceSidLabel}
+            </Label>
+            <StoredInput
+              id="skill-workspace"
+              aria-describedby={
+                fieldErrors.workspaceSid ? "skill-workspace-error" : undefined
+              }
+              aria-invalid={!!fieldErrors.workspaceSid}
+              storageKey={WS_SIDS_KEY}
+              environmentId={activeEnvironment?.id}
+              value={workspaceSid}
+              onChange={(v) => {
+                setWorkspaceSid(v)
+                if (fieldErrors.workspaceSid)
+                  setFieldErrors((prev) => {
+                    const next = { ...prev }
+                    delete next.workspaceSid
+                    return next
+                  })
+              }}
+              placeholder={strings.common.placeholders.workspaceSid}
+              disabled={status === "running"}
+            />
+            {fieldErrors.workspaceSid && (
+              <p
+                id="skill-workspace-error"
+                className="text-xs text-destructive"
+              >
+                {fieldErrors.workspaceSid}
+              </p>
+            )}
+          </div>
+        )}
 
         <fieldset className="space-y-2" disabled={status === "running"}>
           <legend className="mb-2 text-sm font-medium">
             {strings.taskrouter.assignWorkers.workersLabel}
           </legend>
-          {workers.map((worker, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Label htmlFor={`skill-worker-${index}`} className="sr-only">
-                {strings.taskrouter.assignWorkers.workerLabel(index + 1)}
-              </Label>
-              <Input
-                id={`skill-worker-${index}`}
-                value={worker}
-                onChange={(event) =>
-                  setWorkers((previous) =>
-                    previous.map((identifier, position) =>
-                      position === index ? event.target.value : identifier
-                    )
-                  )
-                }
-                placeholder={strings.taskrouter.assignWorkers.workerPlaceholder}
-                className="min-w-0 flex-1"
-              />
-              <Button
-                size="icon"
-                variant="outline"
-                type="button"
-                disabled={workers.length === 1}
-                onClick={() =>
-                  setWorkers((previous) =>
-                    previous.filter((_, position) => position !== index)
-                  )
-                }
-                className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
-                aria-label={strings.taskrouter.assignWorkers.removeWorker(
-                  index + 1
-                )}
-              >
-                <Trash2 className="size-3.5" aria-hidden="true" />
-              </Button>
+          <InputActions>
+            <div className="min-w-0 flex-1 space-y-2">
+              {workers.map((worker, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Label htmlFor={`skill-worker-${index}`} className="sr-only">
+                    {strings.taskrouter.assignWorkers.workerLabel(index + 1)}
+                  </Label>
+                  <Input
+                    id={`skill-worker-${index}`}
+                    value={worker}
+                    onChange={(event) =>
+                      setWorkers((previous) =>
+                        previous.map((identifier, position) =>
+                          position === index ? event.target.value : identifier
+                        )
+                      )
+                    }
+                    placeholder={
+                      strings.taskrouter.assignWorkers.workerPlaceholder
+                    }
+                    className="min-w-0 flex-1"
+                  />
+                  <ActionButton
+                    action="remove"
+                    iconOnly
+                    type="button"
+                    disabled={workers.length === 1}
+                    onClick={() =>
+                      setWorkers((previous) =>
+                        previous.filter((_, position) => position !== index)
+                      )
+                    }
+                    aria-label={strings.taskrouter.assignWorkers.removeWorker(
+                      index + 1
+                    )}
+                  ></ActionButton>
+                </div>
+              ))}
             </div>
-          ))}
-          <Button
-            size="sm"
-            variant="ghost"
-            type="button"
-            disabled={workers.length >= MAX_ITEMS}
-            onClick={() => setWorkers((previous) => [...previous, ""])}
-            className="text-muted-foreground"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            {strings.taskrouter.assignWorkers.addWorker}
-          </Button>
+            <ActionBar>
+              <ActionButton
+                action="add"
+                type="button"
+                disabled={workers.length >= MAX_ITEMS}
+                onClick={() => setWorkers((previous) => [...previous, ""])}
+              >
+                {strings.taskrouter.assignWorkers.addWorker}
+              </ActionButton>
+            </ActionBar>
+          </InputActions>
         </fieldset>
 
         {/* Skill name */}
@@ -406,57 +390,56 @@ export function AssignWorkersForm() {
               {strings.taskrouter.assignWorkers.levelOptional}
             </span>
           </Label>
-          <Input
-            id="level"
-            type="number"
-            placeholder={strings.common.placeholders.level}
-            min={0}
-            max={5}
-            value={levelInput}
-            onChange={(e) => setLevelInput(e.target.value)}
-            disabled={status === "running"}
-          />
-        </div>
+          <InputActions>
+            <div className="min-w-0 flex-1">
+              <Input
+                id="level"
+                type="number"
+                placeholder={strings.common.placeholders.level}
+                min={0}
+                max={5}
+                value={levelInput}
+                onChange={(e) => setLevelInput(e.target.value)}
+                disabled={status === "running"}
+              />
+            </div>
+            <ActionBar>
+              <ActionButton
+                action="primary"
+                aria-busy={status === "running"}
+                type="submit"
+                disabled={!canSubmit}
+              >
+                {status === "running" ? (
+                  <>
+                    <Loader2
+                      className="size-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                    {strings.common.processing}
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-3.5" />
+                    {strings.taskrouter.assignWorkers.submit}
+                  </>
+                )}
+              </ActionButton>
 
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
-            {status === "running" ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.taskrouter.assignWorkers.submit}
-              </>
-            )}
-          </Button>
+              {status === "running" && (
+                <ActionButton action="stop" type="button" onClick={handleAbort}>
+                  {strings.common.cancel}
+                </ActionButton>
+              )}
 
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reset}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
-          )}
+              {(logs.length > 0 || status !== "idle") &&
+                status !== "running" && (
+                  <ActionButton action="clear" type="button" onClick={reset}>
+                    {strings.common.clear}
+                  </ActionButton>
+                )}
+            </ActionBar>
+          </InputActions>
         </div>
       </form>
 
@@ -521,7 +504,7 @@ export function AssignWorkersForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.taskrouter.assignWorkers.summary.updated(
               summary.totalUpdated
             )}
@@ -549,7 +532,7 @@ export function AssignWorkersForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />

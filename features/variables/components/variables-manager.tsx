@@ -1,20 +1,19 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { ActionBar } from "@/components/action-bar"
+import { InputActions } from "@/components/input-actions"
+
+import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import * as React from "react"
-import {
-  ChevronRight,
-  Pencil,
-  Plus,
-  SlidersHorizontal,
-  Trash2,
-} from "lucide-react"
-import Link from "next/link"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
+import { strings } from "@/lib/strings"
 import {
   addVariable,
   deleteVariable,
@@ -23,7 +22,6 @@ import {
   VARIABLE_GROUPS,
   type VariableGroup,
 } from "@/lib/variables"
-import { strings } from "@/lib/strings"
 
 const s = strings.variables.manager
 
@@ -54,13 +52,18 @@ function VariableGroupSection({
   group: VariableGroup
   environmentId: string
 }) {
-  const [state, setState] = React.useState<GroupState>(() =>
-    initGroup(group.key, environmentId)
+  const [state, setState] = useBrowserState<GroupState>(
+    () => initGroup(group.key, environmentId),
+    {
+      values: [],
+      showAdd: false,
+      addValue: "",
+      editingIndex: null,
+      editValue: "",
+      confirmDeleteIndex: null,
+    },
+    group.key + environmentId
   )
-
-  React.useEffect(() => {
-    setState(initGroup(group.key, environmentId))
-  }, [group.key, environmentId])
 
   function set(patch: Partial<GroupState>) {
     setState((prev) => ({ ...prev, ...patch }))
@@ -86,14 +89,12 @@ function VariableGroupSection({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="rounded-md border border-border bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <span className="text-sm font-semibold">{group.label}</span>
         {!state.showAdd && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 gap-1 px-2 text-xs"
+          <ActionButton
+            action="add"
             onClick={() =>
               set({
                 showAdd: true,
@@ -102,21 +103,22 @@ function VariableGroupSection({
               })
             }
           >
-            <Plus className="size-3" />
             {s.addButton}
-          </Button>
+          </ActionButton>
         )}
       </div>
 
       <div className="px-4 py-3">
         {state.showAdd && (
           <div className="mb-3 space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-            <Label htmlFor={`variable-add-${group.key}`} className="text-xs">{s.valueLabel}</Label>
-            <div className="flex flex-wrap gap-2">
+            <Label htmlFor={`variable-add-${group.key}`} className="text-xs">
+              {s.valueLabel}
+            </Label>
+            <InputActions>
               <Input
                 id={`variable-add-${group.key}`}
                 aria-label={s.valueLabel}
-                className="h-8 w-full min-w-0 font-mono text-xs sm:flex-1"
+                className="w-full min-w-0 font-mono text-xs sm:flex-1"
                 value={state.addValue}
                 onChange={(e) => set({ addValue: e.target.value })}
                 placeholder={s.valuePlaceholder}
@@ -126,23 +128,22 @@ function VariableGroupSection({
                 }}
                 autoFocus
               />
-              <Button
-                size="sm"
-                className="shrink-0"
-                onClick={handleAdd}
-                disabled={!state.addValue.trim()}
-              >
-                {s.saveButton}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0"
-                onClick={() => set({ showAdd: false, addValue: "" })}
-              >
-                {strings.common.cancel}
-              </Button>
-            </div>
+              <ActionBar>
+                <ActionButton
+                  action="save"
+                  onClick={handleAdd}
+                  disabled={!state.addValue.trim()}
+                >
+                  {s.saveButton}
+                </ActionButton>
+                <ActionButton
+                  action="cancel"
+                  onClick={() => set({ showAdd: false, addValue: "" })}
+                >
+                  {strings.common.cancel}
+                </ActionButton>
+              </ActionBar>
+            </InputActions>
           </div>
         )}
 
@@ -154,14 +155,17 @@ function VariableGroupSection({
           <div className="space-y-1">
             {state.values.map((val, i) =>
               state.editingIndex === i ? (
-                <div key={i} className="flex flex-wrap gap-2">
-                  <Label htmlFor={`variable-edit-${group.key}-${i}`} className="sr-only">
+                <InputActions key={i}>
+                  <Label
+                    htmlFor={`variable-edit-${group.key}-${i}`}
+                    className="sr-only"
+                  >
                     {s.valueLabel}
                   </Label>
                   <Input
                     id={`variable-edit-${group.key}-${i}`}
                     aria-label={s.valueLabel}
-                    className="h-8 w-full min-w-0 font-mono text-xs sm:flex-1"
+                    className="w-full min-w-0 font-mono text-xs sm:flex-1"
                     value={state.editValue}
                     onChange={(e) => set({ editValue: e.target.value })}
                     onKeyDown={(e) => {
@@ -171,48 +175,44 @@ function VariableGroupSection({
                     }}
                     autoFocus
                   />
-                  <Button
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => handleUpdate(i)}
-                    disabled={!state.editValue.trim()}
-                  >
-                    {s.saveButton}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => set({ editingIndex: null, editValue: "" })}
-                  >
-                    {strings.common.cancel}
-                  </Button>
-                </div>
+                  <ActionBar>
+                    <ActionButton
+                      action="save"
+                      onClick={() => handleUpdate(i)}
+                      disabled={!state.editValue.trim()}
+                    >
+                      {s.saveButton}
+                    </ActionButton>
+                    <ActionButton
+                      action="cancel"
+                      onClick={() => set({ editingIndex: null, editValue: "" })}
+                    >
+                      {strings.common.cancel}
+                    </ActionButton>
+                  </ActionBar>
+                </InputActions>
               ) : state.confirmDeleteIndex === i ? (
                 <div
                   key={i}
-                  className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2"
+                  className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2"
                 >
                   <p className="flex-1 truncate font-mono text-xs text-destructive">
                     {s.deleteConfirm(val)}
                   </p>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="h-7 shrink-0 gap-1 px-2 text-xs"
-                    onClick={() => handleDelete(i)}
-                  >
-                    <Trash2 className="size-3" />
-                    {s.deleteButton}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 shrink-0 px-2 text-xs"
-                    onClick={() => set({ confirmDeleteIndex: null })}
-                  >
-                    {strings.common.cancel}
-                  </Button>
+                  <ActionBar className="justify-end">
+                    <ActionButton
+                      action="cancel"
+                      onClick={() => set({ confirmDeleteIndex: null })}
+                    >
+                      {strings.common.cancel}
+                    </ActionButton>
+                    <ActionButton
+                      action="delete"
+                      onClick={() => handleDelete(i)}
+                    >
+                      {s.deleteButton}
+                    </ActionButton>
+                  </ActionBar>
                 </div>
               ) : (
                 <div
@@ -222,10 +222,10 @@ function VariableGroupSection({
                   <span className="min-w-0 flex-1 truncate font-mono text-xs">
                     {val}
                   </span>
-                  <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
+                  <ActionBar>
+                    <ActionButton
+                      action="edit"
+                      iconOnly
                       type="button"
                       aria-label={strings.variables.manager.editAriaLabel}
                       onClick={() =>
@@ -236,23 +236,17 @@ function VariableGroupSection({
                           confirmDeleteIndex: null,
                         })
                       }
-                      className="text-muted-foreground"
-                    >
-                      <Pencil className="size-3" />
-                    </Button>
-                    <Button
-                      size="icon-xs"
-                      variant="ghost"
+                    ></ActionButton>
+                    <ActionButton
+                      action="delete"
+                      iconOnly
                       type="button"
                       aria-label={strings.variables.manager.deleteAriaLabel}
                       onClick={() =>
                         set({ confirmDeleteIndex: i, editingIndex: null })
                       }
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="size-3" />
-                    </Button>
-                  </div>
+                    ></ActionButton>
+                  </ActionBar>
                 </div>
               )
             )}
@@ -267,29 +261,13 @@ export function VariablesManager() {
   const { activeEnvironment } = useEnvironment()
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/settings"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.environments.page.title}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{s.breadcrumb}</span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <SlidersHorizontal className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
-          <p className="text-sm text-muted-foreground">{s.subtitle}</p>
-        </div>
-      </div>
+      <PageHeader
+        title={s.title}
+        description={s.subtitle}
+        parent={{ href: "/settings", label: strings.environments.page.title }}
+      />
 
       {!activeEnvironment ? (
         <NoEnvironmentSelected className="mb-0" />
@@ -301,10 +279,10 @@ export function VariablesManager() {
               {activeEnvironment.name}
             </span>
           </p>
-          <div className="space-y-4">
+          <div className="settings-list">
             {VARIABLE_GROUPS.map((group) => (
               <VariableGroupSection
-                key={group.key}
+                key={`${group.key}:${activeEnvironment.id}`}
                 group={group}
                 environmentId={activeEnvironment.id}
               />

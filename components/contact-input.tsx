@@ -1,19 +1,21 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
 
 import { Button } from "@/components/ui/button"
 import { strings } from "@/lib/strings"
 
-import * as React from "react"
+import { navigateSuggestions } from "@/components/suggestion-keyboard"
 import { Check, UserPlus, X } from "lucide-react"
+import * as React from "react"
 
 import { Label } from "@/components/ui/label"
-import { cn } from "@/lib/utils"
 import {
   addContact,
   deleteContact,
   readContacts,
   type Contact,
 } from "@/lib/contacts"
+import { cn } from "@/lib/utils"
 
 interface ContactInputProps {
   value: string
@@ -44,16 +46,12 @@ export function ContactInput({
   prefix,
 }: ContactInputProps) {
   const nameInputId = React.useId()
-  const [contacts, setContacts] = React.useState<Contact[]>([])
+  const [contacts, setContacts] = useBrowserState<Contact[]>(readContacts, [])
   const [open, setOpen] = React.useState(false)
   const [showSaveForm, setShowSaveForm] = React.useState(false)
   const [savingName, setSavingName] = React.useState("")
   const containerRef = React.useRef<HTMLDivElement>(null)
   const saveInputRef = React.useRef<HTMLInputElement>(null)
-
-  React.useEffect(() => {
-    setContacts(readContacts())
-  }, [])
 
   const trimmed = value.trim()
   const filtered = trimmed
@@ -98,6 +96,13 @@ export function ContactInput({
       ref={containerRef}
       className={cn("relative", containerClassName)}
       onBlur={handleBlur}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false)
+          setShowSaveForm(false)
+          event.stopPropagation()
+        } else if (showDropdown && !showSaveForm) navigateSuggestions(event)
+      }}
     >
       {prefix && (
         <span className="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm text-muted-foreground">
@@ -118,7 +123,7 @@ export function ContactInput({
         autoComplete="off"
         spellCheck={false}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 font-mono text-sm shadow-xs transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "field-control font-mono placeholder:font-sans",
           className
         )}
       />
@@ -146,7 +151,7 @@ export function ContactInput({
                 type="button"
                 tabIndex={0}
                 aria-label={strings.contacts.input.removeContact}
-                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                className="mr-1 flex size-9 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   handleDelete(c.id)
@@ -161,7 +166,7 @@ export function ContactInput({
               <button
                 type="button"
                 tabIndex={0}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setShowSaveForm(true)

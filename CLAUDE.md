@@ -13,7 +13,7 @@ npm run lint       # ESLint
 npm run format     # Prettier (ts/tsx files)
 ```
 
-Node >= 22 required. `npm test` runs the Node.js suites for Conversation consultation, operation messages, Worker features, the shared TypeScript loader and UI feedback markup. They use the existing TypeScript compiler and mock Twilio without network calls. Browser coverage is not configured.
+Node >= 22 required. `npm test` runs the Node.js suites for Conversation consultation, operation messages, Worker features, the shared TypeScript loader and UI feedback markup. They use the existing TypeScript compiler and mock Twilio without network calls. `tests/redesign-browser.mjs` is an optional browser suite using an externally installed Playwright module and Edge; it is not part of `npm test`. See `REDESIGN.md` for execution and validation limitations.
 
 `tests/typescript-loader.mjs` shares CommonJS/ES2022 transpilation, `@/` alias resolution and module overrides. `createLoader(overrides)` owns its cache per instance, preserving class identity in operation-message tests. `load(relative, overrides)` disables TypeScript caching for Conversation consultation and Worker-feature tests, including nested imports. Native modules still use Node's require cache; relative TypeScript imports still need explicit overrides.
 
@@ -35,6 +35,18 @@ Switchboard is a Next.js 16 (App Router) dashboard for Twilio operations — Con
 - `components/` — shared UI primitives and composed components
 - `lib/` — cross-cutting utilities
 
+### Shared interface
+
+`AppShell` owns the full-viewport white workspace without external margins or a width cap, 200px sidebar, sticky command/environment/theme header, main landmark and Radix Dialog mobile navigation. `SidebarNav` preserves separate domain navigation arrays, expands the active area (and Conversations/TaskRouter on the home page) and supports explicit group toggles. `CommandMenu` searches available tool labels/descriptions and settings with Ctrl/Cmd+K. Pages remain Server Component wrappers.
+
+`PageHeader`, `ToolCatalog`, `ActionBar`, `ActionButton`, `InputActions`, `EmptyState`, `ClipboardButton` and the UI controls define shared presentation. `TaskResultCard` renders Task results without owning requests. Tokens and responsive rules live in `app/globals.css`; all visible copy remains in `lib/strings.ts`. `ToolDirectory` presents 13 available tools in a compact searchable table with area filtering, catalog counts and browser environment context. The content aligns next to the sidebar rather than centering within excess empty space.
+
+`ThemeProvider` defaults to light and persists future choices in `switchboard:theme`; the legacy `theme` value is retained but ignored by this visual revision. Light/dark/system choices and the D hotkey remain available. `tests/redesign-preview.mjs` checks initial light appearance against a dark system/legacy setting and captures responsive home previews.
+
+Searches share `SearchInput` and the `search-control` style, including directory, global command dialog, Numbers, messages and Tasks. Query inputs with autocomplete or phone prefixes retain `StoredInput`/`ContactInput` with the same style. `--workspace-gutter` aligns the shell header and main content at 48px desktop, 32px tablet and 20px mobile. The home Configure environment action centers vertically beside its title/subtitle, and the table header has an 8px gap before the first row. Other page heading actions align at the top; pages use the available content width, while forms keep their readability limit. The home table header has 6px corners.
+
+`useBrowserState(read, fallback, scope)` uses the fallback for SSR and initial hydration, schedules browser storage reading after mount and reloads when scope changes. It does not change persistence keys or data formats. Histories, autocomplete and settings retain their own transformations and writes.
+
 ### Environment / credentials system
 
 Twilio credentials are stored entirely in the browser's `localStorage` (never server-side). `features/environments/storage.ts` handles serialization of `TwilioEnvironment` objects (`{ id, name, accountSid, authToken }`); `features/environments/context.tsx` exposes `EnvironmentProvider` and `useEnvironment()`. The active environment's `accountSid` and `authToken` are forwarded in the JSON body of every `POST` to `app/api/**`. Route Handlers pass them to `getTwilioClient()` in `lib/twilio-client.ts`, which falls back to `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` env vars if credentials are absent.
@@ -46,6 +58,8 @@ Long-running operations (close conversations, cancel queue tasks, assign workers
 The six SSE consumers share `consumeSseStream(reader, onDataLine)` from `lib/sse-reader.ts` for incremental UTF-8 decoding, LF-delimited frames and the first data line. JSON parsing, callback errors, completion, state and reader ownership remain local: five forms ignore malformed events, while Worker Feature validates payloads, requires completion and releases the reader. Only Worker Feature propagates cancellation through its Route Handler to the operation. The six routes share `SSE_HEADERS` from `lib/sse-headers.ts`; stream lifecycle remains in each route. See `docs/fase-2d-sse.md` for the compatibility matrix and preserved limitations. `tests/sse-client.test.mjs` characterizes actual submit functions through AST extraction; `tests/sse-server.test.mjs` covers route transport with mocked operations.
 
 ### Conversation consultation
+
+“Encerrar por Número” searches the exact Brazilian WhatsApp participant address. It accepts DDD + number, country code 55 (with or without +), the full `whatsapp:+55` address and display punctuation. Shared normalization validates both the form and POST input without adding/removing subscriber digits. The SDK follows all participant-conversation pages before filtering for `active`, so a closed history exceeding 1,000 records cannot hide active matches. Only active conversations are closed; SMS, chat identities and proxy addresses are outside this form's scope. Existing client-only cancellation semantics remain unchanged. Run `node --test tests/close-conversations.test.mjs` for input and pagination regressions with mocked Twilio transport.
 
 Message bubbles show the original author without customer/service labels. A question-mark button at the top right reveals the Message SID on hover or keyboard focus and copies it on click/Enter/Space. The revealed SID also supports click-to-copy and text selection; clipboard success/failure is announced accessibly.
 
@@ -77,7 +91,7 @@ Task queries share `map-task.ts` for their response fields and the environment-i
 
 ### localStorage persistence
 
-All feature history sections use the shared `RecentHistory` and `RecentHistoryItem` components. They share the “Últimas consultas neste ambiente” heading, clear action, spacing, typography, em-dash separators, highlighted primary value and hover treatment while retaining each operation's domain-specific entry content. History entries for read-only searches rerun the query on click and restore their saved form values; write-operation entries remain informational so a history click can never repeat a destructive action.
+All feature history sections use the shared `RecentHistory` and `RecentHistoryItem` components. Their heading is “Atividade recente neste navegador”; domain-specific entry content, keys and scopes remain intact. History entries for read-only searches rerun the query on click and restore their saved form values; write-operation entries remain informational without pointer/hover action treatment, so a history click can never repeat a destructive action.
 
 Two separate layers:
 
@@ -111,9 +125,11 @@ Page headers contain a concise title and subtitle. Longer introductory descripti
 5. Add strings to `lib/strings.ts`
 6. If the feature introduces new autocomplete fields, add keys to `lib/stored-keys.ts` (`STORED_KEYS` + `STORED_KEY_LABELS`) and add the group to `VARIABLE_GROUPS` in `lib/variables.ts` so it appears in the Variables settings page.
 
-`lib/tool.ts` defines the shared `Tool` contract for the four domain catalogs and the home/settings lists. Those lists remain separate from each other and from sidebar navigation. `components/tool-card.tsx` renders their identical card markup as a Server Component: available tools link to their href; unavailable tools retain the noninteractive card and "coming soon" badge. Page introductions and grid layouts remain with each page.
+`lib/tool.ts` defines the shared `Tool` contract for domain catalogs. Catalog definitions remain separate from sidebar navigation. `components/tool-card.tsx` renders compact rows as a Server Component: available tools link to their href; unavailable tools retain a noninteractive row and "coming soon" badge. `ToolCatalog` composes the page heading and list. The home page presents the searchable ToolDirectory with direct tool links and area filtering.
 
 ### Key shared components
+
+Repeated page actions use `ActionButton` for consistent variants, 36px height, spacing and icons, and `ActionBar` for wrapping groups. All input-related actions sit beside the relevant field or field group in `InputActions`, including multi-field forms, batch submit/add/remove, save/cancel, credential verification, and result filtering/export/refresh. Labels remain above the row and hints/errors below it; narrow screens stack controls to preserve usable input widths. Flex actions follow the active integration field. Cancellation controls remain outside disabled fieldsets, while fields retain their running-state locks. Actions without an associated input stay with their section or item; confirmation actions are right aligned, cancel before confirmation. Each caller retains handlers, disabled/loading state, labels and confirmation/cancellation semantics.
 
 | Component                                | Purpose                                          |
 | ---------------------------------------- | ------------------------------------------------ |

@@ -1,19 +1,21 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+import { Select } from "@/components/ui/select"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import {
-  CheckCircle2,
-  ChevronRight,
-  Info,
-  Loader2,
-  MapPin,
-} from "lucide-react"
-import Link from "next/link"
+import { CheckCircle2, Info, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import * as React from "react"
 
 import { StoredInput } from "@/components/stored-input"
-import { WarningBadge } from "@/components/warning-badge"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -25,7 +27,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { WarningBadge } from "@/components/warning-badge"
+
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import {
   Card,
@@ -37,15 +40,20 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import {
+  TooltipContent,
+  TooltipRoot,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useEnvironment } from "@/features/environments/context"
 import type {
   AddressConfigData,
   AddressConfigType,
   AutoCreationType,
 } from "@/features/flex/types"
-import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
+import { pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
-import { readHistory, pushHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 
 const s = strings.flex.createAddressConfig
@@ -77,7 +85,7 @@ interface HistoryEntry {
 const HISTORY_KEY = "switchboard:create-address-config-history"
 
 const selectClass =
-  "flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+  "flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm  transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -135,11 +143,10 @@ export function CreateAddressConfigForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [result, setResult] = React.useState<AddressConfigData | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
-
-  React.useEffect(() => {
-    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
-  }, [])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => readHistory<HistoryEntry>(HISTORY_KEY),
+    []
+  )
 
   const canSubmit = address.trim().length > 0 && !loading && !!activeEnvironment
 
@@ -214,48 +221,52 @@ export function CreateAddressConfigForm() {
     setHistory([])
   }
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/flex"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.flex}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{s.breadcrumb}</span>
-      </nav>
+  const formActions = (
+    <ActionBar>
+      <ActionButton
+        action="primary"
+        aria-busy={loading}
+        type="submit"
+        disabled={!canSubmit}
+      >
+        {loading && (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        )}
+        {s.submit}
+      </ActionButton>
+      <ActionButton
+        action="cancel"
+        type="button"
+        onClick={() => router.push("/flex")}
+        disabled={loading}
+      >
+        {s.cancel}
+      </ActionButton>
+    </ActionBar>
+  )
 
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <MapPin className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
-          <p className="text-sm text-muted-foreground">{s.subtitle}</p>
-        </div>
-        <div className="ml-auto">
-          <WarningBadge />
-        </div>
-      </div>
+  return (
+    <div className="workspace-page">
+      {/* Breadcrumb */}
+      <PageHeader
+        title={s.title}
+        description={s.subtitle}
+        parent={{ href: "/flex", label: strings.sidebar.sections.flex }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      <form onSubmit={handleFormSubmit} className="operation-form space-y-5">
         {/* Address type */}
         <div className="space-y-2">
           <Label htmlFor="addressType">
             <span className="mr-0.5 text-destructive">*</span>
             {s.addressTypeLabel}
           </Label>
-          <select
+          <Select
             id="addressType"
             value={addressType}
             onChange={(e) => {
@@ -270,7 +281,7 @@ export function CreateAddressConfigForm() {
                 {t.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Capabilities info box */}
@@ -317,12 +328,20 @@ export function CreateAddressConfigForm() {
             <h2 className="text-base font-semibold">
               {s.flexIntegrationSection}
             </h2>
-            <div className="group relative">
-              <Info className="size-4 cursor-help text-muted-foreground" />
-              <div className="pointer-events-none absolute top-0 left-5 z-10 w-64 rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+            <TooltipRoot>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={s.flexIntegrationInfo}
+                  className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground"
+                >
+                  <Info aria-hidden="true" className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72">
                 {s.flexIntegrationInfo}
-              </div>
-            </div>
+              </TooltipContent>
+            </TooltipRoot>
           </div>
 
           {/* Integration type */}
@@ -331,21 +350,26 @@ export function CreateAddressConfigForm() {
               <span className="mr-0.5 text-destructive">*</span>
               {s.integrationTypeLabel}
             </Label>
-            <select
-              id="integrationType"
-              value={integrationType}
-              onChange={(e) =>
-                setIntegrationType(e.target.value as AutoCreationType)
-              }
-              disabled={loading}
-              className={selectClass}
-            >
-              {INTEGRATION_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            <InputActions>
+              <div className="min-w-0 flex-1">
+                <Select
+                  id="integrationType"
+                  value={integrationType}
+                  onChange={(e) =>
+                    setIntegrationType(e.target.value as AutoCreationType)
+                  }
+                  disabled={loading}
+                  className={selectClass}
+                >
+                  {INTEGRATION_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              {integrationType === "default" && formActions}
+            </InputActions>
           </div>
 
           {/* Studio fields */}
@@ -355,17 +379,25 @@ export function CreateAddressConfigForm() {
                 <span className="mr-0.5 text-destructive">*</span>
                 {s.studioFlowLabel}
               </Label>
-              <StoredInput
-                id="studioFlowSid"
-                storageKey={STORED_KEYS.studioFlowSids}
-                environmentId={activeEnvironment?.id}
-                value={studioFlowSid}
-                onChange={setStudioFlowSid}
-                aria-describedby="studio-flow-hint"
-                placeholder={s.studioFlowPlaceholder}
-                disabled={loading}
-              />
-              <p id="studio-flow-hint" className="text-xs text-muted-foreground">
+              <InputActions>
+                <div className="min-w-0 flex-1">
+                  <StoredInput
+                    id="studioFlowSid"
+                    storageKey={STORED_KEYS.studioFlowSids}
+                    environmentId={activeEnvironment?.id}
+                    value={studioFlowSid}
+                    onChange={setStudioFlowSid}
+                    aria-describedby="studio-flow-hint"
+                    placeholder={s.studioFlowPlaceholder}
+                    disabled={loading}
+                  />
+                </div>
+                {formActions}
+              </InputActions>
+              <p
+                id="studio-flow-hint"
+                className="text-xs text-muted-foreground"
+              >
                 {s.studioFlowHint}
               </p>
             </div>
@@ -390,37 +422,26 @@ export function CreateAddressConfigForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="webhookMethod">{s.webhookMethodLabel}</Label>
-                <select
-                  id="webhookMethod"
-                  value={webhookMethod}
-                  onChange={(e) =>
-                    setWebhookMethod(e.target.value as "GET" | "POST")
-                  }
-                  disabled={loading}
-                  className={selectClass}
-                >
-                  <option value="POST">{s.httpMethods.post}</option>
-                  <option value="GET">{s.httpMethods.get}</option>
-                </select>
+                <InputActions>
+                  <div className="min-w-0 flex-1">
+                    <Select
+                      id="webhookMethod"
+                      value={webhookMethod}
+                      onChange={(e) =>
+                        setWebhookMethod(e.target.value as "GET" | "POST")
+                      }
+                      disabled={loading}
+                      className={selectClass}
+                    >
+                      <option value="POST">{s.httpMethods.post}</option>
+                      <option value="GET">{s.httpMethods.get}</option>
+                    </Select>
+                  </div>
+                  {formActions}
+                </InputActions>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button aria-busy={loading} type="submit" disabled={!canSubmit} className="gap-2">
-            {loading && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
-            {s.submit}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/flex")}
-            disabled={loading}
-          >
-            {s.cancel}
-          </Button>
         </div>
       </form>
 
@@ -452,7 +473,10 @@ export function CreateAddressConfigForm() {
 
       {/* Error */}
       {error && (
-        <div role="alert" className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
@@ -462,11 +486,11 @@ export function CreateAddressConfigForm() {
         <div className="mt-6">
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between gap-2">
-                <div>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-4 text-emerald-500" />
-                    <CardTitle className="font-mono text-sm">
+                    <CheckCircle2 className="size-4 shrink-0 text-success" />
+                    <CardTitle className="min-w-0 font-mono text-sm break-all">
                       {result.sid}
                     </CardTitle>
                   </div>
@@ -536,12 +560,12 @@ export function CreateAddressConfigForm() {
                   )}
                 </div>
                 {result.autoCreation?.webhookUrl && (
-                  <p className="mt-2 font-mono text-xs text-muted-foreground break-all">
+                  <p className="mt-2 font-mono text-xs break-all text-muted-foreground">
                     {result.autoCreation.webhookUrl}
                   </p>
                 )}
                 {result.autoCreation?.studioFlowSid && (
-                  <p className="mt-2 font-mono text-xs text-muted-foreground break-all">
+                  <p className="mt-2 font-mono text-xs break-all text-muted-foreground">
                     {result.autoCreation.studioFlowSid}
                   </p>
                 )}

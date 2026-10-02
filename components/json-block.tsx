@@ -10,7 +10,7 @@ function tryParseJson(raw: string): unknown {
 
 export function JsonBlock({
   value,
-  className = "max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed",
+  className = "max-h-72 overflow-auto rounded-md bg-muted/60 p-4 text-xs leading-relaxed",
 }: {
   value: string
   className?: string
@@ -30,7 +30,7 @@ export function JsonBlock({
   }
 
   return (
-    <pre className={className}>
+    <pre tabIndex={0} className={className}>
       {JSON.stringify(parsed, null, 2)}
     </pre>
   )

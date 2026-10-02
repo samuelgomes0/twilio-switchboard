@@ -35,7 +35,14 @@ Acesse [http://localhost:3000](http://localhost:3000) e cadastre suas credenciai
 
 > As credenciais cadastradas são armazenadas no navegador (localStorage) e enviadas via POST ao servidor da aplicação para realizar chamadas à API Twilio. O servidor da aplicação não persiste essas credenciais.
 
-## Como contribuir
+## Documentação da interface
+
+- [AUDIT.md](AUDIT.md): auditoria e contratos funcionais antes da reconstrução.
+- [REDESIGN.md](REDESIGN.md): direção visual, componentes, preservação dos fluxos e validação do novo frontend.
+
+Validação local: `npm test`, `npm run typecheck`, `npm run lint` e `npm run build`. A suíte opcional de navegador, com chamadas Twilio simuladas, está descrita em `REDESIGN.md`.
+
+## Contribuições
 
 1. Faça um fork do repositório
 2. Crie uma branch para sua feature ou correção:

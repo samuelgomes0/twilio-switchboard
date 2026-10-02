@@ -34,9 +34,12 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = React.useState(false)
 
   React.useEffect(() => {
-    setEnvironments(getEnvironments())
-    setActiveId(getActiveEnvironmentId())
-    setHydrated(true)
+    const frame = requestAnimationFrame(() => {
+      setEnvironments(getEnvironments())
+      setActiveId(getActiveEnvironmentId())
+      setHydrated(true)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   const activeEnvironment = React.useMemo(

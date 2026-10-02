@@ -1,3 +1,4 @@
+import { InputActions } from "@/components/input-actions"
 import { Card } from "@/components/ui/card"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
@@ -13,7 +14,7 @@ function Skeleton({ className }: { className: string }) {
 
 export function ConversationPageSkeleton() {
   return (
-    <div role="status" className="mx-auto max-w-3xl">
+    <div role="status" className="workspace-page">
       <span className="sr-only">
         {strings.conversations.consult.loadingPage}
       </span>
@@ -30,10 +31,10 @@ export function ConversationPageSkeleton() {
           </div>
         </div>
         <Skeleton className="mb-2 h-4 w-32" />
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Skeleton className="h-9 min-w-0 flex-1 rounded-lg" />
-          <Skeleton className="h-9 w-full rounded-full sm:w-20" />
-        </div>
+        <InputActions>
+          <Skeleton className="h-11 w-full min-w-0 rounded-lg sm:flex-1" />
+          <Skeleton className="h-11 w-24 shrink-0 rounded-md" />
+        </InputActions>
         <Skeleton className="mt-2 h-3 w-64 max-w-full" />
       </div>
     </div>
@@ -50,10 +51,10 @@ export function ConversationDetailsSkeleton() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-9 w-72 max-w-full" />
-            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-11 w-72 max-w-full" />
+            <Skeleton className="h-5 w-16 rounded-md" />
           </div>
-          <Skeleton className="h-9 w-24 rounded-lg" />
+          <Skeleton className="h-11 w-24 rounded-md" />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {[0, 1].map((index) => (
@@ -109,13 +110,19 @@ export function ConversationMessagesSkeleton() {
               className={cn("space-y-2", index < 2 && "sm:col-span-2")}
             >
               <Skeleton className="h-3 w-24" />
-              <Skeleton className="h-9 w-full rounded-lg" />
+              {index === 0 ? (
+                <InputActions>
+                  <Skeleton className="h-11 w-full min-w-0 rounded-lg sm:flex-1" />
+                  <Skeleton className="h-11 w-28 shrink-0 rounded-md" />
+                </InputActions>
+              ) : (
+                <Skeleton className="h-11 w-full rounded-lg" />
+              )}
             </div>
           ))}
         </div>
         <div className="mb-3 flex items-center justify-between gap-4">
           <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-8 w-28 rounded-full" />
         </div>
         <div className="space-y-4 rounded-xl bg-muted/30 p-3 sm:p-4">
           {[false, true, false, true].map((customer, index) => (

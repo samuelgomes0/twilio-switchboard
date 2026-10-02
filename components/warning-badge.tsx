@@ -14,7 +14,11 @@ export function WarningBadge() {
     <TooltipProvider>
       <TooltipRoot>
         <TooltipTrigger asChild>
-          <Badge variant="warning" tabIndex={0} className="cursor-default gap-1">
+          <Badge
+            variant="warning"
+            tabIndex={0}
+            className="cursor-default gap-1"
+          >
             <TriangleAlert className="size-3" />
             {strings.common.warningBadge.label}
           </Badge>

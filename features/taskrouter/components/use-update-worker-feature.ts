@@ -1,10 +1,10 @@
 "use client"
 
-import * as React from "react"
 import { createLogEntry, type LogEntry } from "@/components/log-output"
 import type { UpdateWorkerFeatureInput } from "@/features/taskrouter/types"
-import { strings } from "@/lib/strings"
 import { consumeSseStream } from "@/lib/sse-reader"
+import { strings } from "@/lib/strings"
+import * as React from "react"
 
 export function useUpdateWorkerFeature() {
   const [logs, setLogs] = React.useState<LogEntry[]>([])
@@ -35,8 +35,7 @@ export function useUpdateWorkerFeature() {
       try {
         await consumeSseStream(reader, (line) => {
           const payload: unknown = JSON.parse(line.slice(5))
-          if (typeof payload !== "object" || payload === null)
-            throw new Error()
+          if (typeof payload !== "object" || payload === null) throw new Error()
           const data = payload as Record<string, unknown>
           if (
             (data.level !== "info" &&

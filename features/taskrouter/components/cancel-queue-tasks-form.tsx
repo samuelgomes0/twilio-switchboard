@@ -1,15 +1,16 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import {
-  ChevronRight,
-  Loader2,
-  ListX,
-  Play,
-  RotateCcw,
-  Square,
-} from "lucide-react"
-import Link from "next/link"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -17,7 +18,7 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
-import { WarningBadge } from "@/components/warning-badge"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { StoredInput } from "@/components/stored-input"
 import { StoredTextarea } from "@/components/stored-textarea"
 import {
@@ -30,15 +31,15 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
+import { buttonVariants } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { WarningBadge } from "@/components/warning-badge"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { STORED_KEYS } from "@/lib/stored-keys"
-import { readHistory, pushHistory } from "@/lib/operation-history"
-import { strings } from "@/lib/strings"
+import { pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -88,16 +89,15 @@ export function CancelQueueTasksForm() {
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => readHistory<HistoryEntry>(HISTORY_KEY),
+    []
+  )
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
     {}
   )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
-  }, [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -240,45 +240,22 @@ export function CancelQueueTasksForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.cancelQueueTasks.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <ListX className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.cancelQueueTasks.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.cancelQueueTasks.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.taskrouter.cancelQueueTasks.title}
+        description={strings.taskrouter.cancelQueueTasks.subtitle}
+        parent={{
+          href: "/taskrouter",
+          label: strings.sidebar.sections.taskrouter,
+        }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      <form onSubmit={handleFormSubmit} className="operation-form form-grid">
         {/* Workspace SID */}
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
@@ -286,7 +263,9 @@ export function CancelQueueTasksForm() {
           </Label>
           <StoredInput
             id="workspaceSid"
-            aria-describedby={fieldErrors.workspaceSid ? "cancel-workspace-error" : undefined}
+            aria-describedby={
+              fieldErrors.workspaceSid ? "cancel-workspace-error" : undefined
+            }
             aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
@@ -332,61 +311,54 @@ export function CancelQueueTasksForm() {
           <Label htmlFor="closeMessage">
             {strings.taskrouter.cancelQueueTasks.closeMessageLabel}
           </Label>
-          <StoredTextarea
-            id="closeMessage"
-            storageKey={CLOSE_MESSAGES_KEY}
-            value={closeMessage}
-            onChange={setCloseMessage}
-            rows={3}
-            disabled={status === "running"}
-          />
-        </div>
+          <InputActions>
+            <div className="min-w-0 flex-1">
+              <StoredTextarea
+                id="closeMessage"
+                storageKey={CLOSE_MESSAGES_KEY}
+                value={closeMessage}
+                onChange={setCloseMessage}
+                rows={3}
+                disabled={status === "running"}
+              />
+            </div>
+            <ActionBar>
+              <ActionButton
+                action="destructive"
+                aria-busy={status === "running"}
+                type="submit"
+                disabled={!canSubmit}
+              >
+                {status === "running" ? (
+                  <>
+                    <Loader2
+                      className="size-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                    {strings.common.processing}
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-3.5" />
+                    {strings.taskrouter.cancelQueueTasks.submit}
+                  </>
+                )}
+              </ActionButton>
 
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            aria-busy={status === "running"}
-            type="submit"
-            disabled={!canSubmit}
-            variant="destructive"
-            className="gap-2"
-          >
-            {status === "running" ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.taskrouter.cancelQueueTasks.submit}
-              </>
-            )}
-          </Button>
+              {status === "running" && (
+                <ActionButton action="stop" type="button" onClick={handleAbort}>
+                  {strings.common.cancel}
+                </ActionButton>
+              )}
 
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reset}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
-          )}
+              {(logs.length > 0 || status !== "idle") &&
+                status !== "running" && (
+                  <ActionButton action="clear" type="button" onClick={reset}>
+                    {strings.common.clear}
+                  </ActionButton>
+                )}
+            </ActionBar>
+          </InputActions>
         </div>
       </form>
 
@@ -406,7 +378,8 @@ export function CancelQueueTasksForm() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction className={buttonVariants({ variant: "destructive" })}
+            <AlertDialogAction
+              className={buttonVariants({ variant: "destructive" })}
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()
@@ -450,7 +423,7 @@ export function CancelQueueTasksForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.taskrouter.cancelQueueTasks.summary.success(
               summary.totalSuccess
             )}
@@ -478,7 +451,7 @@ export function CancelQueueTasksForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />

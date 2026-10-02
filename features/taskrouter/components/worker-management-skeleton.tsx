@@ -12,7 +12,7 @@ function Skeleton({ className }: { className: string }) {
 
 export function WorkerManagementSkeleton() {
   return (
-    <div role="status" className="mx-auto max-w-3xl">
+    <div role="status" className="workspace-page">
       <span className="sr-only">
         {strings.taskrouter.workerManagement.loading}
       </span>
@@ -30,12 +30,12 @@ export function WorkerManagementSkeleton() {
           </div>
         </div>
         <Skeleton className="mb-2 h-4 w-28" />
-        <Skeleton className="mb-5 h-9 w-full" />
+        <Skeleton className="mb-5 h-11 w-full" />
         <Skeleton className="mb-5 h-11 w-full rounded-lg" />
         <Card className="space-y-3 p-5">
           <Skeleton className="h-4 w-36" />
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-28 rounded-full" />
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-28 rounded-md" />
         </Card>
       </div>
     </div>

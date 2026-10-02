@@ -1,16 +1,20 @@
 "use client"
+import { EmptyState } from "@/components/empty-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import * as React from "react"
-import { ChevronRight, Settings2, Plus, Trash2 } from "lucide-react"
-import Link from "next/link"
 
-import { Button } from "@/components/ui/button"
-import { useEnvironment } from "@/features/environments/context"
+import { EnvironmentCard } from "@/features/environments/components/environment-card"
 import {
   EnvironmentForm,
   type FormState,
 } from "@/features/environments/components/environment-form"
-import { EnvironmentCard } from "@/features/environments/components/environment-card"
+import { useEnvironment } from "@/features/environments/context"
 import { strings } from "@/lib/strings"
 
 export function EnvironmentsManager() {
@@ -45,55 +49,30 @@ export function EnvironmentsManager() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/settings"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.environments.page.title}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.environments.manager.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <div className="min-w-0 flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Settings2 className="size-4 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.environments.manager.title}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {strings.environments.manager.subtitle}
-            </p>
-          </div>
-        </div>
-
-        {!showAddForm && (
-          <Button
-            size="sm"
-            onClick={() => {
-              setShowAddForm(true)
-              setEditingId(null)
-            }}
-            className="shrink-0 gap-1.5"
-          >
-            <Plus className="size-3.5" />
-            {strings.environments.manager.addButton}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={strings.environments.manager.title}
+        description={strings.environments.manager.subtitle}
+        parent={{ href: "/settings", label: strings.environments.page.title }}
+        actions={
+          !showAddForm && (
+            <ActionButton
+              action="add"
+              onClick={() => {
+                setShowAddForm(true)
+                setEditingId(null)
+              }}
+            >
+              {strings.environments.manager.addButton}
+            </ActionButton>
+          )
+        }
+      />
 
       {/* Add form */}
       {showAddForm && (
-        <div className="mb-6 rounded-xl border border-border bg-card px-5 py-5">
+        <div className="mb-6 rounded-md border border-border bg-card px-5 py-5">
           <h2 className="mb-4 text-sm font-semibold">
             {strings.environments.manager.addTitle}
           </h2>
@@ -106,30 +85,25 @@ export function EnvironmentsManager() {
 
       {/* Environment list */}
       {environments.length === 0 && !showAddForm ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
-          <Settings2 className="mx-auto mb-3 size-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">
-            {strings.environments.manager.emptyTitle}
+        <EmptyState title={strings.environments.manager.emptyTitle}>
+          <p className="text-sm text-muted-foreground">
+            {strings.environments.manager.emptyHint}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {strings.environments.manager.emptyHint}{" "}
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              {strings.environments.manager.emptyHintLink}
-            </button>{" "}
-            {strings.environments.manager.emptyHintSuffix}
-          </p>
-        </div>
+          <ActionButton
+            action="add"
+            className="mt-4"
+            onClick={() => setShowAddForm(true)}
+          >
+            {strings.environments.manager.addButton}
+          </ActionButton>
+        </EmptyState>
       ) : (
-        <div className="space-y-3">
+        <div className="settings-list">
           {environments.map((env) =>
             editingId === env.id ? (
               <div
                 key={env.id}
-                className="rounded-xl border border-border bg-card px-5 py-5"
+                className="rounded-md border border-border bg-card px-5 py-5"
               >
                 <h2 className="mb-4 text-sm font-semibold">
                   {strings.environments.manager.editTitle}
@@ -147,29 +121,25 @@ export function EnvironmentsManager() {
             ) : confirmDeleteId === env.id ? (
               <div
                 key={env.id}
-                className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-4"
+                className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-4"
               >
                 <p className="mb-3 text-sm font-medium text-destructive">
                   {strings.environments.manager.deleteConfirm(env.name)}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(env.id)}
-                    className="gap-1.5"
-                  >
-                    <Trash2 className="size-3.5" />
-                    {strings.environments.manager.deleteButton}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                <ActionBar className="justify-end">
+                  <ActionButton
+                    action="cancel"
                     onClick={() => setConfirmDeleteId(null)}
                   >
                     {strings.common.cancel}
-                  </Button>
-                </div>
+                  </ActionButton>
+                  <ActionButton
+                    action="delete"
+                    onClick={() => handleDelete(env.id)}
+                  >
+                    {strings.environments.manager.deleteButton}
+                  </ActionButton>
+                </ActionBar>
               </div>
             ) : (
               <EnvironmentCard

@@ -1,3 +1,4 @@
+import { InputActions } from "@/components/input-actions"
 import { Card } from "@/components/ui/card"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
@@ -23,7 +24,7 @@ function ResultCardsSkeleton() {
                 <Skeleton className="h-3 w-64 max-w-full" />
                 <Skeleton className="h-4 w-40 max-w-full" />
               </div>
-              <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+              <Skeleton className="h-5 w-16 shrink-0 rounded-md" />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Skeleton className="h-3 w-full" />
@@ -31,8 +32,8 @@ function ResultCardsSkeleton() {
             </div>
             <Skeleton className="h-3 w-48 max-w-full" />
             <div className="flex gap-2 pt-1">
-              <Skeleton className="h-6 w-28 rounded-full" />
-              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-6 w-28 rounded-md" />
+              <Skeleton className="h-6 w-28 rounded-md" />
             </div>
           </Card>
         ))}
@@ -54,7 +55,7 @@ export function FetchByParticipantResultsSkeleton() {
 
 export function FetchByParticipantPageSkeleton() {
   return (
-    <div role="status" className="mx-auto max-w-3xl">
+    <div role="status" className="workspace-page">
       <span className="sr-only">
         {strings.conversations.fetchByParticipant.loadingPage}
       </span>
@@ -72,10 +73,10 @@ export function FetchByParticipantPageSkeleton() {
           </div>
         </div>
         <Skeleton className="mb-2 h-4 w-52" />
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Skeleton className="h-9 min-w-0 flex-1 rounded-lg" />
-          <Skeleton className="h-9 w-full rounded-full sm:w-24" />
-        </div>
+        <InputActions>
+          <Skeleton className="h-11 w-full min-w-0 rounded-lg sm:flex-1" />
+          <Skeleton className="h-11 w-24 shrink-0 rounded-md" />
+        </InputActions>
         <Skeleton className="mt-5 mb-2 h-4 w-20" />
         <div className="flex gap-2">
           {["w-13", "w-14", "w-15", "w-16"].map((width) => (

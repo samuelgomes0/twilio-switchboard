@@ -1,15 +1,19 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import { Check, CheckCircle2, Pencil, Trash2 } from "lucide-react"
-import * as React from "react"
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
+
+import { Check, CheckCircle2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { MaskedToken } from "@/features/environments/components/masked-token"
 import { type TwilioEnvironment } from "@/features/environments/storage"
 import { STORED_KEY_LABELS, STORED_KEYS } from "@/lib/stored-keys"
-import { readVariables } from "@/lib/variables"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
-import { MaskedToken } from "@/features/environments/components/masked-token"
+import { readVariables } from "@/lib/variables"
 
 type StoredKeyName = keyof typeof STORED_KEYS
 
@@ -36,47 +40,48 @@ export function EnvironmentCard({
   onEdit: () => void
   onDelete: () => void
 }) {
-  const [savedValues, setSavedValues] = React.useState<
-    { label: string; values: string[] }[]
-  >([])
-
-  React.useEffect(() => {
-    const groups = SCOPED_FIELDS.map(({ key, label }) => ({
-      label,
-      values: readVariables(`${STORED_KEYS[key]}:${env.id}`),
-    })).filter((g) => g.values.length > 0)
-
-    setSavedValues(groups)
-  }, [env.id])
+  const [savedValues] = useBrowserState<{ label: string; values: string[] }[]>(
+    () =>
+      SCOPED_FIELDS.map(({ key, label }) => ({
+        label,
+        values: readVariables(`${STORED_KEYS[key]}:${env.id}`),
+      })).filter((group) => group.values.length > 0),
+    [],
+    env.id
+  )
 
   return (
     <div
       className={cn(
-        "rounded-xl border px-4 py-4 transition-colors",
-        isActive ? "border-primary/40 bg-primary/5" : "border-border bg-card"
+        "environment-row rounded-md border px-5 py-5 transition-colors",
+        isActive ? "border-input bg-muted" : "border-border bg-card"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex items-center gap-2">
+      <div className="flex flex-col items-start justify-between gap-4 xl:flex-row">
+        <div className="w-full min-w-0 flex-1 space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
             {isActive && (
-              <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
+              <CheckCircle2 className="size-3.5 shrink-0 text-success" />
             )}
-            <span className="truncate text-sm font-medium">{env.name}</span>
+            <span className="text-base font-semibold break-words">
+              {env.name}
+            </span>
             {isActive && (
-              <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="shrink-0 rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success dark:text-success">
                 {strings.environments.card.active}
               </span>
             )}
           </div>
           <div className="space-y-0.5 pl-0">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="credential-row text-xs text-muted-foreground">
               <span className="w-16 shrink-0">
                 {strings.environments.card.accountSidLabel}
               </span>
-              <span className="truncate font-mono">{env.accountSid}</span>
+              <span className="min-w-0 font-mono break-all">
+                {env.accountSid}
+              </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="credential-row text-xs text-muted-foreground">
               <span className="w-16 shrink-0">
                 {strings.environments.card.authTokenLabel}
               </span>
@@ -85,7 +90,7 @@ export function EnvironmentCard({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <ActionBar>
           {!isActive && (
             <Button
               size="xs"
@@ -97,24 +102,19 @@ export function EnvironmentCard({
               {strings.environments.card.selectButton}
             </Button>
           )}
-          <Button
-            size="icon-xs"
-            variant="ghost"
+          <ActionButton
+            action="edit"
+            iconOnly
             onClick={onEdit}
             aria-label={strings.environments.card.editAriaLabel}
-          >
-            <Pencil className="size-3.5" />
-          </Button>
-          <Button
-            size="icon-xs"
-            variant="ghost"
+          />
+          <ActionButton
+            action="delete"
+            iconOnly
             onClick={onDelete}
             aria-label={strings.environments.card.deleteAriaLabel}
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            <Trash2 className="size-3.5" />
-          </Button>
-        </div>
+          />
+        </ActionBar>
       </div>
 
       {/* Saved values per group */}
@@ -122,7 +122,7 @@ export function EnvironmentCard({
         <div className="mt-3 space-y-2 border-t border-border pt-3">
           {savedValues.map(({ label, values }) => (
             <div key={label}>
-              <p className="mb-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+              <p className="mb-1 text-xs font-semibold tracking-normal text-muted-foreground">
                 {label}
               </p>
               <div className="flex flex-wrap gap-1">
@@ -130,7 +130,7 @@ export function EnvironmentCard({
                   <span
                     key={v}
                     title={v}
-                    className="rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+                    className="rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-muted-foreground"
                   >
                     {truncate(v)}
                   </span>

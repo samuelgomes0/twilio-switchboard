@@ -1,15 +1,16 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import {
-  ChevronRight,
-  Loader2,
-  GitBranch,
-  Play,
-  RotateCcw,
-  Square,
-} from "lucide-react"
-import Link from "next/link"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -17,7 +18,6 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
-import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
 import {
   AlertDialogAction,
@@ -29,16 +29,17 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { WarningBadge } from "@/components/warning-badge"
+
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { STORED_KEYS } from "@/lib/stored-keys"
-import { readHistory, pushHistory } from "@/lib/operation-history"
-import { strings } from "@/lib/strings"
+import { pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
+import { STORED_KEYS } from "@/lib/stored-keys"
+import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
 
@@ -79,13 +80,12 @@ export function CreateWorkflowForm() {
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => readHistory<HistoryEntry>(HISTORY_KEY),
+    []
+  )
   const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory<HistoryEntry>(HISTORY_KEY))
-  }, [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -232,45 +232,22 @@ export function CreateWorkflowForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.createWorkflow.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <GitBranch className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.createWorkflow.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.createWorkflow.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.taskrouter.createWorkflow.title}
+        description={strings.taskrouter.createWorkflow.subtitle}
+        parent={{
+          href: "/taskrouter",
+          label: strings.sidebar.sections.taskrouter,
+        }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      <form onSubmit={handleFormSubmit} className="operation-form form-grid">
         {/* Workspace SID */}
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
@@ -291,7 +268,9 @@ export function CreateWorkflowForm() {
             disabled={status === "running"}
           />
           {wsSidError && (
-            <p id="create-workspace-error" className="text-xs text-destructive">{wsSidError}</p>
+            <p id="create-workspace-error" className="text-xs text-destructive">
+              {wsSidError}
+            </p>
           )}
         </div>
 
@@ -317,60 +296,62 @@ export function CreateWorkflowForm() {
           <Label htmlFor="csvFile">
             {strings.taskrouter.createWorkflow.csvLabel}
           </Label>
-          <Input
-            id="csvFile"
-            aria-describedby={csvFile ? "workflow-csv-selected" : undefined}
-            type="file"
-            accept=".csv"
-            onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
-            disabled={status === "running"}
-            className="cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted/80"
-          />
+          <InputActions>
+            <div className="min-w-0 flex-1">
+              <Input
+                id="csvFile"
+                aria-describedby={csvFile ? "workflow-csv-selected" : undefined}
+                type="file"
+                accept=".csv"
+                onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
+                disabled={status === "running"}
+                className="cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted/80"
+              />
+            </div>
+            <ActionBar>
+              <ActionButton
+                action="primary"
+                aria-busy={status === "running"}
+                type="submit"
+                disabled={!canSubmit}
+              >
+                {status === "running" ? (
+                  <>
+                    <Loader2
+                      className="size-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                    {strings.common.processing}
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-3.5" />
+                    {strings.taskrouter.createWorkflow.submit}
+                  </>
+                )}
+              </ActionButton>
+
+              {status === "running" && (
+                <ActionButton action="stop" type="button" onClick={handleAbort}>
+                  {strings.common.cancel}
+                </ActionButton>
+              )}
+
+              {(logs.length > 0 || status !== "idle") &&
+                status !== "running" && (
+                  <ActionButton action="clear" type="button" onClick={reset}>
+                    {strings.common.clear}
+                  </ActionButton>
+                )}
+            </ActionBar>
+          </InputActions>
           {csvFile && (
-            <p id="workflow-csv-selected" className="text-xs text-muted-foreground">
+            <p
+              id="workflow-csv-selected"
+              className="text-xs text-muted-foreground"
+            >
               {strings.taskrouter.createWorkflow.csvSelected(csvFile.name)}
             </p>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button aria-busy={status === "running"} type="submit" disabled={!canSubmit} className="gap-2">
-            {status === "running" ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.taskrouter.createWorkflow.submit}
-              </>
-            )}
-          </Button>
-
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reset}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
           )}
         </div>
       </form>
@@ -407,7 +388,7 @@ export function CreateWorkflowForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.taskrouter.createWorkflow.summary.created(
               summary.workflowName
             )}
@@ -428,7 +409,7 @@ export function CreateWorkflowForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />

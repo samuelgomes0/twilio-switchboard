@@ -1,30 +1,38 @@
 "use client"
 
-import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import * as React from "react"
-import Link from "next/link"
-import { ChevronRight, Loader2, Play, Plus, Settings2, Square, Trash2 } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+import { Select } from "@/components/ui/select"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
+
 import { LogOutput } from "@/components/log-output"
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import { StoredInput } from "@/components/stored-input"
 import { WarningBadge } from "@/components/warning-badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Loader2, Play } from "lucide-react"
+import * as React from "react"
+
 import {
-  AlertDialogRoot,
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
+  AlertDialogHeader,
+  AlertDialogRoot,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
-import { useUpdateWorkerFeature } from "./use-update-worker-feature"
 import { MAX_ITEMS } from "@/lib/constants"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
+import { useUpdateWorkerFeature } from "./use-update-worker-feature"
 import { useWorkerManagement } from "./worker-management-context"
 
 export function UpdateWorkerFeatureForm() {
@@ -58,42 +66,20 @@ export function UpdateWorkerFeatureForm() {
     !["constructor", "prototype", "__proto__"].includes(feature.trim())
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <nav
-        data-worker-page-header
-        className="mb-5 flex flex-wrap items-center gap-1 text-sm"
-      >
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight
-          className="size-3.5 text-muted-foreground"
-          aria-hidden="true"
+    <div className="workspace-page">
+      {!management && (
+        <PageHeader
+          title={messages.title}
+          description={messages.subtitle}
+          parent={{
+            href: "/taskrouter",
+            label: strings.sidebar.sections.taskrouter,
+          }}
+          badge={<WarningBadge />}
+          embedded
         />
-        <span className="font-medium text-foreground" aria-current="page">
-          {messages.title}
-        </span>
-      </nav>
-      <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <Settings2 className="size-4 text-primary" aria-hidden="true" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {messages.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">{messages.subtitle}</p>
-        </div>
-      </div>
-      {!activeEnvironment && (
-        <NoEnvironmentSelected />
       )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -101,69 +87,76 @@ export function UpdateWorkerFeatureForm() {
         }}
         className="space-y-5"
       >
-        <fieldset disabled={running} className="space-y-5">
-          <div data-worker-workspace-field className="space-y-2">
-            <Label htmlFor="feature-workspace">{messages.workspaceLabel}</Label>
-            <StoredInput
-              id="feature-workspace"
-              storageKey={STORED_KEYS.workspaceSids}
-              environmentId={activeEnvironment?.id}
-              value={workspaceSid}
-              onChange={setWorkspaceSid}
-              disabled={running}
-              placeholder={messages.workspacePlaceholder}
-            />
-          </div>
+        <fieldset disabled={running} className="operation-form space-y-5">
+          {!management && (
+            <div data-worker-workspace-field className="space-y-2">
+              <Label htmlFor="feature-workspace">
+                {messages.workspaceLabel}
+              </Label>
+              <StoredInput
+                id="feature-workspace"
+                storageKey={STORED_KEYS.workspaceSids}
+                environmentId={activeEnvironment?.id}
+                value={workspaceSid}
+                onChange={setWorkspaceSid}
+                disabled={running}
+                placeholder={messages.workspacePlaceholder}
+              />
+            </div>
+          )}
           <fieldset className="space-y-2">
             <legend className="mb-2 text-sm font-medium">
               {messages.workersLabel}
             </legend>
-            {workers.map((worker, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Label htmlFor={`feature-worker-${index}`} className="sr-only">
-                  {messages.workerLabel(index + 1)}
-                </Label>
-                <Input
-                  id={`feature-worker-${index}`}
-                  value={worker}
-                  onChange={(event) =>
-                    setWorkers((previous) =>
-                      previous.map((sid, position) =>
-                        position === index ? event.target.value : sid
-                      )
-                    )
-                  }
-                  placeholder={messages.workersPlaceholder}
-                  className="min-w-0 flex-1"
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  type="button"
-                  disabled={running || workers.length === 1}
-                  onClick={() =>
-                    setWorkers((previous) =>
-                      previous.filter((_, position) => position !== index)
-                    )
-                  }
-                  className="text-muted-foreground hover:border-destructive/50 hover:text-destructive"
-                  aria-label={messages.removeWorker(index + 1)}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
+            <InputActions>
+              <div className="min-w-0 flex-1 space-y-2">
+                {workers.map((worker, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Label
+                      htmlFor={`feature-worker-${index}`}
+                      className="sr-only"
+                    >
+                      {messages.workerLabel(index + 1)}
+                    </Label>
+                    <Input
+                      id={`feature-worker-${index}`}
+                      value={worker}
+                      onChange={(event) =>
+                        setWorkers((previous) =>
+                          previous.map((sid, position) =>
+                            position === index ? event.target.value : sid
+                          )
+                        )
+                      }
+                      placeholder={messages.workersPlaceholder}
+                      className="min-w-0 flex-1"
+                    />
+                    <ActionButton
+                      action="remove"
+                      iconOnly
+                      type="button"
+                      disabled={running || workers.length === 1}
+                      onClick={() =>
+                        setWorkers((previous) =>
+                          previous.filter((_, position) => position !== index)
+                        )
+                      }
+                      aria-label={messages.removeWorker(index + 1)}
+                    ></ActionButton>
+                  </div>
+                ))}
               </div>
-            ))}
-            <Button
-              size="sm"
-              variant="ghost"
-              type="button"
-              disabled={running || workers.length >= MAX_ITEMS}
-              onClick={() => setWorkers((previous) => [...previous, ""])}
-              className="text-muted-foreground"
-            >
-              <Plus className="size-3.5" />
-              {messages.addWorker}
-            </Button>
+              <ActionBar>
+                <ActionButton
+                  action="add"
+                  type="button"
+                  disabled={running || workers.length >= MAX_ITEMS}
+                  onClick={() => setWorkers((previous) => [...previous, ""])}
+                >
+                  {messages.addWorker}
+                </ActionButton>
+              </ActionBar>
+            </InputActions>
           </fieldset>
           <div className="space-y-2">
             <Label htmlFor="feature-name">{messages.featureLabel}</Label>
@@ -179,44 +172,52 @@ export function UpdateWorkerFeatureForm() {
               {messages.featureHint}
             </p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="feature-enabled">{messages.enabledLabel}</Label>
-            <select
-              id="feature-enabled"
-              value={String(enabled)}
-              onChange={(event) => setEnabled(event.target.value === "true")}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="true">{messages.enabled}</option>
-              <option value="false">{messages.disabled}</option>
-            </select>
-          </div>
         </fieldset>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            aria-busy={running}
-            type="submit"
-            disabled={!valid || !activeEnvironment || running}
-            aria-label={messages.submit}
-          >
-            {running ? (
-              <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" aria-hidden="true" />
-                {messages.submit}
-              </>
-            )}
-          </Button>
-          {running && (
-            <Button type="button" variant="outline" onClick={cancel}>
-              <Square className="size-3.5" aria-hidden="true" />
-              {strings.common.cancel}
-            </Button>
-          )}
+        <div className="space-y-2">
+          <Label htmlFor="feature-enabled">{messages.enabledLabel}</Label>
+          <InputActions>
+            <div className="min-w-0 flex-1">
+              <Select
+                disabled={running}
+                id="feature-enabled"
+                value={String(enabled)}
+                onChange={(event) => setEnabled(event.target.value === "true")}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="true">{messages.enabled}</option>
+                <option value="false">{messages.disabled}</option>
+              </Select>
+            </div>
+            <ActionBar>
+              <ActionButton
+                action="primary"
+                aria-busy={running}
+                type="submit"
+                disabled={!valid || !activeEnvironment || running}
+                aria-label={messages.submit}
+              >
+                {running ? (
+                  <>
+                    <Loader2
+                      className="size-3.5 animate-spin"
+                      aria-hidden="true"
+                    />
+                    {strings.common.processing}
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-3.5" aria-hidden="true" />
+                    {messages.submit}
+                  </>
+                )}
+              </ActionButton>
+              {running && (
+                <ActionButton action="stop" type="button" onClick={cancel}>
+                  {strings.common.cancel}
+                </ActionButton>
+              )}
+            </ActionBar>
+          </InputActions>
         </div>
       </form>
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -255,10 +256,8 @@ export function UpdateWorkerFeatureForm() {
         </AlertDialogContent>
       </AlertDialogRoot>
       {logs.length > 0 && (
-        <section
-          className="mt-5 space-y-2"
-        >
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+        <section className="mt-5 space-y-2">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />

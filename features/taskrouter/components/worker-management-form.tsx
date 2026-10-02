@@ -1,13 +1,13 @@
 "use client"
 
-import * as React from "react"
-import Link from "next/link"
-import { ChevronRight, Users } from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+
 import { Tabs } from "radix-ui"
+import * as React from "react"
 
 import { StoredInput } from "@/components/stored-input"
-import { WarningBadge } from "@/components/warning-badge"
 import { Label } from "@/components/ui/label"
+import { WarningBadge } from "@/components/warning-badge"
 import { useEnvironment } from "@/features/environments/context"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -49,42 +49,23 @@ export function WorkerManagementForm({
         },
       }}
     >
-      <div className="mx-auto max-w-3xl">
-        <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-          <Link
-            href="/taskrouter"
-            className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            {strings.sidebar.sections.taskrouter}
-          </Link>
-          <ChevronRight
-            className="size-3.5 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <span className="font-medium" aria-current="page">
-            {labels.title}
-          </span>
-        </nav>
-        <header className="mb-6 flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <Users className="size-4 text-primary" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-semibold tracking-tight">
-                {labels.title}
-              </h1>
-              {tab !== "details" && <WarningBadge />}
-            </div>
-            <p className="text-sm text-muted-foreground">{labels.subtitle}</p>
-          </div>
-        </header>
-        <div className="mb-5 space-y-2">
+      <div className="workspace-page">
+        <PageHeader
+          title={labels.title}
+          description={labels.subtitle}
+          parent={{
+            href: "/taskrouter",
+            label: strings.sidebar.sections.taskrouter,
+          }}
+          badge={tab !== "details" && <WarningBadge />}
+        />
+        <div className="worker-context mb-6 space-y-2">
           <Label htmlFor="worker-management-workspace">
             {labels.workspaceLabel}
           </Label>
           <StoredInput
             id="worker-management-workspace"
+            className="search-control"
             storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -96,16 +77,9 @@ export function WorkerManagementForm({
           value={tab}
           onValueChange={(value) => selectTab(value as WorkerManagementTab)}
         >
-          <Tabs.List
-            aria-label={labels.tabsLabel}
-            className="mb-5 flex gap-1 rounded-lg bg-muted p-1"
-          >
+          <Tabs.List aria-label={labels.tabsLabel} className="tab-list">
             {(["details", "skills", "features"] as const).map((value) => (
-              <Tabs.Trigger
-                key={value}
-                value={value}
-                className="flex-1 cursor-pointer rounded-md px-3 py-2 text-sm transition-colors hover:bg-background/60 focus-visible:outline-2 focus-visible:outline-ring data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
+              <Tabs.Trigger key={value} value={value} className="tab-trigger">
                 {labels.tabs[value]}
               </Tabs.Trigger>
             ))}

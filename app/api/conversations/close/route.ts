@@ -7,11 +7,13 @@ import {
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { MAX_ITEMS } from "@/lib/constants"
+import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
 
 export async function POST(req: NextRequest) {
-  let body: { participants?: unknown; accountSid?: string; authToken?: string }
+  let value: unknown
   try {
-    body = await req.json()
+    value = await req.json()
   } catch {
     return Response.json(
       { error: strings.common.validation.invalidBody },
@@ -19,6 +21,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
+  }
+  const body = value as Record<string, unknown>
   const raw = body.participants
   if (!Array.isArray(raw) || raw.length === 0) {
     return Response.json(
@@ -27,22 +36,42 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const participants = (raw as unknown[])
-    .map((p) => String(p).trim())
-    .filter(Boolean)
-
-  if (participants.length === 0) {
+  if (raw.length > MAX_ITEMS) {
     return Response.json(
-      { error: strings.common.validation.noValidParticipants },
+      { error: strings.conversations.close.maxExceeded(MAX_ITEMS) },
+      { status: 400 }
+    )
+  }
+  const participants: string[] = []
+  for (const phone of raw) {
+    if (typeof phone !== "string" || normalizeClosePhone(phone) === null) {
+      return Response.json(
+        { error: strings.conversations.close.invalidPhone },
+        { status: 400 }
+      )
+    }
+    participants.push(phone.trim())
+  }
+  const { accountSid, authToken } = body
+  if (
+    (accountSid !== undefined &&
+      (typeof accountSid !== "string" || !/^AC[a-f0-9]{32}$/i.test(accountSid))) ||
+    (authToken !== undefined &&
+      (typeof authToken !== "string" || !/^[a-f0-9]{32}$/i.test(authToken))) ||
+    (accountSid === undefined) !== (authToken === undefined)
+  ) {
+    return Response.json(
+      { error: strings.common.validation.invalidCredentials },
       { status: 400 }
     )
   }
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(accountSid, authToken)
   } catch (err) {
-    return toApiResponse(err)
+    const response = toApiResponse(err)
+    return new Response(response.body, { status: 500, headers: response.headers })
   }
 
   const encoder = new TextEncoder()

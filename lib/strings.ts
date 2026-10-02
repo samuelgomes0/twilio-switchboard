@@ -1,4 +1,56 @@
 export const strings = {
+  interface: {
+    toolDirectory: "Ferramentas",
+    toolSearch: "Buscar por nome ou finalidade…",
+    allAreas: "Todas as áreas",
+    filterArea: "Filtrar por área",
+    toolColumn: "Ferramenta",
+    openTool: "Abrir ferramenta",
+    configureEnvironment: "Configurar ambiente",
+    catalogCount: (count: number) =>
+      `${count} ferramenta${count === 1 ? "" : "s"}`,
+    catalogSummary: "Disponíveis neste workspace",
+    areaSummary: "Domínios da operação",
+    apiTools: "Ferramentas Twilio",
+    apiToolsSummary: "Consultas e alterações",
+    currentEnvironment: "Ambiente atual",
+    localEnvironment: "Credenciais neste navegador",
+    emptyCatalog: "Nenhuma ferramenta corresponde à busca.",
+    searchTools: "Buscar ferramenta",
+    searchShortcut: "Ctrl K",
+    searchPlaceholder: "Digite uma ferramenta ou operação…",
+    noToolsFound: "Nenhuma ferramenta encontrada. Tente outro termo.",
+    expandNavigation: (section: string) => `Expandir ou recolher ${section}`,
+    areaColumn: "Área",
+    purposeColumn: "O que você pode fazer",
+    toolsColumn: "Ferramentas",
+    savedEnvironments: "Ambientes salvos",
+    storageLabel: "Armazenamento",
+    environmentSelectedHint:
+      "As próximas operações usam este ambiente. Revise o destino antes de confirmar alterações.",
+    copyFailed:
+      "Não foi possível copiar. Selecione o identificador e tente novamente.",
+    breadcrumb: "Caminho de navegação",
+    skip: "Ir para o conteúdo",
+    home: "Visão geral",
+    closeNavigation: "Fechar navegação",
+    theme: "Alternar tema",
+    light: "Tema claro",
+    dark: "Tema escuro",
+    system: "Tema do sistema",
+    quickAccess: "Consultas rápidas",
+    areas: "Ferramentas",
+    homeTitle: "Visão geral",
+    homeDescription:
+      "Acesse as ferramentas de consulta, roteamento e configuração da sua operação Twilio.",
+    environmentHint:
+      "Selecione um ambiente antes de consultar ou alterar recursos.",
+    execution: "Acompanhamento da operação",
+    clientCancel:
+      "Interromper o acompanhamento não interrompe operações já enviadas à Twilio.",
+    exportScope:
+      "A exportação inclui todos os resultados carregados, mesmo com filtros ativos.",
+  },
   app: {
     title: "Switchboard",
     description: "Interface visual para operações Twilio",
@@ -59,7 +111,6 @@ export const strings = {
       taskSid: "WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       phone: "+5511999999999",
       localPhone: "11999999999",
-      closePhone: "11999999999",
       worker: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
       queue: "SUPORTE_WHATSAPP",
       skill: "suporte-tecnico",
@@ -75,6 +126,7 @@ export const strings = {
     cancel: "Cancelar",
     search: "Buscar",
     clear: "Limpar",
+    refresh: "Atualizar",
     processing: "Processando...",
     loadingPage: "Carregando página...",
     operationProgress: "Progresso da operação",
@@ -82,7 +134,7 @@ export const strings = {
     comingSoon: "Em breve",
     logOfOperations: "Log de operações",
     recentHistory: {
-      title: "Últimas consultas neste ambiente",
+      title: "Atividade recente neste navegador",
       reuse: "Executar novamente esta consulta",
     },
     noEnvironmentSelected: {
@@ -236,7 +288,6 @@ export const strings = {
       messages: "Mensagens",
       tabs: "Informações da Conversation",
       result: "Resultado da consulta",
-      refresh: "Atualizar",
       retry: "Tentar novamente",
       sidLabel: "Conversation SID",
       active: "Ativa",
@@ -349,8 +400,10 @@ export const strings = {
         description:
           "Localize e encerre Conversations ativas vinculadas a números de telefone.",
       },
-      phoneLabel: "Números de telefone",
+      phoneLabel: "Número de telefone",
       phoneLabelHint: "(DDD + número, apenas dígitos, sem +55)",
+      invalidPhone:
+        "Informe um número brasileiro com DDD, com ou sem +55 ou whatsapp:+55",
       maxExceeded: (max: number) => `; máximo de ${max} por vez`,
       addPhone: "Adicionar número",
       removePhone: "Remover número",
@@ -541,7 +594,8 @@ export const strings = {
       workerLabel: (position: number) => `Worker ${position}`,
       addWorker: "Adicionar Worker",
       removeWorker: (position: number) => `Remover Worker ${position}`,
-      workersPlaceholder: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
+      workersPlaceholder:
+        "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
       featureLabel: "Nome do plugin",
       featurePlaceholder: "dasa_cdc_integration",
       featureHint:
@@ -625,7 +679,8 @@ export const strings = {
       levelOptional: "(opcional)",
       workersLabel: "Workers",
       workerLabel: (position: number) => `Worker ${position}`,
-      workerPlaceholder: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
+      workerPlaceholder:
+        "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
       addWorker: "Adicionar Worker",
       removeWorker: (position: number) => `Remover Worker ${position}`,
       submit: "Atribuir Workers",

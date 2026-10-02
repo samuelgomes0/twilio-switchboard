@@ -2,6 +2,7 @@ import { strings } from "@/lib/strings"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { sanitizeExternalError } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
+import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
 
 export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -49,11 +50,6 @@ export async function withRetry<T>(
   return null
 }
 
-function formatPhoneNumber(raw: string): string {
-  const cleaned = raw.trim().replace(/\s+/g, "")
-  return `whatsapp:+55${cleaned}`
-}
-
 export async function closeConversations(
   participants: string[],
   client: ReturnType<typeof getTwilioClient>,
@@ -64,7 +60,12 @@ export async function closeConversations(
 
   for (let idx = 0; idx < participants.length; idx++) {
     const raw = participants[idx]
-    const address = formatPhoneNumber(raw)
+    const address = normalizeClosePhone(raw)
+    if (address === null) {
+      totalErrors++
+      emit(sseEvent("error", strings.conversations.close.invalidPhone))
+      continue
+    }
 
     emit(
       sseEvent("info", strings.conversations.close.log.searching(address), {
@@ -76,7 +77,8 @@ export async function closeConversations(
       () =>
         client.conversations.v1.participantConversations.list({
           address,
-          limit: 1000,
+          // Active conversations can appear after any number of closed ones.
+          pageSize: 50,
         }),
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,

@@ -1,12 +1,19 @@
 "use client"
 
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
+
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import * as React from "react"
-import { ChevronRight, FileSearch2, Search } from "lucide-react"
-import Link from "next/link"
-import { StoredInput } from "@/components/stored-input"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import { Button } from "@/components/ui/button"
+import { StoredInput } from "@/components/stored-input"
+import { Search } from "lucide-react"
+import * as React from "react"
+
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { TwilioEnvironment } from "@/features/environments/storage"
@@ -65,39 +72,44 @@ function EnvironmentConversationForm({
 
   return (
     <>
-      <form onSubmit={searchConversation} className="space-y-2">
-        <Label htmlFor="conversation-sid">
-          {strings.conversations.history.sidLabel}
-        </Label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <StoredInput
-            id="conversation-sid"
-            aria-describedby="conversation-sid-feedback"
-            aria-invalid={!!sid.trim() && !valid}
-            storageKey={STORED_KEYS.conversationSids}
-            environmentId={environment.id}
-            value={sid}
-            onChange={setSid}
-            placeholder={strings.conversations.history.sidPlaceholder}
-            containerClassName="w-full min-w-0 flex-1"
-          />
-          <Button type="submit" disabled={!valid} className="gap-2">
-            <Search aria-hidden="true" className="size-3.5" />
-            {strings.common.search}
-          </Button>
+      <form onSubmit={searchConversation} className="operation-form space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="conversation-sid">
+            {strings.conversations.history.sidLabel}
+          </Label>
+          <InputActions>
+            <StoredInput
+              id="conversation-sid"
+              className="search-control"
+              aria-describedby="conversation-sid-feedback"
+              aria-invalid={!!sid.trim() && !valid}
+              storageKey={STORED_KEYS.conversationSids}
+              environmentId={environment.id}
+              value={sid}
+              onChange={setSid}
+              placeholder={strings.conversations.history.sidPlaceholder}
+              containerClassName="w-full min-w-0 flex-1"
+            />
+            <ActionBar>
+              <ActionButton action="search" type="submit" disabled={!valid}>
+                <Search aria-hidden="true" className="size-3.5" />
+                {strings.common.search}
+              </ActionButton>
+            </ActionBar>
+          </InputActions>
+          <p
+            id="conversation-sid-feedback"
+            className={
+              sid.trim() && !valid
+                ? "text-xs text-destructive"
+                : "text-xs text-muted-foreground"
+            }
+          >
+            {sid.trim() && !valid
+              ? strings.conversations.history.sidInvalid
+              : strings.conversations.history.sidHint}
+          </p>
         </div>
-        <p
-          id="conversation-sid-feedback"
-          className={
-            sid.trim() && !valid
-              ? "text-xs text-destructive"
-              : "text-xs text-muted-foreground"
-          }
-        >
-          {sid.trim() && !valid
-            ? strings.conversations.history.sidInvalid
-            : strings.conversations.history.sidHint}
-        </p>
       </form>
       {query && (
         <ConversationResult
@@ -137,33 +149,15 @@ export function ConversationForm(props: ConversationFormProps) {
   const { activeEnvironment } = useEnvironment()
   const labels = strings.conversations.consult
   return (
-    <div className="mx-auto max-w-3xl">
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-          href="/conversations"
-        >
-          {strings.sidebar.sections.conversations}
-        </Link>
-        <ChevronRight
-          aria-hidden="true"
-          className="size-3.5 text-muted-foreground"
-        />
-        <span aria-current="page" className="font-medium text-foreground">
-          {labels.title}
-        </span>
-      </nav>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <FileSearch2 aria-hidden="true" className="size-4 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight">
-            {labels.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">{labels.subtitle}</p>
-        </div>
-      </div>
+    <div className="workspace-page">
+      <PageHeader
+        title={labels.title}
+        description={labels.subtitle}
+        parent={{
+          href: "/conversations",
+          label: strings.sidebar.sections.conversations,
+        }}
+      />
       {activeEnvironment ? (
         <EnvironmentConversationForm
           key={activeEnvironment.id}

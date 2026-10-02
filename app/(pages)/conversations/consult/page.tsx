@@ -1,6 +1,6 @@
-import type { Metadata } from "next"
 import { ConversationForm } from "@/features/conversations/components/conversation-form"
 import { strings } from "@/lib/strings"
+import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: strings.conversations.consult.title,

@@ -1,10 +1,11 @@
+import { ActionButton } from "@/components/action-button"
 import { JsonBlock } from "@/components/json-block"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import type { ConversationData } from "@/features/conversations/types"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
+import type { ConversationData } from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
 
 export function ConversationDetails({
@@ -31,11 +32,11 @@ export function ConversationDetails({
           <p className="mb-1 text-xs font-medium text-muted-foreground">
             {labels.sidLabel}
           </p>
-          <h2 className="rounded-md bg-muted px-3 py-2 font-mono text-sm font-semibold break-all text-foreground">
+          <h2 className="font-mono text-sm font-semibold break-all text-foreground">
             {conversation.sid}
           </h2>
           <Badge
-            className="mt-2"
+            className="mt-3"
             variant={
               conversation.state === "active"
                 ? "success"
@@ -47,9 +48,9 @@ export function ConversationDetails({
             {stateLabel}
           </Badge>
         </div>
-        <Button size="sm" variant="outline" onClick={onRefresh}>
-          {labels.refresh}
-        </Button>
+        <ActionButton action="refresh" onClick={onRefresh}>
+          {strings.common.refresh}
+        </ActionButton>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">

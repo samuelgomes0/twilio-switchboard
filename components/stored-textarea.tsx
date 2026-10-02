@@ -1,11 +1,13 @@
 "use client"
+import { navigateSuggestions } from "@/components/suggestion-keyboard"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import { readVariables, addVariable, deleteVariable } from "@/lib/variables"
 import { strings } from "@/lib/strings"
+import { addVariable, deleteVariable, readVariables } from "@/lib/variables"
 
 import { X } from "lucide-react"
-import * as React from "react"
 
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 interface StoredTextareaProps {
@@ -29,11 +31,11 @@ export function StoredTextarea({
   id,
   rows = 4,
 }: StoredTextareaProps) {
-  const [saved, setSaved] = React.useState<string[]>([])
-
-  React.useEffect(() => {
-    setSaved(readVariables(storageKey))
-  }, [storageKey])
+  const [saved, setSaved] = useBrowserState<string[]>(
+    () => readVariables(storageKey),
+    [],
+    storageKey
+  )
 
   const trimmed = value.trim()
   const isNew = trimmed.length > 0 && !saved.includes(trimmed)
@@ -51,7 +53,7 @@ export function StoredTextarea({
 
   return (
     <div className="space-y-2">
-      <textarea
+      <Textarea
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -60,12 +62,15 @@ export function StoredTextarea({
         rows={rows}
         spellCheck={false}
         className={cn(
-          "flex w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
       />
       {showList && (
-        <ul className="divide-y divide-border overflow-hidden rounded-md border border-border bg-popover">
+        <ul
+          onKeyDown={navigateSuggestions}
+          className="divide-y divide-border overflow-hidden rounded-md border border-border bg-popover"
+        >
           {saved.map((s) => (
             <li key={s} className="group flex items-start gap-2 px-3 py-2">
               <button
@@ -78,7 +83,7 @@ export function StoredTextarea({
               <button
                 type="button"
                 aria-label={strings.common.autocomplete.deleteValue}
-                className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex size-9 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => deleteValue(s)}
               >
                 <X className="size-3" />

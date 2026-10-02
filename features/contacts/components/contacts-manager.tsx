@@ -1,10 +1,17 @@
 "use client"
+import { EmptyState } from "@/components/empty-state"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { InputActions } from "@/components/input-actions"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
 
 import * as React from "react"
-import { BookUser, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react"
-import Link from "next/link"
 
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -46,7 +53,7 @@ function ContactForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="contact-name">
             {strings.contacts.form.nameLabel}
@@ -62,38 +69,44 @@ function ContactForm({
           <Label htmlFor="contact-phone">
             {strings.contacts.form.phoneLabel}
           </Label>
-          <Input
-            id="contact-phone"
-            value={form.phone}
-            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            placeholder={strings.contacts.form.phonePlaceholder}
-            className="font-mono"
-          />
+          <InputActions>
+            <div className="min-w-0 flex-1">
+              <Input
+                id="contact-phone"
+                value={form.phone}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, phone: e.target.value }))
+                }
+                placeholder={strings.contacts.form.phonePlaceholder}
+                className="font-mono"
+              />
+            </div>
+            <ActionBar>
+              <ActionButton
+                action="save"
+                type="submit"
+                disabled={nameError || phoneError}
+              >
+                {strings.contacts.form.saveButton}
+              </ActionButton>
+              <ActionButton action="cancel" type="button" onClick={onCancel}>
+                {strings.common.cancel}
+              </ActionButton>
+            </ActionBar>
+          </InputActions>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="submit" size="sm" disabled={nameError || phoneError}>
-          {strings.contacts.form.saveButton}
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={onCancel}>
-          {strings.common.cancel}
-        </Button>
       </div>
     </form>
   )
 }
 
 export function ContactsManager() {
-  const [contacts, setContacts] = React.useState<Contact[]>([])
+  const [contacts, setContacts] = useBrowserState<Contact[]>(readContacts, [])
   const [showAddForm, setShowAddForm] = React.useState(false)
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = React.useState<string | null>(
     null
   )
-
-  React.useEffect(() => {
-    setContacts(readContacts())
-  }, [])
 
   function handleAdd(data: ContactFormState) {
     const contact = addContact(data)
@@ -116,55 +129,30 @@ export function ContactsManager() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex flex-wrap items-center gap-1 text-sm">
-        <Link
-          href="/settings"
-          className="text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          {strings.environments.page.title}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.contacts.manager.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <div className="min-w-0 flex items-center gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <BookUser className="size-4 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.contacts.manager.title}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {strings.contacts.manager.subtitle}
-            </p>
-          </div>
-        </div>
-
-        {!showAddForm && (
-          <Button
-            size="sm"
-            onClick={() => {
-              setShowAddForm(true)
-              setEditingId(null)
-            }}
-            className="shrink-0 gap-1.5"
-          >
-            <Plus className="size-3.5" />
-            {strings.contacts.manager.addButton}
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title={strings.contacts.manager.title}
+        description={strings.contacts.manager.subtitle}
+        parent={{ href: "/settings", label: strings.environments.page.title }}
+        actions={
+          !showAddForm && (
+            <ActionButton
+              action="add"
+              onClick={() => {
+                setShowAddForm(true)
+                setEditingId(null)
+              }}
+            >
+              {strings.contacts.manager.addButton}
+            </ActionButton>
+          )
+        }
+      />
 
       {/* Add form */}
       {showAddForm && (
-        <div className="mb-6 rounded-xl border border-border bg-card px-5 py-5">
+        <div className="mb-6 rounded-md border border-border bg-card px-5 py-5">
           <h2 className="mb-4 text-sm font-semibold">
             {strings.contacts.manager.addTitle}
           </h2>
@@ -177,30 +165,25 @@ export function ContactsManager() {
 
       {/* Contact list */}
       {contacts.length === 0 && !showAddForm ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center">
-          <BookUser className="mx-auto mb-3 size-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">
-            {strings.contacts.manager.emptyTitle}
+        <EmptyState title={strings.contacts.manager.emptyTitle}>
+          <p className="text-sm text-muted-foreground">
+            {strings.contacts.manager.emptyHint}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {strings.contacts.manager.emptyHint}{" "}
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              className="text-primary hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              {strings.contacts.manager.emptyHintLink}
-            </button>{" "}
-            {strings.contacts.manager.emptyHintSuffix}
-          </p>
-        </div>
+          <ActionButton
+            action="add"
+            className="mt-4"
+            onClick={() => setShowAddForm(true)}
+          >
+            {strings.contacts.manager.addButton}
+          </ActionButton>
+        </EmptyState>
       ) : (
-        <div className="space-y-2">
+        <div className="settings-list">
           {contacts.map((contact) =>
             editingId === contact.id ? (
               <div
                 key={contact.id}
-                className="rounded-xl border border-border bg-card px-5 py-5"
+                className="rounded-md border border-border bg-card px-5 py-5"
               >
                 <h2 className="mb-4 text-sm font-semibold">
                   {strings.contacts.manager.editTitle}
@@ -214,45 +197,38 @@ export function ContactsManager() {
             ) : confirmDeleteId === contact.id ? (
               <div
                 key={contact.id}
-                className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-4"
+                className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-4"
               >
                 <p className="mb-3 text-sm font-medium text-destructive">
                   {strings.contacts.manager.deleteConfirm(contact.name)}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(contact.id)}
-                    className="gap-1.5"
-                  >
-                    <Trash2 className="size-3.5" />
-                    {strings.contacts.manager.deleteButton}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
+                <ActionBar className="justify-end">
+                  <ActionButton
+                    action="cancel"
                     onClick={() => setConfirmDeleteId(null)}
                   >
                     {strings.common.cancel}
-                  </Button>
-                </div>
+                  </ActionButton>
+                  <ActionButton
+                    action="delete"
+                    onClick={() => handleDelete(contact.id)}
+                  >
+                    {strings.contacts.manager.deleteButton}
+                  </ActionButton>
+                </ActionBar>
               </div>
             ) : (
-              <div
-                key={contact.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3"
-              >
+              <div key={contact.id} className="settings-row">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{contact.name}</p>
                   <p className="truncate font-mono text-xs text-muted-foreground">
                     {contact.phone}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-1">
-                  <Button
-                    size="icon-xs"
-                    variant="ghost"
+                <ActionBar>
+                  <ActionButton
+                    action="edit"
+                    iconOnly
                     type="button"
                     aria-label={strings.contacts.manager.editTitle}
                     onClick={() => {
@@ -260,24 +236,18 @@ export function ContactsManager() {
                       setShowAddForm(false)
                       setConfirmDeleteId(null)
                     }}
-                    className="text-muted-foreground"
-                  >
-                    <Pencil className="size-3.5" />
-                  </Button>
-                  <Button
-                    size="icon-xs"
-                    variant="ghost"
+                  />
+                  <ActionButton
+                    action="delete"
+                    iconOnly
                     type="button"
                     aria-label={strings.contacts.manager.deleteAriaLabel}
                     onClick={() => {
                       setConfirmDeleteId(contact.id)
                       setEditingId(null)
                     }}
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
+                  />
+                </ActionBar>
               </div>
             )
           )}

@@ -3,14 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { strings } from "@/lib/strings"
 
-import * as React from "react"
 import { Eye, EyeOff } from "lucide-react"
+import * as React from "react"
 
 export function MaskedToken({ token }: { token: string }) {
   const [visible, setVisible] = React.useState(false)
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="font-mono text-xs">
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <span className="min-w-0 font-mono text-xs break-all">
         {visible ? token : "••••••••••••••••"}
       </span>
       <Button
