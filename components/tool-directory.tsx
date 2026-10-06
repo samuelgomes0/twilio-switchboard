@@ -42,19 +42,19 @@ const GROUPS = [
     tools: [
       {
         ...strings.environments.page.tools.manage,
-        href: "/settings/environments",
+        href: "/settings/manage-environments",
         icon: Settings2,
         available: true,
       },
       {
         ...strings.environments.page.tools.contacts,
-        href: "/settings/contacts",
+        href: "/settings/manage-contacts",
         icon: BookUser,
         available: true,
       },
       {
         ...strings.environments.page.tools.variables,
-        href: "/settings/variables",
+        href: "/settings/manage-variables",
         icon: SlidersHorizontal,
         available: true,
       },
@@ -88,7 +88,7 @@ export function ToolDirectory() {
           <p>{s.homeDescription}</p>
         </div>
         <Button asChild size="sm">
-          <Link href="/settings/environments">
+          <Link href="/settings/manage-environments">
             <Settings2 aria-hidden="true" className="size-3.5" />
             {s.configureEnvironment}
           </Link>

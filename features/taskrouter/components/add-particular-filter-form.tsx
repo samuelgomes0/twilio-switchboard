@@ -233,7 +233,7 @@ export function AddParticularFilterForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/add-particular-filter", {
+      const res = await fetch("/api/taskrouter/add-business-rule-filter", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },

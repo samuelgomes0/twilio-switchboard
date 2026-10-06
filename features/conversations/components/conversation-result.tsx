@@ -70,6 +70,7 @@ export function ConversationResult({
     messagesError,
     retryDetails,
     retryMessages,
+    updateConversation,
   } = useConversationQuery(sid, environment, messagesRequested)
   const labels = strings.conversations.consult
 
@@ -100,6 +101,7 @@ export function ConversationResult({
               <ConversationDetails
                 conversation={details.conversation}
                 onRefresh={() => refresh("details")}
+                onUpdated={updateConversation}
               />
               <ConversationParticipants participants={details.participants} />
             </>

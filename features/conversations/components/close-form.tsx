@@ -130,7 +130,7 @@ export function CloseForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/conversations/close", {
+      const res = await fetch("/api/conversations/close-by-number", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -452,7 +452,7 @@ export function CloseForm() {
                 {strings.conversations.close.history.item(h.total, h.closed)}
               </span>
               {h.errors > 0 && (
-                <span className="text-red-500 dark:text-red-400">
+                <span className="text-destructive">
                   {strings.conversations.close.history.itemErrors(h.errors)}
                 </span>
               )}

@@ -96,7 +96,7 @@ test("all 13 missing-environment consumers expose one nonurgent contextual statu
     assert.equal(html.split(strings.common.noEnvironmentSelected.message).length - 1, 1, file)
     assert.match(html, /role="status"/)
     assert.doesNotMatch(html, /role="alert"/)
-    assert.match(html, /href="\/settings\/environments"/)
+    assert.match(html, /href="\/settings\/manage-environments"/)
     inspectReferences(html)
     assert.ok(!render(file, name).includes(strings.common.noEnvironmentSelected.title), file)
   }
@@ -104,10 +104,26 @@ test("all 13 missing-environment consumers expose one nonurgent contextual statu
 
 test("operation errors remain inline alerts with escaped messages", () => {
   for (const [file, name] of tools.filter(([file]) => /fetch-by-participant|create-address-config|list-numbers|fetch-worker|search-tasks/.test(file))) {
-    const html = render(file, name, { states: { [file]: { error: "Falha <interna>" } } })
+    const stateFile = /fetch-by-participant/.test(file) ? "features/conversations/components/use-participant-search.ts" : file
+    const html = render(file, name, { states: { [stateFile]: { error: "Falha <interna>" } } })
     assert.match(html, /role="alert"[^>]*>Falha &lt;interna&gt;<\/div>/)
     inspectReferences(html)
   }
+})
+
+test("participant search shows progress with enabled cancellation and all loaded active matches", () => {
+  const file = "features/conversations/components/fetch-by-participant-form.tsx"
+  const hook = "features/conversations/components/use-participant-search.ts"
+  const results = Array.from({ length: 25 }, (_, index) => ({ conversationSid: `CH${index}`, conversationState: "active" }))
+  const html = render(file, "FetchByParticipantForm", { states: { [hook]: { loading: true, pages: 2, results } } })
+  assert.ok(html.includes(strings.conversations.fetchByParticipant.progress(2, 25)))
+  assert.equal((html.match(/role="status"/g) ?? []).length, 1)
+  assert.equal((html.match(/Consultar Conversation/g) ?? []).length, 25)
+  assert.doesNotMatch(html, /Exibir mais/)
+  const cancelButton = html.match(/<button\b[^>]*>Cancelar<\/button>/)?.[0]
+  assert.ok(cancelButton)
+  assert.doesNotMatch(cancelButton, /\sdisabled(?:=|\s|>)/)
+  inspectReferences(html)
 })
 
 test("field errors retain their accessible descriptions and invalid flags", () => {
@@ -119,6 +135,22 @@ test("field errors retain their accessible descriptions and invalid flags", () =
   assert.equal((html.match(/aria-invalid="true"/g) ?? []).length, 3)
   for (const field of ["name", "sid", "token"]) assert.ok(html.includes(`env-${field}-error`))
   inspectReferences(html)
+})
+
+test("single-conversation close action appears only for active list items and active details", () => {
+  const sid = "CH" + "1".repeat(32)
+  for (const state of ["active", "inactive", "closed", "unknown"]) {
+    const list = render("features/conversations/components/fetch-by-participant-form.tsx", "FetchByParticipantForm", {
+      states: { "features/conversations/components/use-participant-search.ts": { results: [{ conversationSid: sid, conversationState: state }] } },
+    })
+    const details = render("features/conversations/components/conversation-details.tsx", "ConversationDetails", {
+      props: { conversation: { sid, state, attributes: "{}" }, onRefresh: noop, onUpdated: noop },
+    })
+    for (const html of [list, details]) {
+      assert.equal(html.includes(strings.conversations.closeSingle.ariaLabel(sid)), state === "active")
+      inspectReferences(html)
+    }
+  }
 })
 
 test("short-action loading is named and decorative spinners stay hidden", () => {

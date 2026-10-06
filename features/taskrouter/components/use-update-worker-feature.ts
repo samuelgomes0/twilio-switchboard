@@ -23,12 +23,15 @@ export function useUpdateWorkerFeature() {
     const addLog = (level: LogEntry["level"], message: string) =>
       setLogs((previous) => [...previous, createLogEntry(level, message)])
     try {
-      const response = await fetch("/api/taskrouter/update-worker-feature", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-        signal: controller.signal,
-      })
+      const response = await fetch(
+        "/api/taskrouter/set-worker-feature-status",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+          signal: controller.signal,
+        }
+      )
       if (!response.ok || !response.body) throw new Error()
       const reader = response.body.getReader()
       let completed = false

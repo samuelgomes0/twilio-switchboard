@@ -18,5 +18,5 @@ export default async function ConversationHistoryPage({
   const { sid } = await searchParams
   const query = new URLSearchParams({ tab: "messages" })
   if (typeof sid === "string") query.set("sid", sid)
-  redirect(`/conversations/consult?${query}`)
+  redirect(`/conversations/consult-by-sid?${query}`)
 }

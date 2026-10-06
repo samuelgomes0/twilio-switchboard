@@ -30,14 +30,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { FetchByParticipantResultsSkeleton } from "@/features/conversations/components/fetch-by-participant-skeleton"
-import type {
-  ParticipantConversation,
-  ParticipantConversationPage,
-} from "@/features/conversations/lib/fetch-by-participant"
+import { useParticipantSearch } from "@/features/conversations/components/use-participant-search"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
 import { pushHistory, readHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
+import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
 
 type StateFilter = "all" | "active" | "inactive" | "closed"
 
@@ -49,7 +47,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:fetch-by-participant-history"
-const PHONE_RE = /^\d+$/
+const PHONE_RE = /^\d{10,11}$/
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -102,21 +100,30 @@ const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
 
 export function FetchByParticipantForm() {
   const { activeEnvironment } = useEnvironment()
+  return <ParticipantSearchForm key={activeEnvironment?.id ?? ""} />
+}
+
+function ParticipantSearchForm() {
+  const { activeEnvironment } = useEnvironment()
   const [phone, setPhone] = React.useState("")
   const [phoneError, setPhoneError] = React.useState<string | null>(null)
   const [stateFilter, setStateFilter] = React.useState<StateFilter>("all")
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [results, setResults] = React.useState<
-    ParticipantConversation[] | null
-  >(null)
+  const {
+    results,
+    loading,
+    error,
+    pages,
+    cancelled,
+    search,
+    cancel,
+    updateConversation,
+  } = useParticipantSearch(activeEnvironment)
+  const [visibleCount, setVisibleCount] = React.useState(20)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
     () => readHistory<HistoryEntry>(HISTORY_KEY),
     []
   )
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [nextPageToken, setNextPageToken] = React.useState<string | null>(null)
-  const [loadingMore, setLoadingMore] = React.useState(false)
 
   const canSubmit = phone.trim().length > 0 && !loading && !!activeEnvironment
 
@@ -127,83 +134,24 @@ export function FetchByParticipantForm() {
     requestedStateFilter = stateFilter
   ) {
     if (loading || !activeEnvironment || !PHONE_RE.test(requestedPhone)) return
-    setLoading(true)
-    setError(null)
-    setResults(null)
-    setNextPageToken(null)
-
-    try {
-      const res = await fetch("/api/conversations/fetch-by-participant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: `whatsapp:+55${requestedPhone}`,
-          accountSid: activeEnvironment.accountSid,
-          authToken: activeEnvironment.authToken,
-        }),
-      })
-      const json = (await res.json()) as ParticipantConversationPage & {
-        error?: string
-      }
-      if (!res.ok || json.error) {
-        setError(json.error ?? strings.common.unknown)
-        return
-      }
-      setResults(json.conversations)
-      setNextPageToken(json.nextPageToken)
-      const entry: HistoryEntry = {
-        ts: Date.now(),
-        phone: requestedPhone,
-        stateFilter: requestedStateFilter,
-        count: json.conversations.length,
-      }
-      pushHistory(HISTORY_KEY, entry)
-      setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch {
-      setError(strings.common.networkError)
-    } finally {
-      setLoading(false)
+    setVisibleCount(20)
+    const conversations = await search(requestedPhone)
+    if (!conversations) return
+    const entry: HistoryEntry = {
+      ts: Date.now(),
+      phone: requestedPhone,
+      stateFilter: requestedStateFilter,
+      count: conversations.length,
     }
-  }
-
-  async function loadMoreResults() {
-    if (!activeEnvironment || !nextPageToken || loadingMore) return
-    setLoadingMore(true)
-    setError(null)
-
-    try {
-      const res = await fetch("/api/conversations/fetch-by-participant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          pageToken: nextPageToken,
-          accountSid: activeEnvironment.accountSid,
-          authToken: activeEnvironment.authToken,
-        }),
-      })
-      const json = (await res.json()) as ParticipantConversationPage & {
-        error?: string
-      }
-      if (!res.ok || json.error) {
-        setError(json.error ?? strings.common.unknown)
-        return
-      }
-
-      setResults((current) => [...(current ?? []), ...json.conversations])
-      setNextPageToken(json.nextPageToken)
-    } catch {
-      setError(strings.common.networkError)
-    } finally {
-      setLoadingMore(false)
-    }
+    pushHistory(HISTORY_KEY, entry)
+    setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
     if (!PHONE_RE.test(phone.trim())) {
-      setPhoneError(strings.common.phoneDigitsOnly)
+      setPhoneError(strings.conversations.fetchByParticipant.invalidPhone)
       return
     }
     setPhoneError(null)
@@ -223,23 +171,25 @@ export function FetchByParticipantForm() {
       : stateFilter === "all"
         ? results
         : results.filter((pc) => pc.conversationState === stateFilter)
-  const loadMoreButton = nextPageToken ? (
-    <div className="flex justify-center py-3">
-      <Button
-        aria-busy={loadingMore}
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={loadingMore}
-        onClick={() => void loadMoreResults()}
-      >
-        {loadingMore && <Loader2 className="animate-spin" aria-hidden="true" />}
-        {loadingMore
-          ? strings.conversations.fetchByParticipant.results.loadingMore
-          : strings.conversations.fetchByParticipant.results.loadMore}
-      </Button>
-    </div>
-  ) : null
+  const displayedCount = Math.max(
+    visibleCount,
+    filteredResults?.filter(
+      (conversation) => conversation.conversationState === "active"
+    ).length ?? 0
+  )
+  const loadMoreButton =
+    filteredResults && filteredResults.length > displayedCount ? (
+      <div className="flex justify-center py-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setVisibleCount(displayedCount + 20)}
+        >
+          {strings.conversations.fetchByParticipant.results.loadMore}
+        </Button>
+      </div>
+    ) : null
 
   return (
     <div className="workspace-page">
@@ -257,7 +207,10 @@ export function FetchByParticipantForm() {
       {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="operation-form space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        className="operation-form w-full max-w-3xl space-y-5"
+      >
         <div className="space-y-2">
           <Label htmlFor="phone">
             {strings.conversations.fetchByParticipant.phoneLabel}{" "}
@@ -319,7 +272,10 @@ export function FetchByParticipantForm() {
                 aria-pressed={stateFilter === opt.value}
                 key={opt.value}
                 type="button"
-                onClick={() => setStateFilter(opt.value)}
+                onClick={() => {
+                  setStateFilter(opt.value)
+                  setVisibleCount(20)
+                }}
                 disabled={loading}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                   stateFilter === opt.value
@@ -375,115 +331,142 @@ export function FetchByParticipantForm() {
         </div>
       )}
 
-      {loading && <FetchByParticipantResultsSkeleton />}
-
-      {/* Results */}
-      {filteredResults !== null && (
-        <div className="mt-6">
-          {filteredResults.length === 0 ? (
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {results?.length === 0
-                  ? strings.conversations.fetchByParticipant.results.none
-                  : strings.conversations.fetchByParticipant.results.noneFiltered(
-                      stateFilter
-                    )}
-              </p>
-              {loadMoreButton}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                {strings.conversations.fetchByParticipant.results.count(
-                  filteredResults.length
-                )}
-                {stateFilter !== "all" &&
-                  results &&
-                  results.length !== filteredResults.length && (
-                    <>
-                      {strings.conversations.fetchByParticipant.results.totalSuffix(
-                        results.length
-                      )}
-                    </>
-                  )}
-              </p>
-              <div className="max-h-[420px] overflow-y-auto pr-1">
-                <ul className="space-y-2">
-                  {filteredResults?.map((pc) => (
-                    <li
-                      key={pc.conversationSid}
-                      className="rounded-lg border border-border bg-card px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-mono text-xs break-all text-muted-foreground">
-                            {pc.conversationSid}
-                          </p>
-                          {pc.conversationFriendlyName && (
-                            <p className="mt-0.5 text-sm font-medium">
-                              {pc.conversationFriendlyName}
-                            </p>
-                          )}
-                        </div>
-                        <Badge variant={stateVariant(pc.conversationState)}>
-                          {pc.conversationState}
-                        </Badge>
-                      </div>
-                      <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 text-xs text-muted-foreground sm:grid-cols-2">
-                        <span>
-                          {
-                            strings.conversations.fetchByParticipant.results
-                              .dateCreated
-                          }{" "}
-                          {formatDate(pc.conversationDateCreated)}
-                        </span>
-                        <span>
-                          {
-                            strings.conversations.fetchByParticipant.results
-                              .dateUpdated
-                          }{" "}
-                          {formatDate(pc.conversationDateUpdated)}
-                        </span>
-                      </div>
-                      {pc.participantIdentity && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {
-                            strings.conversations.fetchByParticipant.results
-                              .identity
-                          }{" "}
-                          <span className="font-mono break-all">
-                            {pc.participantIdentity}
-                          </span>
-                        </p>
-                      )}
-                      <div className="mt-3">
-                        <Button asChild variant="outline" size="xs">
-                          <Link
-                            href={{
-                              pathname: "/conversations/consult",
-                              query: {
-                                sid: pc.conversationSid,
-                                tab: "details",
-                              },
-                            }}
-                          >
-                            <FileSearch2 />
-                            {
-                              strings.conversations.fetchByParticipant.results
-                                .consultConversation
-                            }
-                          </Link>
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                {loadMoreButton}
-              </div>
-            </div>
-          )}
+      {loading && (
+        <div className="mt-5 space-y-3">
+          <p role="status" className="text-sm text-muted-foreground">
+            {strings.conversations.fetchByParticipant.progress(
+              pages,
+              results?.length ?? 0
+            )}
+          </p>
+          <Button type="button" variant="outline" onClick={cancel}>
+            {strings.common.cancel}
+          </Button>
         </div>
       )}
+      {cancelled && (
+        <p role="status" className="mt-5 text-sm text-muted-foreground">
+          {strings.conversations.fetchByParticipant.cancelled}
+        </p>
+      )}
+      {loading && results === null && (
+        <FetchByParticipantResultsSkeleton announce={false} />
+      )}
+
+      {/* Results */}
+      {filteredResults !== null &&
+        !(loading && filteredResults.length === 0) && (
+          <div className="mt-6 w-full max-w-3xl">
+            {filteredResults.length === 0 ? (
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {results?.length === 0
+                    ? strings.conversations.fetchByParticipant.results.none
+                    : strings.conversations.fetchByParticipant.results.noneFiltered(
+                        stateFilter
+                      )}
+                </p>
+                {loadMoreButton}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {strings.conversations.fetchByParticipant.results.count(
+                    filteredResults.length
+                  )}
+                  {stateFilter !== "all" &&
+                    results &&
+                    results.length !== filteredResults.length && (
+                      <>
+                        {strings.conversations.fetchByParticipant.results.totalSuffix(
+                          results.length
+                        )}
+                      </>
+                    )}
+                </p>
+                <div className="max-h-[420px] overflow-y-auto pr-1">
+                  <ul className="space-y-2">
+                    {filteredResults.slice(0, displayedCount).map((pc) => (
+                      <li
+                        key={pc.conversationSid}
+                        className="rounded-lg border border-border bg-card px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h2 className="font-mono text-sm font-semibold break-all text-foreground">
+                              {pc.conversationSid}
+                            </h2>
+                            {pc.conversationFriendlyName && (
+                              <p className="mt-0.5 text-sm font-medium">
+                                {pc.conversationFriendlyName}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant={stateVariant(pc.conversationState)}>
+                            {pc.conversationState}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span>
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .dateCreated
+                            }{" "}
+                            {formatDate(pc.conversationDateCreated)}
+                          </span>
+                          <span>
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .dateUpdated
+                            }{" "}
+                            {formatDate(pc.conversationDateUpdated)}
+                          </span>
+                        </div>
+                        {pc.participantIdentity && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .identity
+                            }{" "}
+                            <span className="font-mono break-all">
+                              {pc.participantIdentity}
+                            </span>
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button asChild variant="outline" size="xs">
+                            <Link
+                              href={{
+                                pathname: "/conversations/consult-by-sid",
+                                query: {
+                                  sid: pc.conversationSid,
+                                  tab: "details",
+                                },
+                              }}
+                            >
+                              <FileSearch2 />
+                              {
+                                strings.conversations.fetchByParticipant.results
+                                  .consultConversation
+                              }
+                            </Link>
+                          </Button>
+                          <CloseConversationButton
+                            sid={pc.conversationSid}
+                            state={pc.conversationState}
+                            disabled={loading}
+                            onUpdated={updateConversation}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {loadMoreButton}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       {/* History */}
       {history.length > 0 && (

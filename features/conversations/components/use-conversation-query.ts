@@ -3,6 +3,7 @@
 import type {
   ConversationHistoryResponse,
   FetchResponse,
+  CloseConversationResult,
 } from "@/features/conversations/types"
 import type { TwilioEnvironment } from "@/features/environments/storage"
 import { strings } from "@/lib/strings"
@@ -34,7 +35,7 @@ export function useConversationQuery(
     async function loadDetails() {
       setDetailsError(null)
       try {
-        const response = await fetch("/api/conversations/fetch", {
+        const response = await fetch("/api/conversations/get-details-by-sid", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sid, accountSid, authToken }),
@@ -58,7 +59,7 @@ export function useConversationQuery(
     async function loadMessages() {
       setMessagesError(null)
       try {
-        const response = await fetch("/api/conversations/history", {
+        const response = await fetch("/api/conversations/get-messages-by-sid", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sid, accountSid, authToken }),
@@ -77,6 +78,28 @@ export function useConversationQuery(
   }, [sid, accountSid, authToken, messagesRequested, messagesAttempt])
 
   return {
+    updateConversation: (result: CloseConversationResult) => {
+      setDetails((current) =>
+        current === null
+          ? null
+          : {
+              ...current,
+              conversation: {
+                ...current.conversation,
+                state: result.state,
+                dateUpdated: result.dateUpdated,
+              },
+            }
+      )
+      setMessages((current) =>
+        current === null
+          ? null
+          : {
+              ...current,
+              conversation: { ...current.conversation, state: result.state },
+            }
+      )
+    },
     details,
     detailsError,
     messages,

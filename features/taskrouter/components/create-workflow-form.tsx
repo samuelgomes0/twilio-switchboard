@@ -135,7 +135,7 @@ export function CreateWorkflowForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/create-workflow", {
+      const res = await fetch("/api/taskrouter/create-workflow-from-csv", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },

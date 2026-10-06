@@ -376,6 +376,20 @@ export const strings = {
         attachment: "Anexo",
       },
     },
+    closeSingle: {
+      button: "Encerrar Conversation",
+      closing: "Encerrando…",
+      ariaLabel: (sid: string) => `Encerrar a Conversation ativa ${sid}`,
+      confirmTitle: "Encerrar esta Conversation?",
+      confirmDescription: (sid: string) =>
+        `A Conversation ${sid} será encerrada. Esta ação não pode ser desfeita e afeta apenas esta conversa.`,
+      confirmAction: "Sim, encerrar",
+      success: "Conversation encerrada com sucesso.",
+      notActive:
+        "A Conversation não está mais ativa. Seu estado foi atualizado; nenhum encerramento foi realizado.",
+      error:
+        "Não foi possível confirmar o encerramento. Atualize a consulta para verificar o estado antes de tentar novamente.",
+    },
     close: {
       log: {
         searching: (address: string) => `Buscando conversas para ${address}...`,
@@ -426,6 +440,13 @@ export const strings = {
     fetchByParticipant: {
       loadingPage: "Carregando Conversations por Número…",
       loadingResults: "Buscando Conversations vinculadas ao número…",
+      progress: (pages: number, count: number) =>
+        `Buscando todas as conversas… ${pages} página(s) consultada(s), ${count} conversa(s) encontrada(s). As ativas aparecem primeiro.`,
+      cancelled:
+        "Busca cancelada. Os resultados exibidos são parciais e podem não incluir todas as conversas ativas.",
+      searchFailed:
+        "Não foi possível concluir a busca. Os resultados exibidos são parciais. Faça uma nova busca para tentar novamente.",
+      invalidPhone: "Informe o DDD e o número com 10 ou 11 dígitos, sem +55.",
       breadcrumb: "Conversations por Número",
       title: "Conversations por número",
       subtitle: "Localize Conversations vinculadas a um número do WhatsApp.",
@@ -455,8 +476,7 @@ export const strings = {
         dateCreated: "Criada:",
         dateUpdated: "Atualizada:",
         identity: "Identidade:",
-        loadMore: "Carregar mais",
-        loadingMore: "Carregando...",
+        loadMore: "Exibir mais",
         consultConversation: "Consultar Conversation",
       },
       history: {

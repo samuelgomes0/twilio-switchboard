@@ -109,7 +109,7 @@ export function EnvironmentForm({
     setTestError(null)
 
     try {
-      const res = await fetch("/api/environments/verify", {
+      const res = await fetch("/api/environments/verify-twilio-credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

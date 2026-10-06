@@ -21,9 +21,9 @@ Tokens centralizados em `app/globals.css`, compatíveis com Tailwind 4 e os comp
 | Superfície secundária | `#f5f5f5` | Formulários, contexto e logs |
 | Texto | `#202020` | Informação principal |
 | Texto secundário | `#666666` | Descrições e metadados |
-| Vermelho de marca | `#f22f46` | Marca gráfica do Switchboard |
-| Ação principal | `#d61f36` / branco | Consulta, confirmação e salvamento; variante mais escura para contraste |
-| Hover principal | `#b7192d` | Botões principais sem redução de opacidade |
+| Vermelho de marca | `#b42336` | Compartilha o token primário |
+| Ação principal | `#b42336` / branco | Consulta, confirmação, salvamento e botões destrutivos |
+| Hover principal | `#981d2e` | Botões com preenchimento sem redução de opacidade |
 | Seleção suave | `#fff0f2` | Item ativo da navegação |
 | Divisórias / campos | `#ededed` / `#d9d9d9` | Separação e identificação de controles |
 | Sucesso | `#25724c` / `#e4f3e9` | Resultado positivo |
@@ -31,7 +31,7 @@ Tokens centralizados em `app/globals.css`, compatíveis com Tailwind 4 e os comp
 | Informação | `#446882` / `#e8f0f5` | Estados informativos |
 | Destrutivo | `#b42336` | Alteração destrutiva e erro |
 
-A paleta primária usa o vermelho Twilio como referência (`#f22f46`, documentado no [repositório Twilio Labs](https://github.com/twilio-labs/open-pixel-art)). Em botões com texto pequeno branco, a variante `#d61f36` mantém contraste maior; no tema escuro, `#ff8a98` com texto `#3b0610` mantém a legibilidade. Marca, botões, filtros selecionados, navegação ativa, tabs e foco das buscas recebem a cor primária. Sucesso, atenção, informação e operações destrutivas conservam seus tokens semânticos.
+A paleta vermelha usa carmim `#b42336` com texto branco no tema claro e `#f28b98` com texto `#321016` no tema escuro. Marca, botões primários e destrutivos, filtros selecionados, navegação ativa, tabs e foco compartilham a mesma família. Hover usa `#981d2e` no claro e `#f6a5af` no escuro. Os tokens destrutivos continuam semânticos, mas referenciam os primários; confirmações e botões destrutivos usam preenchimento sólido e texto explicitamente definido. Textos de erro também usam esses tokens. Sucesso, atenção e informação conservam suas cores. `tests/color-contrast.test.mjs` calcula o contraste das combinações de texto, preenchimento, hover e seleção nos dois temas e exige pelo menos 4,5:1.
 
 Geist é a fonte de interface; Geist Mono diferencia SIDs, JSON e logs. Títulos de página têm 20px (18px na home), descrições 12–13px e texto operacional entre 12 e 14px. Identificadores continuam selecionáveis. Raios de 4–8px e bordas finas mantêm a densidade das referências. O bloco direito inteiro usa cantos de 12px, borda discreta e sombra suave para transmitir elevação sobre o fundo da sidebar. Painéis internos não recebem sombras decorativas. O recuo de 8px preserva a aplicação em tela inteira, sem limite de largura ou centralização da aplicação.
 
@@ -75,19 +75,19 @@ Capturas da home foram inspecionadas em desktop e mobile. A home foi verificada 
 | Página ou fluxo | Rotas principais | Requisitos preservados |
 | --- | --- | --- |
 | Visão geral e catálogos | `/`, `/conversations`, `/taskrouter`, `/numbers`, `/flex`, `/settings` | Acesso a todos os domínios e distinção entre ferramenta disponível e futura |
-| Consultar Conversation | `/conversations/consult` | SID, `sid`/`tab` na URL, detalhes e participantes, mensagens carregadas sob demanda, filtros, histórico e exportação CSV |
-| Localizar por participante | `/conversations/fetch-by-participant` | Endereço WhatsApp, filtros de estado, consulta e paginação por token |
-| Encerrar Conversations | `/conversations/close` | Normalização existente, múltiplos números, confirmação, somente conversas ativas, SSE, totais e histórico |
-| Gerenciar Workers | `/taskrouter/workers` | Workspace compartilhado, consulta por SID/e-mail, atribuição de skill, feature booleana incluindo `false`, tabs montadas e cancelamento |
-| Buscar Tasks | `/taskrouter/search-tasks`, `/taskrouter/fetch-task` | Critérios existentes, atributos, status/canal, cópia de SID e resultado vazio |
-| Cancelar Tasks da fila | `/taskrouter/cancel-queue-tasks` | Fila, mensagem, confirmação, sequência de efeitos no backend, logs e resultados parciais |
-| Criar Workflow | `/taskrouter/create-workflow` | Importação CSV/JSON, campos e formatos existentes, preview, confirmação e SSE |
-| Adicionar filtro | `/taskrouter/add-particular-filter` | Pares Workflow/TaskQueue, nome, prioridade existente, confirmação e execução sequencial |
-| Listar Numbers | `/numbers/list` | Fontes existentes, deduplicação, filtros/ordenação locais, CSV e XLSX de todos os resultados carregados |
-| Configurar endereço Flex | `/flex/create-address-config` | Tipo condicional, integração e criação automática, validações e conflito retornado pelo servidor |
-| Ambientes | `/settings/environments` | Cadastro, edição, verificação, ativação, remoção, token mascarado e mesmas chaves locais |
-| Contatos | `/settings/contacts` | CRUD local, busca, telefone e reutilização nos formulários |
-| Variáveis | `/settings/variables` | Grupos existentes, autocomplete por ambiente, edição/exclusão/limpeza e limites atuais |
+| Consultar Conversation | `/conversations/consult-by-sid` | SID, `sid`/`tab` na URL, detalhes e participantes, mensagens carregadas sob demanda, filtros, histórico e exportação CSV |
+| Localizar por participante | `/conversations/search-by-number` | Endereço WhatsApp, filtros de estado, consulta e paginação por token |
+| Encerrar Conversations | `/conversations/close-by-number` | Normalização existente, múltiplos números, confirmação, somente conversas ativas, SSE, totais e histórico |
+| Gerenciar Workers | `/taskrouter/manage-workers` | Workspace compartilhado, consulta por SID/e-mail, atribuição de skill, feature booleana incluindo `false`, tabs montadas e cancelamento |
+| Buscar Tasks | `/taskrouter/search-tasks-by-sid-or-number`, `/taskrouter/fetch-task` | Critérios existentes, atributos, status/canal, cópia de SID e resultado vazio |
+| Cancelar Tasks da fila | `/taskrouter/cancel-queue-tasks-and-close-conversations` | Fila, mensagem, confirmação, sequência de efeitos no backend, logs e resultados parciais |
+| Criar Workflow | `/taskrouter/create-workflow-from-csv` | Importação CSV/JSON, campos e formatos existentes, preview, confirmação e SSE |
+| Adicionar filtro | `/taskrouter/add-business-rule-filter` | Pares Workflow/TaskQueue, nome, prioridade existente, confirmação e execução sequencial |
+| Listar Numbers | `/numbers/list-messaging-numbers` | Fontes existentes, deduplicação, filtros/ordenação locais, CSV e XLSX de todos os resultados carregados |
+| Configurar endereço Flex | `/flex/create-conversation-address` | Tipo condicional, integração e criação automática, validações e conflito retornado pelo servidor |
+| Ambientes | `/settings/manage-environments` | Cadastro, edição, verificação, ativação, remoção, token mascarado e mesmas chaves locais |
+| Contatos | `/settings/manage-contacts` | CRUD local, busca, telefone e reutilização nos formulários |
+| Variáveis | `/settings/manage-variables` | Grupos existentes, autocomplete por ambiente, edição/exclusão/limpeza e limites atuais |
 
 As rotas de compatibilidade e redirects continuam existentes. A contagem da auditoria é de 25 URLs de páginas: 20 acessos diretos e cinco redirects; existem 15 endpoints POST e seis consumidores SSE.
 

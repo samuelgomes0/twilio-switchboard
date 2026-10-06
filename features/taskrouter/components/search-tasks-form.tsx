@@ -147,7 +147,7 @@ export function SearchTasksForm() {
 
     try {
       if (requestedMode === "sid") {
-        const res = await fetch("/api/taskrouter/fetch-task", {
+        const res = await fetch("/api/taskrouter/get-task-by-sid", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -175,7 +175,7 @@ export function SearchTasksForm() {
         pushHistory(HISTORY_KEY, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       } else {
-        const res = await fetch("/api/taskrouter/search-tasks", {
+        const res = await fetch("/api/taskrouter/search-tasks-by-number", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

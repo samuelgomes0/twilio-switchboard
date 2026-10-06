@@ -34,17 +34,17 @@ interface NavItem {
 const conversationsNavItems: NavItem[] = [
   {
     label: strings.conversations.consult.title,
-    href: "/conversations/consult",
+    href: "/conversations/consult-by-sid",
     icon: FileSearch2,
   },
   {
     label: strings.sidebar.nav.conversations.fetchByParticipant.label,
-    href: "/conversations/fetch-by-participant",
+    href: "/conversations/search-by-number",
     icon: AtSign,
   },
   {
     label: strings.sidebar.nav.conversations.close.label,
-    href: "/conversations/close",
+    href: "/conversations/close-by-number",
     icon: MessageSquareOff,
   },
 ]
@@ -52,7 +52,7 @@ const conversationsNavItems: NavItem[] = [
 const flexNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.flex.createAddressConfig.label,
-    href: "/flex/create-address-config",
+    href: "/flex/create-conversation-address",
     icon: MapPin,
   },
 ]
@@ -60,27 +60,27 @@ const flexNavItems: NavItem[] = [
 const taskrouterNavItems: NavItem[] = [
   {
     label: strings.taskrouter.workerManagement.title,
-    href: "/taskrouter/workers",
+    href: "/taskrouter/manage-workers",
     icon: Settings2,
   },
   {
     label: strings.sidebar.nav.taskrouter.searchTasks.label,
-    href: "/taskrouter/search-tasks",
+    href: "/taskrouter/search-tasks-by-sid-or-number",
     icon: Search,
   },
   {
     label: strings.sidebar.nav.taskrouter.createWorkflow.label,
-    href: "/taskrouter/create-workflow",
+    href: "/taskrouter/create-workflow-from-csv",
     icon: GitBranch,
   },
   {
     label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
-    href: "/taskrouter/cancel-queue-tasks",
+    href: "/taskrouter/cancel-queue-tasks-and-close-conversations",
     icon: ListX,
   },
   {
     label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
-    href: "/taskrouter/add-particular-filter",
+    href: "/taskrouter/add-business-rule-filter",
     icon: Filter,
   },
 ]
@@ -88,7 +88,7 @@ const taskrouterNavItems: NavItem[] = [
 const numbersNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.numbers.listNumbers.label,
-    href: "/numbers/list",
+    href: "/numbers/list-messaging-numbers",
     icon: Hash,
   },
 ]
@@ -96,17 +96,17 @@ const numbersNavItems: NavItem[] = [
 const configNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.config.manageEnvironments.label,
-    href: "/settings/environments",
+    href: "/settings/manage-environments",
     icon: Settings2,
   },
   {
     label: strings.sidebar.nav.config.manageContacts.label,
-    href: "/settings/contacts",
+    href: "/settings/manage-contacts",
     icon: BookUser,
   },
   {
     label: strings.sidebar.nav.config.manageVariables.label,
-    href: "/settings/variables",
+    href: "/settings/manage-variables",
     icon: SlidersHorizontal,
   },
 ]
@@ -242,7 +242,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
       <div className="nav-footer">
         <Link
-          href="/settings/environments"
+          href="/settings/manage-environments"
           className="nav-link"
           onClick={onNavigate}
         >

@@ -139,18 +139,21 @@ export function CancelQueueTasksForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/cancel-queue-tasks", {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceSid: workspaceSid.trim(),
-          taskQueueName: taskQueueName.trim(),
-          closeMessage: closeMessage.trim(),
-          accountSid: activeEnvironment.accountSid,
-          authToken: activeEnvironment.authToken,
-        }),
-      })
+      const res = await fetch(
+        "/api/taskrouter/cancel-queue-tasks-and-close-conversations",
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceSid: workspaceSid.trim(),
+            taskQueueName: taskQueueName.trim(),
+            closeMessage: closeMessage.trim(),
+            accountSid: activeEnvironment.accountSid,
+            authToken: activeEnvironment.authToken,
+          }),
+        }
+      )
 
       if (!res.ok || !res.body) {
         const text = await res.text()
@@ -482,7 +485,7 @@ export function CancelQueueTasksForm() {
                 </span>
               )}
               {h.errors > 0 && (
-                <span className="text-red-500 dark:text-red-400">
+                <span className="text-destructive">
                   {strings.taskrouter.cancelQueueTasks.history.itemErrors(
                     h.errors
                   )}

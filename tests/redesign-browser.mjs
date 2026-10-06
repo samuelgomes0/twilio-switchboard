@@ -38,27 +38,27 @@ await context.route("**/api/**", async route => {
   if (mode === "error") return route.fulfill({ status: 403, json: { error: "Sem permissão para esta operação." } })
   const empty = mode === "empty"
   const json = {
-    "/api/environments/verify": { ok: true },
-    "/api/conversations/fetch": { conversation, participants: [] },
-    "/api/conversations/history": { conversation, messages: empty ? [] : [
+    "/api/environments/verify-twilio-credentials": { ok: true },
+    "/api/conversations/get-details-by-sid": { conversation, participants: [] },
+    "/api/conversations/get-messages-by-sid": { conversation, messages: empty ? [] : [
       { sid: sid("IM"), author: "Atendimento", body: "Mensagem de teste para consulta e exportação", dateCreated: date, dateUpdated: date, media: [], participantSid: null },
       { sid: "IM" + "2".repeat(32), author: "Cliente", body: "Segundo conteúdo", dateCreated: date, dateUpdated: date, media: [{ filename: "documento.pdf", contentType: "application/pdf", size: 1024, sid: sid("ME") }], participantSid: null },
     ], hasMore: true },
-    "/api/conversations/fetch-by-participant": { conversations: empty ? [] : [{ conversationSid: body.pageToken ? "CH" + "2".repeat(32) : CH, conversationFriendlyName: conversation.friendlyName, conversationState: "active", conversationDateCreated: date, conversationDateUpdated: date }], nextPageToken: body.pageToken || empty ? null : "page-2" },
-    "/api/taskrouter/fetch-task": { task },
-    "/api/taskrouter/search-tasks": { tasks: empty ? [] : [task], phone: body.phoneNumber },
-    "/api/taskrouter/fetch-worker": { worker },
-    "/api/numbers/list": { numbers: empty ? [] : [{ id: sid("IG"), friendlyName: "Marca com nome extenso para testar a apresentação dos resultados", phoneNumber: "+5511999999999", service: "Conversations" }, { id: "IG" + "2".repeat(32), friendlyName: "Outra marca", phoneNumber: "+5511888888888", service: "Programmable Chat" }] },
-    "/api/flex/create-address-config": { sid: sid("IG"), address: body.address, type: body.type, friendlyName: body.friendlyName, autoCreation: { enabled: true, type: body.autoCreationType }, dateCreated: date, dateUpdated: date, country: null },
+    "/api/conversations/search-by-number": { conversations: empty ? [] : [{ conversationSid: body.pageToken ? "CH" + "2".repeat(32) : CH, conversationFriendlyName: conversation.friendlyName, conversationState: "active", conversationDateCreated: date, conversationDateUpdated: date }], nextPageToken: body.pageToken || empty ? null : "page-2" },
+    "/api/taskrouter/get-task-by-sid": { task },
+    "/api/taskrouter/search-tasks-by-number": { tasks: empty ? [] : [task], phone: body.phoneNumber },
+    "/api/taskrouter/get-worker-details": { worker },
+    "/api/numbers/list-messaging-numbers": { numbers: empty ? [] : [{ id: sid("IG"), friendlyName: "Marca com nome extenso para testar a apresentação dos resultados", phoneNumber: "+5511999999999", service: "Conversations" }, { id: "IG" + "2".repeat(32), friendlyName: "Outra marca", phoneNumber: "+5511888888888", service: "Programmable Chat" }] },
+    "/api/flex/create-conversation-address": { sid: sid("IG"), address: body.address, type: body.type, friendlyName: body.friendlyName, autoCreation: { enabled: true, type: body.autoCreationType }, dateCreated: date, dateUpdated: date, country: null },
   }[url]
   if (json) return route.fulfill({ json })
   const finals = {
-    "/api/conversations/close": { totalClosed: 2, totalErrors: 0 },
-    "/api/taskrouter/assign-workers": { totalUpdated: 1, totalSkipped: 0, totalErrors: 0 },
-    "/api/taskrouter/cancel-queue-tasks": { totalSuccess: 1, totalSkipped: 0, totalErrors: 0 },
-    "/api/taskrouter/create-workflow": { workflowSid: sid("WW"), workflowName: body.workflowName, totalFilters: 1 },
-    "/api/taskrouter/add-particular-filter": { totalAdded: 1, totalSkipped: 0, totalErrors: 0 },
-    "/api/taskrouter/update-worker-feature": { totalUpdated: 1, totalErrors: 0 },
+    "/api/conversations/close-by-number": { totalClosed: 2, totalErrors: 0 },
+    "/api/taskrouter/add-skill-to-workers": { totalUpdated: 1, totalSkipped: 0, totalErrors: 0 },
+    "/api/taskrouter/cancel-queue-tasks-and-close-conversations": { totalSuccess: 1, totalSkipped: 0, totalErrors: 0 },
+    "/api/taskrouter/create-workflow-from-csv": { workflowSid: sid("WW"), workflowName: body.workflowName, totalFilters: 1 },
+    "/api/taskrouter/add-business-rule-filter": { totalAdded: 1, totalSkipped: 0, totalErrors: 0 },
+    "/api/taskrouter/set-worker-feature-status": { totalUpdated: 1, totalErrors: 0 },
   }[url]
   assert.ok(finals, `Unexpected API ${url}`)
   return route.fulfill({ contentType: "text/event-stream", body: [
@@ -89,7 +89,7 @@ async function confirmSubmit() {
   await page.waitForTimeout(100)
 }
 try {
-  const routes = ["/", "/conversations", "/conversations/consult", "/conversations/fetch-by-participant", "/conversations/close", "/taskrouter", "/taskrouter/workers", "/taskrouter/search-tasks", "/taskrouter/fetch-task", "/taskrouter/create-workflow", "/taskrouter/add-particular-filter", "/taskrouter/cancel-queue-tasks", "/numbers", "/numbers/list", "/flex", "/flex/create-address-config", "/settings", "/settings/environments", "/settings/contacts", "/settings/variables"]
+  const routes = ["/", "/conversations", "/conversations/consult-by-sid", "/conversations/search-by-number", "/conversations/close-by-number", "/taskrouter", "/taskrouter/manage-workers", "/taskrouter/search-tasks-by-sid-or-number", "/taskrouter/fetch-task", "/taskrouter/create-workflow-from-csv", "/taskrouter/add-business-rule-filter", "/taskrouter/cancel-queue-tasks-and-close-conversations", "/numbers", "/numbers/list-messaging-numbers", "/flex", "/flex/create-conversation-address", "/settings", "/settings/manage-environments", "/settings/manage-contacts", "/settings/manage-variables"]
   for (const width of process.env.SWITCHBOARD_TEST_FLOWS_ONLY ? [] : [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     for (const route of routes) { await go(route); await verifyLayout(`${width}:${route}`) }
@@ -108,10 +108,10 @@ try {
   console.log("Menu mobile: foco, Escape e retorno aprovados")
 
   await page.setViewportSize({ width: 1440, height: 1000 })
-  await go(`/conversations/consult?sid=${CH}&tab=messages`)
+  await go(`/conversations/consult-by-sid?sid=${CH}&tab=messages`)
   await page.locator("#message-content-search").waitFor()
   // Dev Strict Mode can start and abort one initial request before remounting.
-  const historyLoads = requests.filter(r => r.url === "/api/conversations/history").length
+  const historyLoads = requests.filter(r => r.url === "/api/conversations/get-messages-by-sid").length
   assert.ok(historyLoads >= 1 && historyLoads <= 2)
   await page.locator("#message-content-search").fill("Segundo")
   assert.equal(await page.locator("main ol > li").count(), 1)
@@ -123,18 +123,18 @@ try {
   await page.getByRole("tab", { name: strings.conversations.consult.details, exact: true }).click()
   await page.getByRole("tab", { name: strings.conversations.consult.messages, exact: true }).click()
   assert.equal(await page.locator("#message-content-search").inputValue(), "Segundo")
-  assert.equal(requests.filter(r => r.url === "/api/conversations/history").length, historyLoads, "Cached tab does not refetch messages")
+  assert.equal(requests.filter(r => r.url === "/api/conversations/get-messages-by-sid").length, historyLoads, "Cached tab does not refetch messages")
   await verifyLayout("Conversation messages")
   await page.screenshot({ path: ".next/redesign/conversation-desktop.png", fullPage: true })
 
-  await go("/conversations/fetch-by-participant")
+  await go("/conversations/search-by-number")
   await page.locator("#phone").fill("11999999999")
   await confirmSubmit()
-  const more = page.locator('main button').filter({ hasText: strings.conversations.fetchByParticipant.results.loadMore })
-  if (await more.count()) { await more.click(); await page.waitForTimeout(200); assert.ok(requests.some(r => r.body.pageToken === "page-2")) }
+  await page.locator('main a').filter({ hasText: strings.conversations.fetchByParticipant.results.consultConversation }).nth(1).waitFor()
+  assert.ok(requests.some(r => r.url === "/api/conversations/search-by-number" && r.body.pageToken === "page-2"))
   console.log("Conversations: deep link, lazy tab, filtros, CSV e paginação aprovados")
 
-  await go("/taskrouter/workers")
+  await go("/taskrouter/manage-workers")
   await page.locator("#worker-management-workspace").fill(WS)
   await page.locator('main form input:visible').fill(WK)
   await confirmSubmit()
@@ -147,11 +147,11 @@ try {
   const enabled = page.locator("main select:visible")
   await enabled.selectOption("false")
   await confirmSubmit()
-  assert.equal(requests.findLast(r => r.url.endsWith("update-worker-feature")).body.enabled, false)
+  assert.equal(requests.findLast(r => r.url.endsWith("set-worker-feature-status")).body.enabled, false)
   await verifyLayout("Worker feature result")
   console.log("Workers: prefill, skills, false e contrato de lote aprovados")
 
-  for (const route of ["/conversations/close", "/taskrouter/cancel-queue-tasks", "/taskrouter/create-workflow", "/taskrouter/add-particular-filter"]) {
+  for (const route of ["/conversations/close-by-number", "/taskrouter/cancel-queue-tasks-and-close-conversations", "/taskrouter/create-workflow-from-csv", "/taskrouter/add-business-rule-filter"]) {
     await go(route)
     if (route.endsWith("close")) await page.locator("#close-phone-0").fill("11999999999")
     else {
@@ -177,7 +177,7 @@ try {
     await verifyLayout(route + " result")
     console.log("SSE e confirmação aprovados: " + route)
   }
-  await go("/numbers/list")
+  await go("/numbers/list-messaging-numbers")
   await page.locator("main > div button").filter({ hasText: strings.numbers.list.submit }).first().click()
   await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-action"]').click()
   await page.locator("tbody tr").first().waitFor()
@@ -192,7 +192,7 @@ try {
   await page.screenshot({ path: ".next/redesign/numbers-mobile.png", fullPage: true })
   console.log("Numbers: filtro e exportação total preservados")
 
-  await go("/flex/create-address-config")
+  await go("/flex/create-conversation-address")
   await page.locator("#address").fill("whatsapp:+5511999999999")
   await page.locator("#integrationType").selectOption("default")
   await confirmSubmit()
@@ -200,18 +200,18 @@ try {
   await verifyLayout("Flex result mobile")
 
   mode = "error"
-  await go("/numbers/list")
+  await go("/numbers/list-messaging-numbers")
   await page.locator("main button").filter({ hasText: strings.numbers.list.submit }).first().click()
   await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-action"]').click()
   await page.locator("main").getByRole("alert").waitFor()
   mode = "empty"
-  await go("/numbers/list")
+  await go("/numbers/list-messaging-numbers")
   await page.locator("main button").filter({ hasText: strings.numbers.list.submit }).first().click()
   await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-action"]').click()
   await page.getByText(strings.numbers.list.table.empty, { exact: true }).waitFor()
   mode = "success"
 
-  for (const [route,target] of [[`/conversations/fetch?sid=${CH}`,"/conversations/consult"],[`/conversations/history?sid=${CH}`,"/conversations/consult"],["/taskrouter/fetch-worker","/taskrouter/workers"],["/taskrouter/assign-workers","/taskrouter/workers"],["/taskrouter/update-worker-feature","/taskrouter/workers"]]) { await go(route); assert.equal(new URL(page.url()).pathname,target) }
+  for (const [route,target] of [[`/conversations/fetch?sid=${CH}`,"/conversations/consult-by-sid"],[`/conversations/history?sid=${CH}`,"/conversations/consult-by-sid"],["/taskrouter/fetch-worker","/taskrouter/manage-workers"],["/taskrouter/assign-workers","/taskrouter/manage-workers"],["/taskrouter/update-worker-feature","/taskrouter/manage-workers"]]) { await go(route); assert.equal(new URL(page.url()).pathname,target) }
   await page.emulateMedia({ colorScheme: "dark" })
   await page.getByRole("button", { name: strings.interface.theme }).click()
   await page.getByRole("menuitem", { name: strings.interface.dark, exact: true }).click()

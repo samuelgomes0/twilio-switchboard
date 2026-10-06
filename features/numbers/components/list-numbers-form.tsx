@@ -93,7 +93,7 @@ export function ListNumbersForm() {
     setResults(null)
 
     try {
-      const res = await fetch("/api/numbers/list", {
+      const res = await fetch("/api/numbers/list-messaging-numbers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

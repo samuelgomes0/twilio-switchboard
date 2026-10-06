@@ -7,7 +7,7 @@ export const numbersTools: Tool[] = [
   {
     label: strings.numbers.list.breadcrumb,
     description: strings.numbers.list.subtitle,
-    href: "/numbers/list",
+    href: "/numbers/list-messaging-numbers",
     icon: Hash,
     available: true,
   },

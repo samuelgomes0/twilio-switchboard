@@ -62,3 +62,10 @@ export interface ConversationConsultInput {
   accountSid?: string
   authToken?: string
 }
+
+export interface CloseConversationResult {
+  sid: string
+  state: string
+  dateUpdated: Date | null
+  closed: boolean
+}

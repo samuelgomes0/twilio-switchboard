@@ -1,4 +1,5 @@
 import { getTwilioClient } from "@/lib/twilio-client"
+import { sortParticipantConversations } from "@/features/conversations/lib/search-participant-pages"
 
 export interface ParticipantConversation {
   conversationSid: string
@@ -16,7 +17,7 @@ export interface ParticipantConversationPage {
   nextPageToken: string | null
 }
 
-const PARTICIPANT_CONVERSATION_PAGE_SIZE = 20
+const PARTICIPANT_CONVERSATION_PAGE_SIZE = 50
 
 function readPageToken(nextPageUrl: string | undefined): string | null {
   if (!nextPageUrl) return null
@@ -37,30 +38,21 @@ export async function fetchConversationsByParticipant(
     pageToken,
   })
 
-  const conversations = page.instances
-    .map((pc) => ({
-      conversationSid: pc.conversationSid,
-      conversationState: pc.conversationState as string,
-      conversationDateCreated: pc.conversationDateCreated ?? null,
-      conversationDateUpdated: pc.conversationDateUpdated ?? null,
-      conversationFriendlyName: pc.conversationFriendlyName ?? null,
-      participantSid: pc.participantSid,
-      participantIdentity: pc.participantIdentity ?? null,
-      participantMessagingBinding:
-        (pc.participantMessagingBinding as Record<string, unknown> | null) ??
-        null,
-    }))
-    .sort((a, b) => {
-      const aActive = a.conversationState === "active" ? 0 : 1
-      const bActive = b.conversationState === "active" ? 0 : 1
-      if (aActive !== bActive) return aActive - bActive
-      const aTime = a.conversationDateUpdated?.getTime() ?? 0
-      const bTime = b.conversationDateUpdated?.getTime() ?? 0
-      return bTime - aTime
-    })
+  const conversations = page.instances.map((pc) => ({
+    conversationSid: pc.conversationSid,
+    conversationState: pc.conversationState as string,
+    conversationDateCreated: pc.conversationDateCreated ?? null,
+    conversationDateUpdated: pc.conversationDateUpdated ?? null,
+    conversationFriendlyName: pc.conversationFriendlyName ?? null,
+    participantSid: pc.participantSid,
+    participantIdentity: pc.participantIdentity ?? null,
+    participantMessagingBinding:
+      (pc.participantMessagingBinding as Record<string, unknown> | null) ??
+      null,
+  }))
 
   return {
-    conversations,
+    conversations: sortParticipantConversations(conversations),
     nextPageToken: readPageToken(page.nextPageUrl),
   }
 }

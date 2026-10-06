@@ -179,7 +179,7 @@ export function CreateAddressConfigForm() {
     body.authToken = activeEnvironment.authToken
 
     try {
-      const res = await fetch("/api/flex/create-address-config", {
+      const res = await fetch("/api/flex/create-conversation-address", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

@@ -23,7 +23,7 @@ export function NoEnvironmentSelected({ className }: { className?: string }) {
         <p className="mt-0.5 text-warning/80">
           {message.message}{" "}
           <Link
-            href="/settings/environments"
+            href="/settings/manage-environments"
             className="underline underline-offset-2 hover:text-warning focus-visible:outline-2 focus-visible:outline-ring"
           >
             {message.link}

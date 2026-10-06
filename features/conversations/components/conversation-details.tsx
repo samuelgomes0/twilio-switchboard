@@ -1,19 +1,26 @@
 import { ActionButton } from "@/components/action-button"
+import { ActionBar } from "@/components/action-bar"
+import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
 import { JsonBlock } from "@/components/json-block"
 import { Badge } from "@/components/ui/badge"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
-import type { ConversationData } from "@/features/conversations/types"
+import type {
+  ConversationData,
+  CloseConversationResult,
+} from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
 
 export function ConversationDetails({
   conversation,
   onRefresh,
+  onUpdated,
 }: {
   conversation: ConversationData
   onRefresh: () => void
+  onUpdated: (result: CloseConversationResult) => void
 }) {
   const labels = strings.conversations.consult
   const stateLabel =
@@ -48,9 +55,16 @@ export function ConversationDetails({
             {stateLabel}
           </Badge>
         </div>
-        <ActionButton action="refresh" onClick={onRefresh}>
-          {strings.common.refresh}
-        </ActionButton>
+        <ActionBar>
+          <ActionButton action="refresh" onClick={onRefresh}>
+            {strings.common.refresh}
+          </ActionButton>
+          <CloseConversationButton
+            sid={conversation.sid}
+            state={conversation.state}
+            onUpdated={onUpdated}
+          />
+        </ActionBar>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">

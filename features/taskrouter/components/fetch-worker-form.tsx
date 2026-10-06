@@ -136,7 +136,7 @@ export function FetchWorkerForm() {
     setData(null)
 
     try {
-      const res = await fetch("/api/taskrouter/fetch-worker", {
+      const res = await fetch("/api/taskrouter/get-worker-details", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

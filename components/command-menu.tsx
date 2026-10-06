@@ -20,19 +20,19 @@ const TOOLS = [
   ...flexTools,
   {
     ...strings.environments.page.tools.manage,
-    href: "/settings/environments",
+    href: "/settings/manage-environments",
     icon: Settings2,
     available: true,
   },
   {
     ...strings.environments.page.tools.contacts,
-    href: "/settings/contacts",
+    href: "/settings/manage-contacts",
     icon: BookUser,
     available: true,
   },
   {
     ...strings.environments.page.tools.variables,
-    href: "/settings/variables",
+    href: "/settings/manage-variables",
     icon: SlidersHorizontal,
     available: true,
   },

@@ -150,7 +150,7 @@ export function AssignWorkersForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/assign-workers", {
+      const res = await fetch("/api/taskrouter/add-skill-to-workers", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -561,7 +561,7 @@ export function AssignWorkersForm() {
                 </span>
               )}
               {h.errors > 0 && (
-                <span className="text-red-500 dark:text-red-400">
+                <span className="text-destructive">
                   {strings.taskrouter.assignWorkers.history.itemErrors(
                     h.errors
                   )}

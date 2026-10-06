@@ -18,5 +18,5 @@ export default async function FetchConversationPage({
   const { sid } = await searchParams
   const query = new URLSearchParams({ tab: "details" })
   if (typeof sid === "string") query.set("sid", sid)
-  redirect(`/conversations/consult?${query}`)
+  redirect(`/conversations/consult-by-sid?${query}`)
 }
