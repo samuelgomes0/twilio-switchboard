@@ -9,6 +9,7 @@ import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 import { MAX_ITEMS } from "@/lib/constants"
 import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
+import { parseTwilioCredentials } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
   let value: unknown
@@ -52,15 +53,8 @@ export async function POST(req: NextRequest) {
     }
     participants.push(phone.trim())
   }
-  const { accountSid, authToken } = body
-  if (
-    (accountSid !== undefined &&
-      (typeof accountSid !== "string" ||
-        !/^AC[a-f0-9]{32}$/i.test(accountSid))) ||
-    (authToken !== undefined &&
-      (typeof authToken !== "string" || !/^[a-f0-9]{32}$/i.test(authToken))) ||
-    (accountSid === undefined) !== (authToken === undefined)
-  ) {
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
     return Response.json(
       { error: strings.common.validation.invalidCredentials },
       { status: 400 }
@@ -69,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(accountSid, authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     const response = toApiResponse(err)
     return new Response(response.body, {

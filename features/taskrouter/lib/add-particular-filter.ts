@@ -1,8 +1,9 @@
 import { strings } from "@/lib/strings"
-import { sanitizeExternalError } from "@/lib/errors"
+import { AppError, sanitizeExternalError } from "@/lib/errors"
 import { sseEvent } from "@/features/conversations/lib/close"
 import type { AddParticularFilterInput } from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
+import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
 
 interface RoutingTarget {
   queue: string
@@ -59,6 +60,12 @@ export async function addParticularFilter(
   client: ReturnType<typeof getTwilioClient>,
   emit: (event: string) => void
 ): Promise<{ totalAdded: number; totalSkipped: number; totalErrors: number }> {
+  if (!isSafeTaskRouterLiteral(input.filterName)) {
+    throw new AppError(
+      "validation",
+      strings.common.validation.invalidFilterName
+    )
+  }
   let totalAdded = 0
   let totalSkipped = 0
   let totalErrors = 0

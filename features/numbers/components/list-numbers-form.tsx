@@ -36,7 +36,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/search-input"
 import { useEnvironment } from "@/features/environments/context"
-import type { NumberRecord, PhoneNumberService } from "@/features/numbers/types"
+import type { NumberListResult, NumberRecord, PhoneNumberService } from "@/features/numbers/types"
+import { escapeCsvCell, sanitizeSpreadsheetCell } from "@/lib/spreadsheet"
 import { strings } from "@/lib/strings"
 
 type ServiceFilter = "all" | PhoneNumberService
@@ -78,6 +79,7 @@ export function ListNumbersForm() {
   const { activeEnvironment } = useEnvironment()
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [warning, setWarning] = React.useState<string | null>(null)
   const [results, setResults] = React.useState<NumberRecord[] | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
 
@@ -90,6 +92,7 @@ export function ListNumbersForm() {
     if (!activeEnvironment) return
     setLoading(true)
     setError(null)
+    setWarning(null)
     setResults(null)
 
     try {
@@ -101,13 +104,19 @@ export function ListNumbersForm() {
           authToken: activeEnvironment.authToken,
         }),
       })
-      const json = (await res.json()) as {
-        numbers: NumberRecord[]
+      const json = (await res.json()) as Partial<NumberListResult> & {
         error?: string
       }
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)
         return
+      }
+      if (!Array.isArray(json.numbers)) {
+        setError(strings.common.unknown)
+        return
+      }
+      if (json.partial || json.hasMore) {
+        setWarning(json.partial ? s.partialWarning : s.truncatedWarning)
       }
       setResults(json.numbers)
     } catch {
@@ -126,12 +135,14 @@ export function ListNumbersForm() {
       s.table.colSid,
     ]
     const rows = results.map((r) => [
-      `"${r.friendlyName.replace(/"/g, '""')}"`,
+      r.friendlyName,
       r.phoneNumber,
       serviceLabel(r.service),
       r.id,
     ])
-    const csv = [header.join(","), ...rows.map((r) => r.join(","))].join("\n")
+    const csv = [header, ...rows]
+      .map((row) => row.map(escapeCsvCell).join(","))
+      .join("\r\n")
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -145,10 +156,10 @@ export function ListNumbersForm() {
     const XLSX = await import("xlsx")
     if (!results) return
     const data = results.map((r) => ({
-      [s.table.colMark]: r.friendlyName,
-      [s.table.colNumber]: r.phoneNumber,
-      [s.table.colService]: serviceLabel(r.service),
-      [s.table.colSid]: r.id,
+      [s.table.colMark]: sanitizeSpreadsheetCell(r.friendlyName),
+      [s.table.colNumber]: sanitizeSpreadsheetCell(r.phoneNumber),
+      [s.table.colService]: sanitizeSpreadsheetCell(serviceLabel(r.service)),
+      [s.table.colSid]: sanitizeSpreadsheetCell(r.id),
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     const wb = XLSX.utils.book_new()
@@ -271,6 +282,12 @@ export function ListNumbersForm() {
           className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
         >
           {error}
+        </div>
+      )}
+
+      {warning && (
+        <div role="status" className="mt-5 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning">
+          {warning}
         </div>
       )}
 

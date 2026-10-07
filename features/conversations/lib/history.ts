@@ -3,6 +3,7 @@ import type {
   ConversationMedia,
 } from "@/features/conversations/types"
 import { getTwilioClient } from "@/lib/twilio-client"
+import { toIsoString } from "@/lib/to-iso-string"
 
 const MESSAGE_HISTORY_LIMIT = 1000
 
@@ -53,8 +54,8 @@ export async function fetchConversationHistory(
       author: message.author,
       body: message.body,
       participantSid: message.participantSid ?? null,
-      dateCreated: message.dateCreated ?? null,
-      dateUpdated: message.dateUpdated ?? null,
+      dateCreated: toIsoString(message.dateCreated),
+      dateUpdated: toIsoString(message.dateUpdated),
       attributes: message.attributes,
       media: Array.isArray(message.media)
         ? message.media.map(normalizeMedia)

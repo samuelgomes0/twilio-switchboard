@@ -5,21 +5,21 @@ import { cancelQueueTasks } from "@/features/taskrouter/lib/cancel-queue-tasks"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
-  let body: {
-    workspaceSid?: unknown
-    taskQueueName?: unknown
-    closeMessage?: unknown
-    accountSid?: string
-    authToken?: string
-  }
-
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json(
       { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
+  }
+
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json(
+      { error: strings.common.validation.invalidCredentials },
       { status: 400 }
     )
   }
@@ -30,10 +30,22 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
+  const workspaceSid = body.workspaceSid.trim()
+  if (!isTwilioSid(workspaceSid, "WS")) {
+    return Response.json({ error: strings.common.validation.invalidWorkspaceSid }, { status: 400 })
+  }
 
-  if (!body.taskQueueName || typeof body.taskQueueName !== "string") {
+  if (!body.taskQueueName || typeof body.taskQueueName !== "string" || !body.taskQueueName.trim()) {
     return Response.json(
       { error: strings.common.validation.queueRequired },
+      { status: 400 }
+    )
+  }
+  const taskQueueName = body.taskQueueName.trim()
+
+  if (body.closeMessage !== undefined && typeof body.closeMessage !== "string") {
+    return Response.json(
+      { error: strings.common.validation.invalidCloseMessage },
       { status: 400 }
     )
   }
@@ -42,10 +54,16 @@ export async function POST(req: NextRequest) {
     typeof body.closeMessage === "string" && body.closeMessage.trim()
       ? body.closeMessage.trim()
       : undefined
+  if (closeMessage && closeMessage.length > 1600) {
+    return Response.json(
+      { error: strings.common.validation.invalidCloseMessage },
+      { status: 400 }
+    )
+  }
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     return toApiResponse(err)
   }
@@ -60,8 +78,8 @@ export async function POST(req: NextRequest) {
       const { totalSuccess, totalSkipped, totalErrors } =
         await cancelQueueTasks(
           {
-            workspaceSid: body.workspaceSid as string,
-            taskQueueName: body.taskQueueName as string,
+            workspaceSid,
+            taskQueueName,
             closeMessage,
           },
           client,

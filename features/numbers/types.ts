@@ -6,3 +6,9 @@ export interface NumberRecord {
   friendlyName: string
   service: PhoneNumberService
 }
+
+export interface NumberListResult {
+  numbers: NumberRecord[]
+  partial: boolean
+  hasMore: boolean
+}

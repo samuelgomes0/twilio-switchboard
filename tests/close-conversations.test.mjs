@@ -105,7 +105,7 @@ test("close: SDK pagination finds an active conversation after the first 1,000 m
     } }
   }
   const { POST } = setup(client)
-  const events = eventsFrom(await (await POST(request({ participants: ["11999999999"] }))).text())
+  const events = eventsFrom(await (await POST(request({ participants: ["11999999999"], ...credentials }))).text())
   assert.equal(reads.length, 21)
   assert.equal(reads[0].params.Address, address)
   assert.equal(reads[0].params.PageSize, 50)
@@ -116,11 +116,11 @@ test("close: SDK pagination finds an active conversation after the first 1,000 m
   assert.equal(events.at(-1).done, true)
 })
 
-test("close: empty results finish without writes and support environment fallback", async () => {
+test("close: empty results finish without writes", async () => {
   const { client, writes } = mockClient()
   const { POST, receivedCredentials } = setup(client)
-  const events = eventsFrom(await (await POST(request({ participants: ["11999999999"] }))).text())
-  assert.deepEqual(receivedCredentials, [[undefined, undefined]])
+  const events = eventsFrom(await (await POST(request({ participants: ["11999999999"], ...credentials }))).text())
+  assert.deepEqual(receivedCredentials, [[credentials.accountSid, credentials.authToken]])
   assert.deepEqual(writes, [])
   assert.ok(events.some(event => event.level === "warning"))
   assert.equal(events.at(-1).totalClosed, 0)
@@ -132,7 +132,7 @@ test("close: failed searches are reported as errors rather than no matches", asy
   const { client, writes } = mockClient()
   client.conversations.v1.participantConversations.list = async () => { throw new Error(credentials.authToken) }
   const { POST } = setup(client)
-  const text = await (await POST(request({ participants: ["11999999999"] }))).text()
+  const text = await (await POST(request({ participants: ["11999999999"], ...credentials }))).text()
   const events = eventsFrom(text)
   assert.equal(text.includes(credentials.authToken), false)
   assert.deepEqual(writes, [])

@@ -75,10 +75,15 @@ export const strings = {
       invalidBody: "Corpo da requisição inválido",
       workspaceRequired: "O campo 'workspaceSid' é obrigatório",
       skillRequired: "O campo 'skill' é obrigatório",
+      invalidSkillLevel: "O nível da skill deve ser um número entre 0 e 5",
       addressRequired: "O campo 'address' é obrigatório",
       invalidPageToken: "Token de página inválido",
       invalidCredentials: "Credenciais em formato inválido",
       phoneRequired: "O campo 'phoneNumber' é obrigatório",
+      invalidPhone: "Número de telefone inválido",
+      invalidFilterName: "Nome de filtro inválido",
+      invalidCloseMessage: "Mensagem de encerramento inválida",
+      csvTooLarge: "O arquivo CSV excede o limite de 1 MB",
       invalidWorkspaceSid:
         "Workspace SID inválido. Formato esperado: WS + 32 caracteres hex",
       queueRequired: "O campo 'taskQueueName' é obrigatório",
@@ -726,6 +731,8 @@ export const strings = {
         unexpectedError: "Erro inesperado ao criar workflow.",
         invalidColumns:
           'Colunas "Regra de Negócio" e "Fila Twilio" não encontradas no CSV.',
+        invalidRule:
+          "O CSV contém uma regra com caracteres não permitidos.",
         loadingQueues: "Carregando filas do workspace...",
         noDefaultQueue: (queueName: string) =>
           `Fila "${queueName}" não encontrada. Workflow será criado sem filtro padrão.`,
@@ -1156,6 +1163,10 @@ export const strings = {
       confirmTitle: "Listar senders?",
       confirmDescription: (env: string) =>
         `Listar todos os WhatsApp senders da conta no ambiente ${env}?`,
+      partialWarning:
+        "Uma das fontes da Twilio não respondeu. Os resultados exibidos são parciais.",
+      truncatedWarning:
+        "A conta possui mais resultados do que o limite carregado. A lista está incompleta.",
       table: {
         colSid: "SID",
         sheetName: "Senders",

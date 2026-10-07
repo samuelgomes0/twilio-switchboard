@@ -6,23 +6,21 @@ import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
+import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
+import { MAX_ITEMS } from "@/lib/constants"
 
 export async function POST(req: NextRequest) {
-  let body: {
-    workspaceSid?: unknown
-    filterName?: unknown
-    entries?: unknown
-    accountSid?: string
-    authToken?: string
-  }
-
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json(
       { error: strings.common.validation.invalidBody },
       { status: 400 }
     )
+  }
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json({ error: strings.common.validation.invalidCredentials }, { status: 400 })
   }
 
   if (!body.workspaceSid || typeof body.workspaceSid !== "string") {
@@ -31,6 +29,9 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
+  if (!isTwilioSid(body.workspaceSid, "WS")) {
+    return Response.json({ error: strings.common.validation.invalidWorkspaceSid }, { status: 400 })
+  }
 
   if (!body.filterName || typeof body.filterName !== "string") {
     return Response.json(
@@ -38,8 +39,16 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
+  const filterName = body.filterName.trim()
+  if (!isSafeTaskRouterLiteral(filterName)) {
+    return Response.json({ error: strings.common.validation.invalidFilterName }, { status: 400 })
+  }
 
-  if (!Array.isArray(body.entries) || body.entries.length === 0) {
+  if (
+    !Array.isArray(body.entries) ||
+    body.entries.length === 0 ||
+    body.entries.length > MAX_ITEMS
+  ) {
     return Response.json(
       { error: strings.common.validation.entriesRequired },
       { status: 400 }
@@ -51,7 +60,9 @@ export async function POST(req: NextRequest) {
       typeof entry !== "object" ||
       entry === null ||
       typeof (entry as Record<string, unknown>).workflowSid !== "string" ||
-      typeof (entry as Record<string, unknown>).taskQueueSid !== "string"
+      typeof (entry as Record<string, unknown>).taskQueueSid !== "string" ||
+      !isTwilioSid((entry as Record<string, unknown>).workflowSid as string, "WW") ||
+      !isTwilioSid((entry as Record<string, unknown>).taskQueueSid as string, "WQ")
     ) {
       return Response.json(
         {
@@ -66,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     return toApiResponse(err)
   }
@@ -83,10 +94,8 @@ export async function POST(req: NextRequest) {
           await addParticularFilter(
             {
               workspaceSid: body.workspaceSid as string,
-              filterName: body.filterName as string,
+              filterName,
               entries,
-              accountSid: body.accountSid,
-              authToken: body.authToken,
             },
             client,
             emit

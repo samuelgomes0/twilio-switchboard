@@ -1,11 +1,12 @@
 import { getTwilioClient } from "@/lib/twilio-client"
 import { sortParticipantConversations } from "@/features/conversations/lib/search-participant-pages"
+import { toIsoString } from "@/lib/to-iso-string"
 
 export interface ParticipantConversation {
   conversationSid: string
   conversationState: string
-  conversationDateCreated: Date | null
-  conversationDateUpdated: Date | null
+  conversationDateCreated: string | null
+  conversationDateUpdated: string | null
   conversationFriendlyName: string | null
   participantSid: string
   participantIdentity: string | null
@@ -41,8 +42,8 @@ export async function fetchConversationsByParticipant(
   const conversations = page.instances.map((pc) => ({
     conversationSid: pc.conversationSid,
     conversationState: pc.conversationState as string,
-    conversationDateCreated: pc.conversationDateCreated ?? null,
-    conversationDateUpdated: pc.conversationDateUpdated ?? null,
+    conversationDateCreated: toIsoString(pc.conversationDateCreated),
+    conversationDateUpdated: toIsoString(pc.conversationDateUpdated),
     conversationFriendlyName: pc.conversationFriendlyName ?? null,
     participantSid: pc.participantSid,
     participantIdentity: pc.participantIdentity ?? null,

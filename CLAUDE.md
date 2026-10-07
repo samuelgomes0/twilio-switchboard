@@ -55,7 +55,11 @@ Searches share `SearchInput` and the `search-control` style, including directory
 
 ### Environment / credentials system
 
-Twilio credentials are stored entirely in the browser's `localStorage` (never server-side). `features/environments/storage.ts` handles serialization of `TwilioEnvironment` objects (`{ id, name, accountSid, authToken }`); `features/environments/context.tsx` exposes `EnvironmentProvider` and `useEnvironment()`. The active environment's `accountSid` and `authToken` are forwarded in the JSON body of every `POST` to `app/api/**`. Route Handlers pass them to `getTwilioClient()` in `lib/twilio-client.ts`, which falls back to `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN` env vars if credentials are absent.
+Twilio credentials are stored entirely in the browser's `localStorage` (never server-side). `features/environments/storage.ts` handles serialization of `TwilioEnvironment` objects (`{ id, name, accountSid, authToken }`); `features/environments/context.tsx` exposes `EnvironmentProvider` and `useEnvironment()`. The active environment's `accountSid` and `authToken` are forwarded in the JSON body of every `POST` to `app/api/**`. Route Handlers pass them to `getTwilioClient()` in `lib/twilio-client.ts`, which rejects requests when either credential is absent and never reads server environment variables.
+
+Route Handlers use `readJsonObject`, `parseTwilioCredentials` and `isTwilioSid` from `lib/request-validation.ts` at the HTTP boundary. Credentials are mandatory and malformed JSON, arrays, primitives, partial credential pairs and invalid credential formats return 400 before a Twilio client is created. Domain-specific validation remains in each handler.
+
+Dates crossing the JSON boundary are ISO strings produced by `lib/to-iso-string.ts`; browser-facing domain types never declare runtime JSON strings as `Date`. Spreadsheet exports share formula neutralization and CSV quoting from `lib/spreadsheet.ts`. Number listing reports partial source failures and truncation instead of presenting incomplete data as complete.
 
 ### SSE streaming pattern
 
@@ -87,7 +91,7 @@ The form composes details, participants and a dynamically loaded messages compon
 
 Recent query SIDs use `switchboard:conversation-consult-history:<environmentId>` (five deduplicated entries). Existing message history for that environment seeds the list until the first write. Legacy details history is preserved but not imported because it has no environment identity. No message contents or query results are persisted.
 
-Run `node --test tests/conversation-consult.test.mjs` for focused POST route tests covering malformed input, credential forwarding, environment fallback and sanitized failures with mocked Twilio calls.
+Run `node --test tests/conversation-consult.test.mjs` for focused POST route tests covering malformed input, credential forwarding and sanitized failures with mocked Twilio calls. `tests/twilio-client.test.mjs` verifies that the factory rejects missing credentials without reading server environment variables.
 
 Messages render as chronological chat bubbles: WhatsApp/SMS customer participants on the right, service messages on the left. `is-customer-message.ts` matches the message participant SID to a participant with a messaging address, falling back to an exact known customer address match (with the WhatsApp prefix normalized). Proxy addresses are not customer addresses. Unmatched authors stay on the left; alignment updates when the existing details request supplies participants. No extra Twilio requests are made. The bubble component retains author, timestamps, attachments and message SID; filtering and CSV export still use the original messages. Alignment tests cover customer addresses, agents, bots, system messages and proxy numbers.
 

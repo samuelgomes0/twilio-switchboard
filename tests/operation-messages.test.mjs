@@ -3,6 +3,13 @@ import test from "node:test"
 import { createLoader } from "./typescript-loader.mjs"
 
 const privateDetail = "upstream-private-detail"
+const credentials = {
+  accountSid: `AC${"1".repeat(32)}`,
+  authToken: "2".repeat(32),
+}
+const workspaceSid = `WS${"3".repeat(32)}`
+const workflowSid = `WW${"4".repeat(32)}`
+const taskQueueSid = `WQ${"5".repeat(32)}`
 
 function mockStorage(t, initial = {}) {
   const descriptors = ["window", "localStorage"].map((key) =>
@@ -159,7 +166,7 @@ test("channel classification preserves exact matching without normalizing sender
 const request = (body) =>
   new Request("http://localhost", {
     method: "POST",
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, ...credentials }),
     headers: { "Content-Type": "application/json" },
   })
 const eventsFrom = (text) =>
@@ -203,7 +210,7 @@ for (const [action, operation, body] of [
     "create-workflow",
     "createWorkflow",
     {
-      workspaceSid: "WS-test",
+      workspaceSid,
       workflowName: "Teste",
       csvContent: "header\nrow",
     },
@@ -212,9 +219,9 @@ for (const [action, operation, body] of [
     "add-particular-filter",
     "addParticularFilter",
     {
-      workspaceSid: "WS-test",
+      workspaceSid,
       filterName: "Teste",
-      entries: [{ workflowSid: "WW-test", taskQueueSid: "WQ-test" }],
+      entries: [{ workflowSid, taskQueueSid }],
     },
   ],
 ]) {
@@ -263,7 +270,7 @@ test("workflow CSV validation keeps its actionable message and performs no write
   const { strings } = load("lib/strings.ts")
   const response = await POST(
     request({
-      workspaceSid: "WS-test",
+      workspaceSid,
       workflowName: "Teste",
       csvContent: "invalid\nrow",
     })
@@ -300,7 +307,7 @@ test("filter update sanitizes upstream failures and continues the batch", async 
   }
   const result = await addParticularFilter(
     {
-      workspaceSid: "WS-test",
+      workspaceSid,
       filterName: "Teste",
       entries: [1, 2].map((i) => ({
         workflowSid: `WW-${i}`,
@@ -364,7 +371,7 @@ test("workflow success preserves routing configuration and completion counters",
   const { POST } = load("app/api/taskrouter/create-workflow/route.ts")
   const response = await POST(
     request({
-      workspaceSid: "WS-test",
+      workspaceSid,
       workflowName: "Teste",
       csvContent: "Regra de Negócio;Fila Twilio\nregra;Suporte",
     })

@@ -3,6 +3,7 @@ import { fetchConversationsByParticipant } from "@/features/conversations/lib/fe
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { parseTwilioCredentials } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
   let value: unknown
@@ -43,15 +44,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (
-    (body.accountSid !== undefined &&
-      (typeof body.accountSid !== "string" ||
-        !/^AC[0-9a-f]{32}$/i.test(body.accountSid))) ||
-    (body.authToken !== undefined &&
-      (typeof body.authToken !== "string" ||
-        !/^[0-9a-f]{32}$/i.test(body.authToken))) ||
-    (body.accountSid === undefined) !== (body.authToken === undefined)
-  ) {
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
     return Response.json(
       { error: strings.common.validation.invalidCredentials },
       { status: 400 }
@@ -63,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     const response = toApiResponse(err)
     return new Response(response.body, {

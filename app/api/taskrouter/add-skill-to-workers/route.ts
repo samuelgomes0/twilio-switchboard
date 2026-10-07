@@ -6,22 +6,21 @@ import { MAX_ITEMS } from "@/lib/constants"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
-  let body: {
-    workspaceSid?: unknown
-    skill?: unknown
-    level?: unknown
-    emails?: unknown
-    accountSid?: string
-    authToken?: string
-  }
-
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json(
       { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
+  }
+
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json(
+      { error: strings.common.validation.invalidCredentials },
       { status: 400 }
     )
   }
@@ -32,13 +31,18 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
+  const workspaceSid = body.workspaceSid.trim()
+  if (!isTwilioSid(workspaceSid, "WS")) {
+    return Response.json({ error: strings.common.validation.invalidWorkspaceSid }, { status: 400 })
+  }
 
-  if (!body.skill || typeof body.skill !== "string") {
+  if (!body.skill || typeof body.skill !== "string" || !body.skill.trim()) {
     return Response.json(
       { error: strings.common.validation.skillRequired },
       { status: 400 }
     )
   }
+  const skill = body.skill.trim()
 
   if (
     !Array.isArray(body.emails) ||
@@ -59,12 +63,17 @@ export async function POST(req: NextRequest) {
     ...new Set((body.emails as string[]).map((email) => email.trim())),
   ]
 
-  const level =
-    body.level !== undefined && body.level !== null ? Number(body.level) : null
+  const level = body.level === undefined || body.level === null ? null : Number(body.level)
+  if (level !== null && (!Number.isFinite(level) || level < 0 || level > 5)) {
+    return Response.json(
+      { error: strings.common.validation.invalidSkillLevel },
+      { status: 400 }
+    )
+  }
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     return toApiResponse(err)
   }
@@ -86,12 +95,10 @@ export async function POST(req: NextRequest) {
       const { totalUpdated, totalSkipped, totalErrors } =
         await assignWorkersToQueue(
           {
-            workspaceSid: body.workspaceSid as string,
-            skill: body.skill as string,
+            workspaceSid,
+            skill,
             level,
             emails,
-            accountSid: body.accountSid,
-            authToken: body.authToken,
           },
           client,
           emit

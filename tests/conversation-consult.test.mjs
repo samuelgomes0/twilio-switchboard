@@ -46,7 +46,7 @@ for (const [action, functionName] of [["fetch", "fetchConversation"], ["history"
     assert.equal(calls, 0)
   })
 
-  test(`${action}: forwards a trimmed SID and credentials; supports server fallback`, async () => {
+  test(`${action}: forwards a trimmed SID and credentials`, async () => {
     const client = {}
     const args = []
     const POST = route((...values) => { args.push(values); return client }, async (value, receivedClient) => {
@@ -55,8 +55,7 @@ for (const [action, functionName] of [["fetch", "fetchConversation"], ["history"
       return { conversation: { sid } }
     })
     assert.equal((await POST(request({ sid: ` ${sid} `, ...credentials }))).status, 200)
-    assert.equal((await POST(request({ sid }))).status, 200)
-    assert.deepEqual(args, [[credentials.accountSid, credentials.authToken], [undefined, undefined]])
+    assert.deepEqual(args, [[credentials.accountSid, credentials.authToken]])
   })
 
   test(`${action}: credential and upstream failures are generic and do not leak`, async () => {

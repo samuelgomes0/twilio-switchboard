@@ -141,7 +141,7 @@ try {
   await page.getByRole("button", { name: strings.taskrouter.workerManagement.actions.addSkill, exact: true }).click()
   await page.locator("#skill").fill("suporte")
   await confirmSubmit()
-  assert.ok(requests.some(r => r.url.endsWith("assign-workers") && r.body.emails[0] === WK))
+  assert.ok(requests.some(r => r.url.endsWith("add-skill-to-workers") && r.body.emails[0] === WK))
   await page.getByRole("tab", { name: strings.taskrouter.workerManagement.tabs.features, exact: true }).click()
   await page.locator("#feature-name").fill("plugin")
   const enabled = page.locator("main select:visible")

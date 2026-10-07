@@ -9,8 +9,8 @@ export interface Participant {
   sid: string
   identity: string | null
   messagingBinding: MessagingBinding | null
-  dateCreated: Date | null
-  dateUpdated: Date | null
+  dateCreated: string | null
+  dateUpdated: string | null
   attributes: string
   roleSid: string | null
 }
@@ -19,8 +19,8 @@ export interface ConversationData {
   sid: string
   friendlyName: string | null
   state: string
-  dateCreated: Date | null
-  dateUpdated: Date | null
+  dateCreated: string | null
+  dateUpdated: string | null
   attributes: string
   messagingServiceSid: string | null
   url: string
@@ -45,8 +45,8 @@ export interface ConversationMessage {
   author: string
   body: string
   participantSid: string | null
-  dateCreated: Date | null
-  dateUpdated: Date | null
+  dateCreated: string | null
+  dateUpdated: string | null
   attributes: string
   media: ConversationMedia[]
 }
@@ -59,13 +59,13 @@ export interface ConversationHistoryResponse {
 
 export interface ConversationConsultInput {
   sid: string
-  accountSid?: string
-  authToken?: string
+  accountSid: string
+  authToken: string
 }
 
 export interface CloseConversationResult {
   sid: string
   state: string
-  dateUpdated: Date | null
+  dateUpdated: string | null
   closed: boolean
 }

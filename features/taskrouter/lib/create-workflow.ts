@@ -3,6 +3,7 @@ import { AppError } from "@/lib/errors"
 import { sseEvent } from "@/features/conversations/lib/close"
 import type { CreateWorkflowInput } from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
+import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
 
 const DEFAULT_QUEUE_NAME = "EVERYONE"
 
@@ -64,6 +65,12 @@ function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
 
     if (!regra || !fila) continue
     if (fila === "Fechar" || fila === "-" || regra === "-") continue
+    if (!isSafeTaskRouterLiteral(regra)) {
+      throw new AppError(
+        "validation",
+        strings.taskrouter.createWorkflow.log.invalidRule
+      )
+    }
 
     const key = `${regra}|||${fila}`
     if (seen.has(key)) continue

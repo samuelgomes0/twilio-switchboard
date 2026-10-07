@@ -198,7 +198,7 @@ async function handleSubmit() {
 ### Route Handlers (`app/api/`)
 
 - Every route accepts `POST` only.
-- The JSON body **always** includes `accountSid?: string` and `authToken?: string`, forwarded to `getTwilioClient()`.
+- The JSON body **always** includes valid `accountSid: string` and `authToken: string`, validated before being forwarded to `getTwilioClient()`.
 - Validate the body in the Route Handler before instantiating the Twilio client.
 - Return `400` for invalid input, `500` for credential errors or API failures.
 - Long-running operation routes return `text/event-stream`. Include these headers:
@@ -248,7 +248,7 @@ async function handleSubmit() {
 
 - Twilio credentials (`accountSid`, `authToken`) are stored **only in the browser's `localStorage`**.
 - The server never persists credentials — they arrive via POST body and are discarded after the request.
-- `getTwilioClient(accountSid?, authToken?)` uses the credentials from the body; it falls back to `process.env.TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN`.
+- `getTwilioClient(accountSid?, authToken?)` uses only the credentials from the request body and rejects requests when either value is absent.
 - **Never** hardcode credentials in any file.
 - **Never** commit `.env.local`.
 - `EnvironmentProvider` / `useEnvironment()` is the only source of credentials on the client.

@@ -5,21 +5,21 @@ import { sseEvent } from "@/features/conversations/lib/close"
 import { AppError, fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
-  let body: {
-    workspaceSid?: unknown
-    workflowName?: unknown
-    csvContent?: unknown
-    accountSid?: string
-    authToken?: string
-  }
-
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json(
       { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
+  }
+
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json(
+      { error: strings.common.validation.invalidCredentials },
       { status: 400 }
     )
   }
@@ -30,24 +30,36 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     )
   }
+  const workspaceSid = body.workspaceSid.trim()
+  if (!isTwilioSid(workspaceSid, "WS")) {
+    return Response.json({ error: strings.common.validation.invalidWorkspaceSid }, { status: 400 })
+  }
 
-  if (!body.workflowName || typeof body.workflowName !== "string") {
+  if (!body.workflowName || typeof body.workflowName !== "string" || !body.workflowName.trim()) {
     return Response.json(
       { error: strings.common.validation.workflowRequired },
       { status: 400 }
     )
   }
+  const workflowNameInput = body.workflowName.trim()
 
-  if (!body.csvContent || typeof body.csvContent !== "string") {
+  if (!body.csvContent || typeof body.csvContent !== "string" || !body.csvContent.trim()) {
     return Response.json(
       { error: strings.common.validation.csvRequired },
+      { status: 400 }
+    )
+  }
+  const csvContent = body.csvContent
+  if (csvContent.length > 1_000_000) {
+    return Response.json(
+      { error: strings.common.validation.csvTooLarge },
       { status: 400 }
     )
   }
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     return toApiResponse(err)
   }
@@ -63,11 +75,9 @@ export async function POST(req: NextRequest) {
         const { workflowSid, workflowName, totalFilters } =
           await createWorkflow(
             {
-              workspaceSid: body.workspaceSid as string,
-              workflowName: body.workflowName as string,
-              csvContent: body.csvContent as string,
-              accountSid: body.accountSid,
-              authToken: body.authToken,
+              workspaceSid,
+              workflowName: workflowNameInput,
+              csvContent,
             },
             client,
             emit

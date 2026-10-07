@@ -1,10 +1,10 @@
-import { inferChannel } from "./infer-channel"
-import { mapTask } from "./map-task"
+import { inferChannel } from "@/features/taskrouter/lib/infer-channel"
+import { mapTask } from "@/features/taskrouter/lib/map-task"
 import { getTwilioClient } from "@/lib/twilio-client"
 import type { SearchTaskResult } from "@/features/taskrouter/types"
 import { TASK_LIST_LIMIT } from "@/lib/constants"
 
-function normalizePhone(input: string): string {
+export function normalizeTaskPhone(input: string): string | null {
   let phone = input.trim()
   if (phone.startsWith("whatsapp:")) {
     phone = phone.slice("whatsapp:".length)
@@ -13,7 +13,7 @@ function normalizePhone(input: string): string {
   if (!phone.startsWith("+")) {
     phone = "+" + phone
   }
-  return phone
+  return /^\+[1-9]\d{7,14}$/.test(phone) ? phone : null
 }
 
 export async function searchTasks(
@@ -21,7 +21,8 @@ export async function searchTasks(
   phoneNumber: string,
   client: ReturnType<typeof getTwilioClient>
 ): Promise<{ tasks: SearchTaskResult[]; phone: string }> {
-  const phone = normalizePhone(phoneNumber)
+  const phone = normalizeTaskPhone(phoneNumber)
+  if (!phone) throw new Error("Invalid phone number")
   const whatsappPhone = `whatsapp:${phone}`
   const filter = `from == "${phone}" OR from == "${whatsappPhone}"`
 

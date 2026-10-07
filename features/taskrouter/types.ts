@@ -3,16 +3,12 @@ export interface AssignWorkersInput {
   skill: string
   level?: number | null
   emails: string[]
-  accountSid?: string
-  authToken?: string
 }
 
 export interface CreateWorkflowInput {
   workspaceSid: string
   workflowName: string
   csvContent: string
-  accountSid?: string
-  authToken?: string
 }
 
 export interface TaskData {
@@ -27,8 +23,8 @@ export interface TaskData {
   priority: number
   age: number
   attributes: string
-  dateCreated: Date | null
-  dateUpdated: Date | null
+  dateCreated: string | null
+  dateUpdated: string | null
   taskChannelUniqueName: string | null
 }
 
@@ -44,9 +40,9 @@ export interface WorkerData {
   activityName: string
   available: boolean
   attributes: string
-  dateCreated: Date | null
-  dateUpdated: Date | null
-  dateStatusChanged: Date | null
+  dateCreated: string | null
+  dateUpdated: string | null
+  dateStatusChanged: string | null
 }
 
 export interface AddParticularFilterEntry {
@@ -58,8 +54,6 @@ export interface AddParticularFilterInput {
   workspaceSid: string
   filterName: string
   entries: AddParticularFilterEntry[]
-  accountSid?: string
-  authToken?: string
 }
 export interface UpdateWorkerFeatureInput {
   workspaceSid: string

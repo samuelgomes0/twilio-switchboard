@@ -4,20 +4,16 @@ import { updateWorkerFeature } from "@/features/taskrouter/lib/update-worker-fea
 import { MAX_ITEMS } from "@/lib/constants"
 import { strings } from "@/lib/strings"
 import { getTwilioClient } from "@/lib/twilio-client"
+import { parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 
 export async function POST(req: Request) {
   const messages = strings.taskrouter.updateWorkerFeature
-  let body: unknown
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json({ error: messages.invalidInput }, { status: 400 })
   }
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return Response.json({ error: messages.invalidInput }, { status: 400 })
-  }
-  const { workspaceSid, workerSids, feature, enabled, accountSid, authToken } =
-    body as Record<string, unknown>
+  const { workspaceSid, workerSids, feature, enabled } = body
+  const credentials = parseTwilioCredentials(body)
   if (
     typeof workspaceSid !== "string" ||
     !/^WS[0-9a-f]{32}$/i.test(workspaceSid) ||
@@ -34,17 +30,13 @@ export async function POST(req: Request) {
     !/^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(feature) ||
     ["constructor", "prototype", "__proto__"].includes(feature) ||
     typeof enabled !== "boolean" ||
-    (accountSid !== undefined &&
-      (typeof accountSid !== "string" ||
-        !/^AC[0-9a-f]{32}$/i.test(accountSid))) ||
-    (authToken !== undefined &&
-      (typeof authToken !== "string" || !/^[0-9a-f]{32}$/i.test(authToken)))
+    !credentials
   ) {
     return Response.json({ error: messages.invalidInput }, { status: 400 })
   }
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(accountSid, authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch {
     return Response.json({ error: messages.connectionError }, { status: 500 })
   }

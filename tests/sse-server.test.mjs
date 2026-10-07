@@ -2,12 +2,20 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { createLoader } from "./typescript-loader.mjs"
 
+const credentials = {
+  accountSid: `AC${"1".repeat(32)}`,
+  authToken: "2".repeat(32),
+}
+const workspaceSid = `WS${"3".repeat(32)}`
+const workflowSid = `WW${"4".repeat(32)}`
+const taskQueueSid = `WQ${"5".repeat(32)}`
+
 const flows = [
   ["conversations/close", "closeConversations", { participants: ["11999999999"] }, { totalClosed: 2, totalErrors: 0 }],
-  ["taskrouter/assign-workers", "assignWorkersToQueue", { workspaceSid: "ws", skill: "skill", emails: ["worker"] }, { totalUpdated: 2, totalSkipped: 1, totalErrors: 0 }],
-  ["taskrouter/cancel-queue-tasks", "cancelQueueTasks", { workspaceSid: "ws", taskQueueName: "queue" }, { totalSuccess: 2, totalSkipped: 1, totalErrors: 0 }],
-  ["taskrouter/create-workflow", "createWorkflow", { workspaceSid: "ws", workflowName: "workflow", csvContent: "csv" }, { workflowSid: "WW", workflowName: "workflow", totalFilters: 2 }],
-  ["taskrouter/add-particular-filter", "addParticularFilter", { workspaceSid: "ws", filterName: "filter", entries: [{ workflowSid: "WW", taskQueueSid: "WQ" }] }, { totalAdded: 2, totalSkipped: 1, totalErrors: 0 }],
+  ["taskrouter/assign-workers", "assignWorkersToQueue", { workspaceSid, skill: "skill", emails: ["worker"] }, { totalUpdated: 2, totalSkipped: 1, totalErrors: 0 }],
+  ["taskrouter/cancel-queue-tasks", "cancelQueueTasks", { workspaceSid, taskQueueName: "queue" }, { totalSuccess: 2, totalSkipped: 1, totalErrors: 0 }],
+  ["taskrouter/create-workflow", "createWorkflow", { workspaceSid, workflowName: "workflow", csvContent: "csv" }, { workflowSid, workflowName: "workflow", totalFilters: 2 }],
+  ["taskrouter/add-particular-filter", "addParticularFilter", { workspaceSid, filterName: "filter", entries: [{ workflowSid, taskQueueSid }] }, { totalAdded: 2, totalSkipped: 1, totalErrors: 0 }],
   ["taskrouter/update-worker-feature", "updateWorkerFeature", { workspaceSid: `WS${"0".repeat(32)}`, workerSids: [`WK${"0".repeat(32)}`], feature: "feature", enabled: false }, { totalUpdated: 2, totalErrors: 0 }],
 ]
 
@@ -23,7 +31,7 @@ for (const [endpoint, operationName, input, result] of flows) {
       [`@/features/${domain}/lib/${action}`]: { ...original, [operationName]: operation },
     })(`app/api/${endpoint}/route.ts`).POST
   }
-  const request = signal => ({ json: async () => input, signal })
+  const request = signal => ({ json: async () => ({ ...input, ...credentials }), signal })
 
   test(`${endpoint}: preserves headers, UTF-8 event bytes, completion fields and closing`, async () => {
     const event = 'data: {"level":"info","message":"ação 😀"}\n\n'

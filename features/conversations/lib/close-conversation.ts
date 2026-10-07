@@ -1,6 +1,7 @@
 import type { CloseConversationResult } from "@/features/conversations/types"
 import type { getTwilioClient } from "@/lib/twilio-client"
 import { strings } from "@/lib/strings"
+import { toIsoString } from "@/lib/to-iso-string"
 
 export async function closeConversation(
   sid: string,
@@ -16,7 +17,7 @@ export async function closeConversation(
       return {
         sid: current.sid,
         state: current.state,
-        dateUpdated: current.dateUpdated,
+        dateUpdated: toIsoString(current.dateUpdated),
         closed: false,
       }
     }
@@ -25,7 +26,7 @@ export async function closeConversation(
     return {
       sid: updated.sid,
       state: updated.state,
-      dateUpdated: updated.dateUpdated,
+      dateUpdated: toIsoString(updated.dateUpdated),
       closed: true,
     }
   } catch {

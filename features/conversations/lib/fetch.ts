@@ -1,5 +1,6 @@
 import { getTwilioClient } from "@/lib/twilio-client"
 import { type FetchResponse } from "@/features/conversations/types"
+import { toIsoString } from "@/lib/to-iso-string"
 
 export async function fetchConversation(
   sid: string,
@@ -17,8 +18,8 @@ export async function fetchConversation(
       sid: conversation.sid,
       friendlyName: conversation.friendlyName,
       state: conversation.state,
-      dateCreated: conversation.dateCreated,
-      dateUpdated: conversation.dateUpdated,
+      dateCreated: toIsoString(conversation.dateCreated),
+      dateUpdated: toIsoString(conversation.dateUpdated),
       attributes: conversation.attributes,
       messagingServiceSid: conversation.messagingServiceSid,
       url: conversation.url,
@@ -28,8 +29,8 @@ export async function fetchConversation(
       sid: p.sid,
       identity: p.identity,
       messagingBinding: p.messagingBinding,
-      dateCreated: p.dateCreated,
-      dateUpdated: p.dateUpdated,
+      dateCreated: toIsoString(p.dateCreated),
+      dateUpdated: toIsoString(p.dateUpdated),
       attributes: p.attributes,
       roleSid: p.roleSid,
     })),

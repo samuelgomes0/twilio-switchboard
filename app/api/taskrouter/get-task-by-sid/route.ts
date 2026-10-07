@@ -3,21 +3,19 @@ import { fetchTask } from "@/features/taskrouter/lib/fetch-task"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
-  let body: {
-    workspaceSid?: unknown
-    taskSid?: unknown
-    accountSid?: string
-    authToken?: string
-  }
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json(
       { error: strings.common.validation.invalidBody },
       { status: 400 }
     )
+  }
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json({ error: strings.common.validation.invalidCredentials }, { status: 400 })
   }
 
   const workspaceSid =
@@ -29,6 +27,9 @@ export async function POST(req: NextRequest) {
       { error: strings.common.validation.workspaceRequired },
       { status: 400 }
     )
+  }
+  if (!isTwilioSid(workspaceSid, "WS")) {
+    return Response.json({ error: strings.common.validation.invalidWorkspaceSid }, { status: 400 })
   }
 
   if (!taskSid) {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     return toApiResponse(err)
   }

@@ -3,6 +3,7 @@ import type {
   AddressConfigData,
   CreateAddressConfigRequest,
 } from "@/features/flex/types"
+import { toIsoString } from "@/lib/to-iso-string"
 
 export async function createAddressConfig(
   params: CreateAddressConfigRequest,
@@ -37,8 +38,23 @@ export async function createAddressConfig(
       params.autoCreationStudioRetryCount
   if (params.addressCountry) createParams.addressCountry = params.addressCountry
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const config = await (client.conversations.v1.addressConfigurations as any).create(createParams)
+  type AddressConfiguration = {
+    sid: string
+    accountSid: string
+    address: string
+    type: string
+    friendlyName?: string | null
+    addressCountry?: string | null
+    autoCreation?: unknown
+    dateCreated?: Date | string | null
+    dateUpdated?: Date | string | null
+    url: string
+  }
+  const addressConfigurations = client.conversations.v1
+    .addressConfigurations as unknown as {
+    create(params: Record<string, unknown>): Promise<AddressConfiguration>
+  }
+  const config = await addressConfigurations.create(createParams)
 
   return {
     sid: config.sid,
@@ -50,12 +66,8 @@ export async function createAddressConfig(
     autoCreation: (config.autoCreation as AddressConfigData["autoCreation"]) ?? {
       enabled: false,
     },
-    dateCreated: config.dateCreated
-      ? new Date(config.dateCreated).toISOString()
-      : null,
-    dateUpdated: config.dateUpdated
-      ? new Date(config.dateUpdated).toISOString()
-      : null,
+    dateCreated: toIsoString(config.dateCreated),
+    dateUpdated: toIsoString(config.dateUpdated),
     url: config.url,
   }
 }

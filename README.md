@@ -14,7 +14,7 @@ Interface visual para operações na API Twilio. Centraliza tarefas operacionais
 
 ### Pré-requisitos
 
-- Node.js 22+ ou [Bun](https://bun.sh/)
+- Node.js 22+ e npm 10.9.8
 - Credenciais Twilio: `Account SID` e `Auth Token` (obtidos no [Console Twilio](https://console.twilio.com/))
 
 ### Instalação
@@ -22,13 +22,13 @@ Interface visual para operações na API Twilio. Centraliza tarefas operacionais
 ```bash
 git clone https://github.com/samuelgomes0/twilio-switchboard.git
 cd twilio-switchboard
-bun install        # ou npm install
+npm ci
 ```
 
 ### Rodando
 
 ```bash
-bun dev            # ou npm run dev
+npm run dev
 ```
 
 Acesse [http://localhost:3000](http://localhost:3000) e cadastre suas credenciais em **Configurações → Gerenciar Ambientes**.

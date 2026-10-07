@@ -12,6 +12,10 @@ const { mergeWorkerFeature, updateWorkerFeature } = load(
   overrides
 )
 const workspaceSid = `WS${"0".repeat(32)}`
+const credentials = {
+  accountSid: `AC${"4".repeat(32)}`,
+  authToken: "5".repeat(32),
+}
 const workerSids = [1, 2, 3].map((value) => `WK${String(value).repeat(32)}`)
 const input = {
   workspaceSid,
@@ -219,6 +223,7 @@ test("route streams completion, deduplicates workers, and accepts false", async 
       method: "POST",
       body: JSON.stringify({
         ...input,
+        ...credentials,
         workerSids: [workerSids[0], workerSids[0]],
         enabled: false,
       }),

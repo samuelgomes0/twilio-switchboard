@@ -14,7 +14,7 @@ Foram traçados imports, referências, entradas do framework, imports dinâmicos
 
 | Verificação | Resultado observado |
 | --- | --- |
-| `npm test` | **118 testes, 118 aprovados**, zero falhas, cancelamentos ou testes ignorados |
+| `npm test` | **149 testes, 149 aprovados**, zero falhas, cancelamentos ou testes ignorados após a Etapa 1 |
 | `npm run typecheck` | Aprovado, TypeScript strict ativo |
 | `npm run lint` | **17 erros**, zero warnings; todos `react-hooks/set-state-in-effect` |
 | `npm run build` | Aprovado, Next 16.1.7/Turbopack; tentativa inicial falhou ao baixar Geist/Geist Mono no sandbox, repetição com rede aprovada concluiu |
@@ -34,7 +34,7 @@ Há 25 URLs de página: 6 entradas de catálogo/home, 13 páginas de ferramentas
 
 Pontos positivos observados: camadas de domínio reconhecíveis, strings centralizadas, validação forte nos fluxos de consulta unificada/fechamento de Conversations e features de Worker, proteção contra respostas tardias na consulta unificada, erros externos sanitizados, componentes de feedback compartilhados, testes que caracterizam limitações de SSE e merge cuidadoso de features de Worker.
 
-Principais achados: avisos de segurança nas dependências; possível uso não autorizado das credenciais do servidor quando o fallback está configurado e endpoints estão expostos; validação inconsistente de bodies; cancelamento que geralmente interrompe apenas o cliente; consultas/históricos sem isolamento uniforme por ambiente; resultados de Numbers que silenciam falhas; componentes extensos; lacunas de acessibilidade do menu mobile; ausência de cobertura em navegador. Reconstruir apenas o JSX perderia regras atualmente alojadas nos formulários, hooks e exportadores.
+Principais achados remanescentes: avisos de segurança nas dependências; cancelamento que geralmente interrompe apenas o cliente; consultas/históricos sem isolamento uniforme por ambiente; componentes extensos; lacunas de acessibilidade do menu mobile; ausência de cobertura em navegador. O fallback de credenciais foi removido na Etapa 0. A Etapa 1 padronizou corpos JSON, credenciais, SIDs e limites críticos, protegeu expressões TaskRouter e planilhas, tornou datas JSON explícitas e passou a sinalizar respostas parciais de Numbers. Reconstruir apenas o JSX perderia regras atualmente alojadas nos formulários, hooks e exportadores.
 
 **Recomendação para a futura etapa:** preservar os contratos descritos aqui, criar testes de caracterização das lacunas críticas e reconstruir por fluxo. Bugs atuais devem ser tratados em mudanças separadas e explícitas, não incorporados silenciosamente ao redesign.
 
@@ -69,7 +69,7 @@ flowchart TD
   Shared <--> Storage
   State --> Http[fetch POST JSON com credenciais]
   Http --> Routes[app/api: validação e transporte]
-  Routes --> Factory[getTwilioClient / fallback env]
+  Routes --> Factory[getTwilioClient / credenciais do POST]
   Routes --> Business[features/domínio/lib]
   Factory --> SDK[Twilio SDK no servidor]
   Business --> SDK
@@ -135,7 +135,7 @@ Desenvolvimento documentado: instalar dependências, iniciar dev, abrir dashboar
 
 ### 3.2 Configurações de ambiente
 
-Somente **`TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN`** são lidas pelo código autoral. Não há `NEXT_PUBLIC_*` para credenciais. `getTwilioClient` escolhe cada valor por `argumento ?? process.env...`: ausência permite fallback, string vazia impede fallback e gera erro. Não há validação central do par; algumas rotas validam antes, outras não. É possível combinar um valor do body com outro do ambiente em rotas permissivas.
+Não há `NEXT_PUBLIC_*` para credenciais. Desde a Etapa 0, `getTwilioClient` usa exclusivamente `accountSid` e `authToken` recebidos no corpo do POST e rejeita a ausência de qualquer valor. As variáveis `TWILIO_ACCOUNT_SID` e `TWILIO_AUTH_TOKEN` não são mais lidas pelo código autoral. A validação central do formato do par continua pendente para a Etapa 1.
 
 `.env*.local` está ignorado; não há template `.env.example` encontrado. Valores reais e configuração efetiva do servidor não foram determinados. Não há configuração de Twilio Region/Edge, scopes específicos, timeout ou retry automático da fábrica.
 
@@ -454,7 +454,7 @@ Chaves-base de autocomplete também podem existir sem envId, pois environmentId 
 
 Todas as rotas autorais exportam somente `POST`. UI usa `Content-Type: application/json`, body com credenciais, endpoint same-origin `/api/...`. Não há GET de dados operacional, Authorization header da aplicação, cookie de sessão, polling automático ou multipart.
 
-Credenciais opcionais comuns: `accountSid?: string`, `authToken?: string`. Em ausência permitem fallback servidor. **Não generalizar validação do par nem status HTTP**: comportamento varia por handler. Payloads dos exemplos desta seção usam nomes de campos, não valores reais.
+Credenciais opcionais comuns nos tipos de entrada: `accountSid?: string`, `authToken?: string`. Desde a Etapa 0, a ausência faz `getTwilioClient` rejeitar a criação do cliente; não existe fallback servidor. **Não generalizar validação do par nem status HTTP**: o ponto em que cada handler rejeita o input ainda varia. Payloads dos exemplos desta seção usam nomes de campos, não valores reais.
 
 `AppError` → `{error:safeMessage}` com validation 400/auth 401/not_found 404/conflict 409/external/internal 500. Twilio 403 e code 20003 viram auth; metadata numérica é logada. Consulta Conversation e fechamento convertem falhas de cliente em 500; outros handlers podem retornar 401. Portanto a regra documental “credenciais sempre 500” não descreve todo o código atual.
 
@@ -645,7 +645,8 @@ Sem métricas de Core Web Vitals, tempo de API, requests reais, memória, suport
 | --- | --- | --- |
 | `close-conversations.test.mjs` | Normalização BR/pontuação/prefixo/DDD55/dígitos exatos; rejeição body/credenciais/lote; paginação SDK real com transport mock além1000; vazio/falha sem writes | Não testa UI/browser/conta real |
 | `cancel-queue-tasks.test.mjs` | Pending/reserved; skipped para todos demais; falha list/retry/update/rejeição de item; totais/progresso | Fixtures usam attributes `{}`; não protegem percurso completo de Conversation/mensagem |
-| `conversation-consult.test.mjs` | Alinhamento cliente/agent/bot/proxy; validação/trim/par de credenciais; forwarding/fallback; sanitização das duas rotas | Operações fetch/history são mockadas; não testam limit1001/media/filter/export/hooks |
+| `conversation-consult.test.mjs` | Alinhamento cliente/agent/bot/proxy; validação/trim/par de credenciais; forwarding; sanitização das duas rotas | Operações fetch/history são mockadas; não testam limit1001/media/filter/export/hooks |
+| `twilio-client.test.mjs` | Factory rejeita credenciais ausentes mesmo quando variáveis de servidor existem; encaminha somente o par recebido | Cliente Twilio é mockado; não faz autenticação real |
 | `update-worker-feature.test.mjs` | Merge preserva outros atributos e enabled false; cria containers; rejeita inválidos; sequential/falha/email/cancel; route validation/dedup/final SSE | Não prova propagação abort do fetch real em deploy |
 | `operation-messages.test.mjs` | Storage JSON/order/dedup/limites/snapshots/falhas/SSR; inferChannel; errors/logs sanitizados; retry; CSV erro/no write; sucesso básico workflow; falha filter continua; close final | Não é suíte completa de todas as regras CSV/skill/filter/Numbers/Flex |
 | `sse-client.test.mjs` | 6 consumers: fragmentação UTF8, múltiplos frames, tail/CRLF, malformed/callback, EOF, final duplicado, HTTP/network/abort | AST extrai handler real, mas sem montar React/effects/eventos |
@@ -665,7 +666,7 @@ Prioridade **crítica/alta**:
 4. Skill: preservar attrs/skills/levels, idempotência de skill, nível0/5/ausente/NaN/fora de faixa, routing malformado, WK/email/nome/404/ambiguidade, dedup e retry sem perda de campos.
 5. Workflows: CSV vazio/header-only/BOM/aspas/semicolons/incompletos/Fechar/dedup/fila desconhecida/EVERYONE/order/targets; erro final deve continuar visível; criar uma única vez.
 6. Filtros: case-insensitive skip em ambos nomes, append/order/preservação do default e propriedades, configuração inválida, pares/lote/acréscimo parcial e nomes com aspas.
-7. Contratos dos15 endpoints: bodies null/array/primitivo/JSON malformado, formatos de campos/credenciais parciais, códigos HTTP, sem stack/token, método nãoPOST; fallback com env mock e cenário de autorização a definir.
+7. Contratos dos15 endpoints: bodies null/array/primitivo/JSON malformado, formatos de campos/credenciais parciais, códigos HTTP, sem stack/token, método nãoPOST; ausência de credenciais e cenário de autorização a definir.
 8. Feature: reter a cobertura existente e adicionar browser submit/false/retry manual/cancel/unmount/env change; não inferir rollback de update já enviado.
 9. Consulta Conversation em browser: URL auto-query, redirects, sid repetido refresh, lazy messages uma vez, tabs conservam filtros, respostas invertidas ignoradas, retry independente, mudança de credenciais/resultados.
 10. Participante: nextPageToken/filtro/sort local, snapshot telefone/ambiente, buscar durante loadingMore, dedup e última página; deep link consult automático.
@@ -687,14 +688,14 @@ IDs permitem cruzar com os riscos da próxima seção. Severidade considera impa
 
 | ID / severidade | Descoberta e evidência | Motivo |
 | --- | --- | --- |
-| D01 **Crítica** | Sem auth local; factory aceita fallback env, handlers públicos no código | Possível operação não autorizada em conta do servidor se houver credenciais/perímetro aberto; exposição de produção desconhecida |
-| D02 **Crítica** | Next16.1.7 listado pelo npm com alertas críticos; advisories abaixo | Versão afetada confirmada; Windows local observado, hosting produção desconhecido; redesign não elimina risco |
-| D03 **Alta** | Falta guard objeto/par/formato em verify/numbers e várias rotas | JSON null pode excecionar fora do catch; tipos declarados não validam runtime; faltam limites/validação de writes |
+| D01 **Resolvida na Etapa 0** | Sem auth local, mas o factory agora aceita somente credenciais fornecidas no POST | A interface continua pública, porém não existe mais caminho para usar credenciais implícitas do servidor |
+| D02 **Resolvida na Etapa 0** | Next atualizado de 16.1.7 para 16.4.0 | Os alertas críticos atribuídos ao framework foram eliminados; permanecem advisories em outras dependências |
+| D03 **Resolvida na Etapa 1** | Handlers canônicos validam objeto, credenciais obrigatórias, SIDs e campos críticos antes do cliente | Corpos `null`, arrays, primitivos e pares inválidos retornam 400 sem chamada Twilio |
 | D04 **Alta** | 5 fluxos não propagam abort servidor (`close/assign/cancel/workflow/filter`) | Usuário pode repetir achando que nada foi escrito; efeitos continuam mesmo após sair da tela |
 | D05 **Alta** | Históricos globais/queries sem abort/env-reset; Worker context não remonta por ambiente | Risco de exibir/reusar dados de uma conta enquanto outra está selecionada |
-| D06 **Alta** | Numbers allSettled silencia inclusive ambas falhas | 200 vazio/partial confunde falha e inexistência, inclusive credencial inválida |
+| D06 **Resolvida na Etapa 1** | Numbers informa `partial`/`hasMore` e falha quando ambas as fontes falham | A interface diferencia dados completos, parciais, truncados e indisponibilidade total |
 | D07 **Alta** | Workflow cliente termina done após final error; vários consumers done no EOF sem final | Falso status de conclusão, comportamento comprovado pelos testes SSE |
-| D08 **Alta** | Sem guards robustos em skill/config workflow, merge read-modify-write sem concorrência/versionamento | JSON shape inválido e overwrite de mudanças remotas; feature tem guards mas também pode race |
+| D08 **Parcialmente resolvida na Etapa 1** | Guards de skill, Flex, workflow, filtros e expressões foram fortalecidos; merge read-modify-write continua sem versionamento | Inputs inválidos não chegam ao SDK, mas edições concorrentes ainda podem sobrescrever atributos remotos |
 | D09 **Alta** | Fila limita1000, não dedup CH, success só cancel; retry de messages.create | Processamento incompleto, mensagens duplicadas e sucesso parcial sem distinção no banner |
 | D10 **Alta** | Filtro Task e Workflow monta expressões interpolando strings sem escape | Aspas podem quebrar/alterar expressão Twilio; não equivale a execução JS comprovada |
 | D11 **Alta** | Sidebar escondida só por transform; sem keyboard close/trap/inert | Navegação mobile potencialmente inacessível/foco fora da tela |
@@ -801,13 +802,13 @@ Este inventário é obrigatório por comportamento, não por aparência atual. A
 - Tabs de detalhes/mensagens e detalhes/skills/features; cache em memória entre tabs; política explícita de remount e requests em andamento.
 - Cards de recurso/JSON/participantes/chat attachments metadata; tabela com sort/filtro; lista paginada por carregar mais; logs de streaming/progresso/histórico.
 - Clipboard seguro e feedback; exportação CSV de mensagens e CSV/XLSX de senders; upload somente CSV→texto; nada de download de anexos não existente.
-- Compatibilidade de navegação/URLs/query/storage, credenciais Context/POST/fallback conforme decisão de segurança e ausência de cookies/analytics autorais.
+- Compatibilidade de navegação/URLs/query/storage, credenciais Context/POST sem fallback servidor e ausência de cookies/analytics autorais.
 
 ### 21.2 Módulos mais críticos para leitura antes da implementação
 
 | Módulo | Por que é crítico |
 | --- | --- |
-| `features/environments/context.tsx`, `storage.ts`, `lib/twilio-client.ts` | Conta alvo, hidratação, credenciais e fallback |
+| `features/environments/context.tsx`, `storage.ts`, `lib/twilio-client.ts` | Conta alvo, hidratação e credenciais fornecidas pelo navegador |
 | `app/api/**/route.ts`, `lib/errors.ts` | Payload/status/validação/transporte e sanitização |
 | `features/conversations/lib/close.ts`, `normalize-close-phone.ts` | Normalização, todas as páginas, state active, retry e serializer compartilhado |
 | `features/taskrouter/lib/cancel-queue-tasks.ts` | Elegibilidade, ordem de efeitos, aliases, concorrência, totais parciais |

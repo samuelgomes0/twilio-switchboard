@@ -3,21 +3,19 @@ import { searchTasks } from "@/features/taskrouter/lib/search-tasks"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
+import { parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 
 export async function POST(req: NextRequest) {
-  let body: {
-    workspaceSid?: unknown
-    phoneNumber?: unknown
-    accountSid?: string
-    authToken?: string
-  }
-  try {
-    body = await req.json()
-  } catch {
+  const body = await readJsonObject(req)
+  if (!body) {
     return Response.json(
       { error: strings.common.validation.invalidBody },
       { status: 400 }
     )
+  }
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json({ error: strings.common.validation.invalidCredentials }, { status: 400 })
   }
 
   const workspaceSid =
@@ -39,6 +37,13 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  if (!/^(?:whatsapp:)?\+?[1-9]\d{7,14}$/.test(phoneNumber.replace(/[\s().-]/g, ""))) {
+    return Response.json(
+      { error: strings.common.validation.invalidPhone },
+      { status: 400 }
+    )
+  }
+
   if (!/^WS[a-f0-9]{32}$/i.test(workspaceSid)) {
     return Response.json(
       { error: strings.common.validation.invalidWorkspaceSid },
@@ -48,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   let client: ReturnType<typeof getTwilioClient>
   try {
-    client = getTwilioClient(body.accountSid, body.authToken)
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
   } catch (err) {
     return toApiResponse(err)
   }

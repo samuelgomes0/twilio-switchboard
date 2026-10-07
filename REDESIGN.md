@@ -95,7 +95,7 @@ As rotas de compatibilidade e redirects continuam existentes. A contagem da audi
 
 Não foram alterados endpoints, nomes ou formatos de payloads, autenticação Twilio, validadores de servidor, tipos de domínio, chamadas do SDK ou regras de negócio do backend. A comparação de hashes dos 15 Route Handlers e 11 utilitários compartilhados com o início do redesign confirmou igualdade.
 
-Credenciais continuam vindo de `EnvironmentProvider`, persistidas nas mesmas chaves do navegador e enviadas no corpo POST. Não existe autenticação/RBAC da aplicação. O fallback de credenciais de servidor continua sendo uma condição existente, descrita na auditoria; a interface não inventa permissões.
+Credenciais continuam vindo de `EnvironmentProvider`, persistidas nas mesmas chaves do navegador e enviadas no corpo POST. Não existe autenticação/RBAC da aplicação. O servidor rejeita credenciais ausentes e não lê credenciais de variáveis de ambiente; a interface não inventa permissões.
 
 Históricos continuam limitados a cinco entradas; autocomplete mantém limite de dez. Os históricos de escrita permanecem informativos, sem repetir operações ao clicar. A consulta de Conversation conserva seu escopo por ambiente e fallback de histórico legado. Nenhuma migração de armazenamento foi introduzida.
 
@@ -120,7 +120,7 @@ Os problemas de segurança, dependências, limites de paginação e comportament
 
 | Verificação | Resultado |
 | --- | --- |
-| `npm test` | 118 testes passaram; nenhum falhou |
+| `npm test` | 149 testes passaram; nenhum falhou após a Etapa 1 |
 | `npm run typecheck` | Passou |
 | `npm run lint` | Passou |
 | `npm run build` | Passou, incluindo geração das rotas |

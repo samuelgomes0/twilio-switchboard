@@ -72,18 +72,16 @@ test("POST rejects invalid inputs before creating the client", async () => {
   assert.equal(created, 0)
 })
 
-test("POST forwards credentials, supports environment fallback and reports credential failures as 500", async () => {
+test("POST forwards credentials and reports credential failures as 500", async () => {
   const credentials = []
   const { client } = fixture()
   const { POST } = createLoader({ "@/lib/twilio-client": { getTwilioClient: (...args) => { credentials.push(args); return client } } })("app/api/conversations/close-single/route.ts")
-  for (const body of [{ sid: SID, accountSid: ACCOUNT, authToken: TOKEN }, { sid: SID }]) {
-    const response = await POST(new Request("http://localhost/api", { method: "POST", body: JSON.stringify(body) }))
-    assert.equal(response.status, 200)
-    assert.equal((await response.json()).state, "closed")
-  }
-  assert.deepEqual(credentials, [[ACCOUNT, TOKEN], [undefined, undefined]])
+  const success = await POST(new Request("http://localhost/api", { method: "POST", body: JSON.stringify({ sid: SID, accountSid: ACCOUNT, authToken: TOKEN }) }))
+  assert.equal(success.status, 200)
+  assert.equal((await success.json()).state, "closed")
+  assert.deepEqual(credentials, [[ACCOUNT, TOKEN]])
   const failure = createLoader({ "@/lib/twilio-client": { getTwilioClient: () => { throw new Error("secret") } } })("app/api/conversations/close-single/route.ts")
-  const response = await failure.POST(new Request("http://localhost/api", { method: "POST", body: JSON.stringify({ sid: SID }) }))
+  const response = await failure.POST(new Request("http://localhost/api", { method: "POST", body: JSON.stringify({ sid: SID, accountSid: ACCOUNT, authToken: TOKEN }) }))
   assert.equal(response.status, 500)
   assert.ok(!(await response.text()).includes("secret"))
 })
