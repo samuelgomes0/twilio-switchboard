@@ -1,9 +1,11 @@
 import { strings } from "@/lib/strings"
-import { sleep, sseEvent, withRetry } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
+import { sleep, withRetry } from "@/lib/retry"
 import type { AssignWorkersInput } from "@/features/taskrouter/types"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { resolveWorker } from "@/features/taskrouter/lib/resolve-worker"
+import { sanitizeExternalError } from "@/lib/errors"
 
 interface WorkerAttributes {
   routing?: {
@@ -41,7 +43,8 @@ async function addSkillToWorker(
 export async function assignWorkersToQueue(
   input: AssignWorkersInput,
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  signal?: AbortSignal
 ): Promise<{
   totalUpdated: number
   totalSkipped: number
@@ -52,6 +55,7 @@ export async function assignWorkersToQueue(
   let totalErrors = 0
 
   for (let idx = 0; idx < input.emails.length; idx++) {
+    signal?.throwIfAborted()
     const identifier = input.emails[idx]
     emit(
       sseEvent(
@@ -68,7 +72,8 @@ export async function assignWorkersToQueue(
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,
       strings.taskrouter.assignWorkers.log.searchLabel(identifier),
-      emit
+      emit,
+      signal
     )
 
     if (worker === null) {
@@ -97,23 +102,16 @@ export async function assignWorkersToQueue(
       )
     )
 
-    const result = await withRetry(
-      () =>
-        addSkillToWorker(
+    try {
+      signal?.throwIfAborted()
+      await addSkillToWorker(
           client,
           input.workspaceSid,
           worker.sid,
           worker.attributes,
           input.skill,
           input.level
-        ),
-      RETRY_ATTEMPTS,
-      RETRY_DELAY_MS,
-      strings.taskrouter.assignWorkers.log.updateLabel(worker.sid),
-      emit
-    )
-
-    if (result !== null) {
+        )
       totalUpdated++
       emit(
         sseEvent(
@@ -125,8 +123,19 @@ export async function assignWorkersToQueue(
           )
         )
       )
-    } else {
+    } catch (error) {
+      if (signal?.aborted) throw error
       totalErrors++
+      emit(
+        sseEvent(
+          "error",
+          strings.common.retry.failed(
+            strings.taskrouter.assignWorkers.log.updateLabel(worker.sid),
+            1,
+            sanitizeExternalError(error)
+          )
+        )
+      )
     }
 
     await sleep(100)

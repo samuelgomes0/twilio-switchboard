@@ -82,6 +82,8 @@ export function ListNumbersForm() {
   const [warning, setWarning] = React.useState<string | null>(null)
   const [results, setResults] = React.useState<NumberRecord[] | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const [serviceFilter, setServiceFilter] = React.useState<ServiceFilter>("all")
   const [search, setSearch] = React.useState("")
@@ -94,6 +96,8 @@ export function ListNumbersForm() {
     setError(null)
     setWarning(null)
     setResults(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     try {
       const res = await fetch("/api/numbers/list-messaging-numbers", {
@@ -103,10 +107,12 @@ export function ListNumbersForm() {
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
+        signal: controller.signal,
       })
       const json = (await res.json()) as Partial<NumberListResult> & {
         error?: string
       }
+      if (controller.signal.aborted) return
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)
         return
@@ -120,9 +126,12 @@ export function ListNumbersForm() {
       }
       setResults(json.numbers)
     } catch {
-      setError(strings.common.networkError)
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 

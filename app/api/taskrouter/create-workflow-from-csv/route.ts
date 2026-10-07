@@ -1,11 +1,11 @@
-import { SSE_HEADERS } from "@/lib/sse-headers"
 import { strings } from "@/lib/strings"
 import { createWorkflow } from "@/features/taskrouter/lib/create-workflow"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import { AppError, fromTwilioError, toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
+import { createSseResponse } from "@/lib/sse-response"
 
 export async function POST(req: NextRequest) {
   const body = await readJsonObject(req)
@@ -64,13 +64,10 @@ export async function POST(req: NextRequest) {
     return toApiResponse(err)
   }
 
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    async start(controller) {
-      function emit(chunk: string) {
-        controller.enqueue(encoder.encode(chunk))
-      }
-
+  return createSseResponse(
+    req,
+    strings.taskrouter.createWorkflow.log.unexpectedError,
+    async (emit, signal) => {
       try {
         const { workflowSid, workflowName, totalFilters } =
           await createWorkflow(
@@ -80,7 +77,8 @@ export async function POST(req: NextRequest) {
               csvContent,
             },
             client,
-            emit
+            emit,
+            signal
           )
 
         emit(
@@ -94,6 +92,7 @@ export async function POST(req: NextRequest) {
           )
         )
       } catch (err) {
+        if (signal.aborted) throw err
         // Twilio API errors have a numeric .status; CSV/logic errors do not.
         const isTwilioError =
           typeof err === "object" &&
@@ -115,11 +114,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: SSE_HEADERS,
-  })
+    }
+  )
 }

@@ -1,6 +1,6 @@
 import { strings } from "@/lib/strings"
 import { AppError, sanitizeExternalError } from "@/lib/errors"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import type { AddParticularFilterInput } from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
@@ -58,7 +58,8 @@ function buildFilter(filterName: string, taskQueueSid: string): WorkflowFilter {
 export async function addParticularFilter(
   input: AddParticularFilterInput,
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  signal?: AbortSignal
 ): Promise<{ totalAdded: number; totalSkipped: number; totalErrors: number }> {
   if (!isSafeTaskRouterLiteral(input.filterName)) {
     throw new AppError(
@@ -71,6 +72,7 @@ export async function addParticularFilter(
   let totalErrors = 0
 
   for (const { workflowSid, taskQueueSid } of input.entries) {
+    signal?.throwIfAborted()
     emit(
       sseEvent(
         "info",
@@ -83,6 +85,7 @@ export async function addParticularFilter(
         .workspaces(input.workspaceSid)
         .workflows(workflowSid)
         .fetch()
+      signal?.throwIfAborted()
 
       const configuration = JSON.parse(
         workflow.configuration
@@ -126,6 +129,7 @@ export async function addParticularFilter(
       filters.push(buildFilter(input.filterName, taskQueueSid))
       configuration.task_routing.filters = filters
 
+      signal?.throwIfAborted()
       await client.taskrouter.v1
         .workspaces(input.workspaceSid)
         .workflows(workflowSid)
@@ -142,6 +146,7 @@ export async function addParticularFilter(
       )
       totalAdded++
     } catch (err) {
+      if (signal?.aborted) throw err
       const message = sanitizeExternalError(err)
       emit(
         sseEvent(

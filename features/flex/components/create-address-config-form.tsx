@@ -52,7 +52,7 @@ import type {
   AutoCreationType,
 } from "@/features/flex/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -125,6 +125,9 @@ function CapabilitiesBox({ type }: { type: AddressConfigType }) {
 
 export function CreateAddressConfigForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const router = useRouter()
 
   const [addressType, setAddressType] =
@@ -143,9 +146,12 @@ export function CreateAddressConfigForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [result, setResult] = React.useState<AddressConfigData | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
 
   const canSubmit = address.trim().length > 0 && !loading && !!activeEnvironment
@@ -156,6 +162,8 @@ export function CreateAddressConfigForm() {
     setLoading(true)
     setError(null)
     setResult(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     const body: Record<string, unknown> = {
       address: address.trim(),
@@ -183,9 +191,11 @@ export function CreateAddressConfigForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: controller.signal,
       })
 
       const json = (await res.json()) as AddressConfigData & { error?: string }
+      if (controller.signal.aborted) return
 
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)
@@ -199,12 +209,15 @@ export function CreateAddressConfigForm() {
         type: json.type,
         sid: json.sid,
       }
-      pushHistory(HISTORY_KEY, entry)
+      pushHistory(historyKey, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch {
-      setError(strings.common.networkError)
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -216,7 +229,7 @@ export function CreateAddressConfigForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }

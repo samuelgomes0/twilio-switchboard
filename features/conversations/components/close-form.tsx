@@ -36,7 +36,11 @@ import { WarningBadge } from "@/components/warning-badge"
 import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { strings } from "@/lib/strings"
 
@@ -72,18 +76,23 @@ function fmtTs(ts: number) {
 
 export function CloseForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [phones, setPhones] = React.useState<string[]>([""])
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [fieldErrors, setFieldErrors] = React.useState<string[]>([])
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const participants = phones.map((p) => p.trim()).filter(Boolean)
   const canSubmit =
@@ -111,7 +120,7 @@ export function CloseForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }
@@ -156,23 +165,28 @@ export function CloseForm() {
       }
 
       const reader = res.body.getReader()
-      await consumeSseStream(reader, (dataLine) => {
-        try {
-          const payload = JSON.parse(dataLine.slice(5).trim()) as {
-            level: LogEntry["level"]
-            message: string
-            done?: boolean
-            totalClosed?: number
-            totalErrors?: number
-            progress?: Progress
+      await consumeSseStream(reader, (payload) => {
+          if (
+            typeof payload.progress === "object" &&
+            payload.progress !== null &&
+            "current" in payload.progress &&
+            "total" in payload.progress &&
+            typeof payload.progress.current === "number" &&
+            typeof payload.progress.total === "number"
+          ) {
+            setProgress(payload.progress as Progress)
           }
-
-          if (payload.progress) setProgress(payload.progress)
           addLog(payload.level, payload.message)
 
-          if (payload.done) {
-            const closed = payload.totalClosed ?? 0
-            const errors = payload.totalErrors ?? 0
+          if (payload.done === true) {
+            if (payload.level === "error") {
+              setStatus("error")
+              return
+            }
+            const closed =
+              typeof payload.totalClosed === "number" ? payload.totalClosed : 0
+            const errors =
+              typeof payload.totalErrors === "number" ? payload.totalErrors : 0
             setSummary({ totalClosed: closed, totalErrors: errors })
             setStatus("done")
             const entry: HistoryEntry = {
@@ -181,15 +195,10 @@ export function CloseForm() {
               closed,
               errors,
             }
-            pushHistory(HISTORY_KEY, entry)
+            pushHistory(historyKey, entry)
             setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
           }
-        } catch {
-          // Invalid events are ignored because the stream can contain partial data.
-        }
       })
-
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)

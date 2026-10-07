@@ -14,7 +14,7 @@ Foram traçados imports, referências, entradas do framework, imports dinâmicos
 
 | Verificação | Resultado observado |
 | --- | --- |
-| `npm test` | **149 testes, 149 aprovados**, zero falhas, cancelamentos ou testes ignorados após a Etapa 1 |
+| `npm test` | **154 testes, 154 aprovados**, zero falhas, cancelamentos ou testes ignorados após a Etapa 3 |
 | `npm run typecheck` | Aprovado, TypeScript strict ativo |
 | `npm run lint` | **17 erros**, zero warnings; todos `react-hooks/set-state-in-effect` |
 | `npm run build` | Aprovado, Next 16.1.7/Turbopack; tentativa inicial falhou ao baixar Geist/Geist Mono no sandbox, repetição com rede aprovada concluiu |
@@ -691,12 +691,12 @@ IDs permitem cruzar com os riscos da próxima seção. Severidade considera impa
 | D01 **Resolvida na Etapa 0** | Sem auth local, mas o factory agora aceita somente credenciais fornecidas no POST | A interface continua pública, porém não existe mais caminho para usar credenciais implícitas do servidor |
 | D02 **Resolvida na Etapa 0** | Next atualizado de 16.1.7 para 16.4.0 | Os alertas críticos atribuídos ao framework foram eliminados; permanecem advisories em outras dependências |
 | D03 **Resolvida na Etapa 1** | Handlers canônicos validam objeto, credenciais obrigatórias, SIDs e campos críticos antes do cliente | Corpos `null`, arrays, primitivos e pares inválidos retornam 400 sem chamada Twilio |
-| D04 **Alta** | 5 fluxos não propagam abort servidor (`close/assign/cancel/workflow/filter`) | Usuário pode repetir achando que nada foi escrito; efeitos continuam mesmo após sair da tela |
-| D05 **Alta** | Históricos globais/queries sem abort/env-reset; Worker context não remonta por ambiente | Risco de exibir/reusar dados de uma conta enquanto outra está selecionada |
+| D04 **Resolvida na Etapa 2** | Os seis fluxos propagam abort do request/response até a operação | O sinal impede passos posteriores quando observado; não desfaz nem interrompe write já enviado à Twilio |
+| D05 **Resolvida na Etapa 3** | Conteúdo remonta por ambiente/revisão, requests abortam no unmount e históricos usam chaves por ambiente | Resultados e contexto de Worker não sobrevivem à troca/edição; históricos legados são preservados sem atribuição insegura |
 | D06 **Resolvida na Etapa 1** | Numbers informa `partial`/`hasMore` e falha quando ambas as fontes falham | A interface diferencia dados completos, parciais, truncados e indisponibilidade total |
-| D07 **Alta** | Workflow cliente termina done após final error; vários consumers done no EOF sem final | Falso status de conclusão, comportamento comprovado pelos testes SSE |
+| D07 **Resolvida na Etapa 2** | Todos os consumers exigem payload válido e `done: true`; final de erro permanece erro | EOF incompleto e frames inválidos não produzem mais falso sucesso ou histórico |
 | D08 **Parcialmente resolvida na Etapa 1** | Guards de skill, Flex, workflow, filtros e expressões foram fortalecidos; merge read-modify-write continua sem versionamento | Inputs inválidos não chegam ao SDK, mas edições concorrentes ainda podem sobrescrever atributos remotos |
-| D09 **Alta** | Fila limita1000, não dedup CH, success só cancel; retry de messages.create | Processamento incompleto, mensagens duplicadas e sucesso parcial sem distinção no banner |
+| D09 **Resolvida na Etapa 2** | Fila detecta o item 1001, sinaliza lote parcial, processa sequencialmente, deduplica CH e não repete writes | A execução continua limitada a 1000 por segurança; o usuário recebe instrução explícita para continuar em novo lote |
 | D10 **Alta** | Filtro Task e Workflow monta expressões interpolando strings sem escape | Aspas podem quebrar/alterar expressão Twilio; não equivale a execução JS comprovada |
 | D11 **Alta** | Sidebar escondida só por transform; sem keyboard close/trap/inert | Navegação mobile potencialmente inacessível/foco fora da tela |
 | D12 **Alta** | xlsx0.18.5 vulnerável no audit | Dependency alta; produto só exporta, não lê XLSX, então alcance de parsing não comprovado |
@@ -710,7 +710,7 @@ IDs permitem cruzar com os riscos da próxima seção. Severidade considera impa
 | D20 **Média** | Sem browser/e2e, mocks de operações em vários tests | Preservação de tabs/foco/requests/viewport não garantida |
 | D21 **Média** | bun.lock diverge do package/lock npm | Builds/instalações podem resolver grafos diferentes; sem gerenciador fixado |
 | D22 **Média** | CSV parser manual, header-only pode criar0filters; sem limites/treatment aspas | Input legítimo pode perder regras; conteúdo grande sem limite autoral |
-| D23 **Média** | Falta catch completo em3 SSE routes; readers/frames permissivos | Stream pode perder done; resource cleanup inconsistente |
+| D23 **Resolvida na Etapa 2** | As seis rotas usam lifecycle compartilhado e as seis telas usam parser/final/cleanup único | Erros inesperados terminam em payload seguro; reader e sinais seguem o mesmo contrato |
 | D24 **Média** | Smooth logs sem cap, listas1000, XLSX estático, tabs todas montadas | Custos de CPU/memória/bundle inferidos, sem profiling |
 | D25 **Média** | Tooltip Flex hover-only/autocomplete incompleto/clipboard Task sem catch | Falhas de acesso/feedback em teclado/touch/browser restrito |
 | D26 **Baixa** | Documentos docs referenciados ausentes; CLAUDE descrições parciais; metadata faltante | Conhecimento de contrato pode ser perdido; regras não correspondem inteiramente ao estado |

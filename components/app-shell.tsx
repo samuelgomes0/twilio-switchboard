@@ -10,12 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { strings } from "@/lib/strings"
+import { useEnvironment } from "@/features/environments/context"
 import { Menu, SunMoon, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Dialog } from "radix-ui"
 import * as React from "react"
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = React.useState(false)
+  const { activeEnvironment, activeEnvironmentRevision } = useEnvironment()
   const { setTheme } = useTheme()
   React.useEffect(() => {
     const media = window.matchMedia("(min-width: 64rem)")
@@ -95,7 +97,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </DropdownMenuRoot>
           </div>
         </header>
-        <main id="main-content" tabIndex={-1} className="shell-content">
+        <main
+          key={`${activeEnvironment?.id ?? "none"}:${activeEnvironmentRevision}`}
+          id="main-content"
+          tabIndex={-1}
+          className="shell-content"
+        >
           {children}
         </main>
       </div>

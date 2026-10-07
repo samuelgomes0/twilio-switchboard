@@ -85,6 +85,7 @@ export function clientHarness(name, options = {}) {
       }
     },
     HISTORY_KEY: `switchboard:${name}-history`,
+    historyKey: `switchboard:${name}-history:environment`,
   }
   const compiled = ts.transpileModule(submit.getText(source), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },

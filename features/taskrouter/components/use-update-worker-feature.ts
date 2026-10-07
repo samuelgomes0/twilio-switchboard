@@ -34,34 +34,16 @@ export function useUpdateWorkerFeature() {
       )
       if (!response.ok || !response.body) throw new Error()
       const reader = response.body.getReader()
-      let completed = false
-      try {
-        await consumeSseStream(reader, (line) => {
-          const payload: unknown = JSON.parse(line.slice(5))
-          if (typeof payload !== "object" || payload === null) throw new Error()
-          const data = payload as Record<string, unknown>
-          if (
-            (data.level !== "info" &&
-              data.level !== "success" &&
-              data.level !== "warning" &&
-              data.level !== "error") ||
-            typeof data.message !== "string"
-          )
-            throw new Error()
+      await consumeSseStream(reader, (data) => {
           addLog(data.level, data.message)
           if (data.done === true) {
-            completed = true
             setStatus(
               typeof data.totalErrors === "number" && data.totalErrors > 0
                 ? "error"
                 : "done"
             )
           }
-        })
-        if (!completed) throw new Error()
-      } finally {
-        reader.releaseLock()
-      }
+      })
     } catch {
       if (controller.signal.aborted) {
         addLog("warning", strings.taskrouter.updateWorkerFeature.cancelled)

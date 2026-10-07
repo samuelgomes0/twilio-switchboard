@@ -1,12 +1,12 @@
-import { SSE_HEADERS } from "@/lib/sse-headers"
 import { strings } from "@/lib/strings"
 import { assignWorkersToQueue } from "@/features/taskrouter/lib/assign-workers"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import { MAX_ITEMS } from "@/lib/constants"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
+import { createSseResponse } from "@/lib/sse-response"
 
 export async function POST(req: NextRequest) {
   const body = await readJsonObject(req)
@@ -78,13 +78,7 @@ export async function POST(req: NextRequest) {
     return toApiResponse(err)
   }
 
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    async start(controller) {
-      function emit(chunk: string) {
-        controller.enqueue(encoder.encode(chunk))
-      }
-
+  return createSseResponse(req, strings.common.unexpectedError, async (emit, signal) => {
       emit(
         sseEvent(
           "info",
@@ -101,12 +95,13 @@ export async function POST(req: NextRequest) {
             emails,
           },
           client,
-          emit
+          emit,
+          signal
         )
 
       emit(
         sseEvent(
-          "info",
+          totalErrors > 0 ? "warning" : "success",
           strings.taskrouter.assignWorkers.log.done(
             totalUpdated,
             totalSkipped,
@@ -121,11 +116,6 @@ export async function POST(req: NextRequest) {
         )
       )
 
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: SSE_HEADERS,
-  })
+    }
+  )
 }

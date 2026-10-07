@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { SearchTaskResult, TaskData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
@@ -94,6 +94,9 @@ function taskDataToResult(task: TaskData): SearchTaskResult {
 
 export function SearchTasksForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [mode, setMode] = React.useState<SearchMode>("sid")
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [taskSid, setTaskSid] = React.useState("")
@@ -105,10 +108,13 @@ export function SearchTasksForm() {
   )
   const [tasks, setTasks] = React.useState<SearchTaskResult[] | null>(null)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   function handleModeChange(newMode: SearchMode) {
     if (newMode === mode) return
@@ -144,6 +150,8 @@ export function SearchTasksForm() {
     setLoading(true)
     setError(null)
     setTasks(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     try {
       if (requestedMode === "sid") {
@@ -156,8 +164,10 @@ export function SearchTasksForm() {
             accountSid: activeEnvironment.accountSid,
             authToken: activeEnvironment.authToken,
           }),
+          signal: controller.signal,
         })
         const json = (await res.json()) as { task: TaskData; error?: string }
+        if (controller.signal.aborted) return
         if (!res.ok || json.error) {
           setError(json.error ?? strings.common.unknown)
           return
@@ -172,7 +182,7 @@ export function SearchTasksForm() {
           assignmentStatus: result.assignmentStatus,
           taskQueueFriendlyName: result.taskQueueFriendlyName,
         }
-        pushHistory(HISTORY_KEY, entry)
+        pushHistory(historyKey, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       } else {
         const res = await fetch("/api/taskrouter/search-tasks-by-number", {
@@ -184,12 +194,14 @@ export function SearchTasksForm() {
             accountSid: activeEnvironment.accountSid,
             authToken: activeEnvironment.authToken,
           }),
+          signal: controller.signal,
         })
         const json = (await res.json()) as {
           tasks: SearchTaskResult[]
           phone: string
           error?: string
         }
+        if (controller.signal.aborted) return
         if (!res.ok || json.error) {
           setError(json.error ?? strings.common.unknown)
           return
@@ -202,13 +214,16 @@ export function SearchTasksForm() {
           phone: json.phone,
           count: json.tasks.length,
         }
-        pushHistory(HISTORY_KEY, entry)
+        pushHistory(historyKey, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       }
     } catch {
-      setError(strings.common.networkError)
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -230,7 +245,7 @@ export function SearchTasksForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }

@@ -33,7 +33,7 @@ import { FetchByParticipantResultsSkeleton } from "@/features/conversations/comp
 import { useParticipantSearch } from "@/features/conversations/components/use-participant-search"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
 
@@ -105,6 +105,9 @@ export function FetchByParticipantForm() {
 
 function ParticipantSearchForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [phone, setPhone] = React.useState("")
   const [phoneError, setPhoneError] = React.useState<string | null>(null)
   const [stateFilter, setStateFilter] = React.useState<StateFilter>("all")
@@ -120,8 +123,9 @@ function ParticipantSearchForm() {
   } = useParticipantSearch(activeEnvironment)
   const [visibleCount, setVisibleCount] = React.useState(20)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [confirmOpen, setConfirmOpen] = React.useState(false)
 
@@ -143,7 +147,7 @@ function ParticipantSearchForm() {
       stateFilter: requestedStateFilter,
       count: conversations.length,
     }
-    pushHistory(HISTORY_KEY, entry)
+    pushHistory(historyKey, entry)
     setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
   }
 
@@ -160,7 +164,7 @@ function ParticipantSearchForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }

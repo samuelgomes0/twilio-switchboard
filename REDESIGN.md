@@ -97,9 +97,9 @@ Não foram alterados endpoints, nomes ou formatos de payloads, autenticação Tw
 
 Credenciais continuam vindo de `EnvironmentProvider`, persistidas nas mesmas chaves do navegador e enviadas no corpo POST. Não existe autenticação/RBAC da aplicação. O servidor rejeita credenciais ausentes e não lê credenciais de variáveis de ambiente; a interface não inventa permissões.
 
-Históricos continuam limitados a cinco entradas; autocomplete mantém limite de dez. Os históricos de escrita permanecem informativos, sem repetir operações ao clicar. A consulta de Conversation conserva seu escopo por ambiente e fallback de histórico legado. Nenhuma migração de armazenamento foi introduzida.
+Históricos continuam limitados a cinco entradas; autocomplete mantém limite de dez. Os históricos de escrita permanecem informativos, sem repetir operações ao clicar. Após a Etapa 3, históricos operacionais são isolados pelo identificador do ambiente; chaves globais legadas permanecem intactas sem atribuição automática a uma conta.
 
-O cancelamento de cinco fluxos SSE interrompe o acompanhamento no cliente, mas não garante interrupção de operações já enviadas ao backend. Worker Feature mantém propagação de cancelamento. Esse limite é explicado na interface; não foi alterado silenciosamente.
+Após a Etapa 2, os seis fluxos SSE propagam cancelamento ao backend e interrompem passos futuros quando o sinal é observado. Uma chamada já enviada à Twilio não pode ser interrompida nem desfeita. A Etapa 3 também aborta requests das páginas quando o ambiente muda ou suas credenciais são editadas.
 
 CSV de mensagens conserva o subconjunto filtrado, separador, BOM e proteção existente. A exportação de Numbers continua incluindo todos os resultados carregados, mesmo com filtros ativos, agora com aviso explícito. XLSX é importado apenas quando solicitado para exportação.
 

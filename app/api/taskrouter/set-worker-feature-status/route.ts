@@ -1,10 +1,10 @@
-import { SSE_HEADERS } from "@/lib/sse-headers"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import { updateWorkerFeature } from "@/features/taskrouter/lib/update-worker-feature"
 import { MAX_ITEMS } from "@/lib/constants"
 import { strings } from "@/lib/strings"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
+import { createSseResponse } from "@/lib/sse-response"
 
 export async function POST(req: Request) {
   const messages = strings.taskrouter.updateWorkerFeature
@@ -40,16 +40,7 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: messages.connectionError }, { status: 500 })
   }
-  const abort = new AbortController()
-  const onAbort = () => abort.abort()
-  req.signal.addEventListener("abort", onAbort, { once: true })
-  if (req.signal.aborted) abort.abort()
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const emit = (event: string) => {
-        if (!abort.signal.aborted) controller.enqueue(encoder.encode(event))
-      }
+  return createSseResponse(req, messages.connectionError, async (emit, signal) => {
       try {
         const result = await updateWorkerFeature(
           {
@@ -60,7 +51,7 @@ export async function POST(req: Request) {
           },
           client,
           emit,
-          abort.signal
+          signal
         )
         emit(
           sseEvent(
@@ -70,22 +61,14 @@ export async function POST(req: Request) {
           )
         )
       } catch {
+        if (signal.aborted) throw new DOMException("Aborted", "AbortError")
         emit(
           sseEvent("error", messages.connectionError, {
             done: true,
             totalErrors: 1,
           })
         )
-      } finally {
-        req.signal.removeEventListener("abort", onAbort)
-        if (!abort.signal.aborted) controller.close()
       }
-    },
-    cancel() {
-      abort.abort()
-    },
-  })
-  return new Response(stream, {
-    headers: SSE_HEADERS,
-  })
+    }
+  )
 }

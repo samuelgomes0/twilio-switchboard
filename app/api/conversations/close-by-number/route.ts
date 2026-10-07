@@ -1,15 +1,15 @@
-import { SSE_HEADERS } from "@/lib/sse-headers"
 import { strings } from "@/lib/strings"
 import {
   closeConversations,
-  sseEvent,
 } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 import { MAX_ITEMS } from "@/lib/constants"
 import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
 import { parseTwilioCredentials } from "@/lib/request-validation"
+import { createSseResponse } from "@/lib/sse-response"
 
 export async function POST(req: NextRequest) {
   let value: unknown
@@ -72,13 +72,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    async start(controller) {
-      function emit(chunk: string) {
-        controller.enqueue(encoder.encode(chunk))
-      }
-
+  return createSseResponse(req, strings.common.unexpectedError, async (emit, signal) => {
       emit(
         sseEvent(
           "info",
@@ -89,12 +83,13 @@ export async function POST(req: NextRequest) {
       const { totalClosed, totalErrors } = await closeConversations(
         participants,
         client,
-        emit
+        emit,
+        signal
       )
 
       emit(
         sseEvent(
-          "info",
+          totalErrors > 0 ? "warning" : "success",
           strings.conversations.close.log.done(totalClosed, totalErrors),
           {
             done: true,
@@ -104,11 +99,6 @@ export async function POST(req: NextRequest) {
         )
       )
 
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: SSE_HEADERS,
-  })
+    }
+  )
 }

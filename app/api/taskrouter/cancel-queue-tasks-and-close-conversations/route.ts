@@ -1,11 +1,11 @@
-import { SSE_HEADERS } from "@/lib/sse-headers"
 import { strings } from "@/lib/strings"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import { cancelQueueTasks } from "@/features/taskrouter/lib/cancel-queue-tasks"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { NextRequest } from "next/server"
 import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
+import { createSseResponse } from "@/lib/sse-response"
 
 export async function POST(req: NextRequest) {
   const body = await readJsonObject(req)
@@ -68,14 +68,8 @@ export async function POST(req: NextRequest) {
     return toApiResponse(err)
   }
 
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    async start(controller) {
-      function emit(chunk: string) {
-        controller.enqueue(encoder.encode(chunk))
-      }
-
-      const { totalSuccess, totalSkipped, totalErrors } =
+  return createSseResponse(req, strings.common.unexpectedError, async (emit, signal) => {
+      const { totalSuccess, totalSkipped, totalErrors, partial } =
         await cancelQueueTasks(
           {
             workspaceSid,
@@ -83,12 +77,13 @@ export async function POST(req: NextRequest) {
             closeMessage,
           },
           client,
-          emit
+          emit,
+          signal
         )
 
       emit(
         sseEvent(
-          "info",
+          totalErrors > 0 || partial ? "warning" : "success",
           strings.taskrouter.cancelQueueTasks.log.done(
             totalSuccess,
             totalSkipped,
@@ -99,15 +94,11 @@ export async function POST(req: NextRequest) {
             totalSuccess,
             totalSkipped,
             totalErrors,
+            partial,
           }
         )
       )
 
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: SSE_HEADERS,
-  })
+    }
+  )
 }

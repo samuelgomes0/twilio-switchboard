@@ -34,7 +34,7 @@ import { Separator } from "@/components/ui/separator"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
@@ -100,6 +100,9 @@ function parseRouting(attributes: string): WorkerRouting | null {
 export function FetchWorkerForm() {
   const management = useWorkerManagement()
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [localWorkspaceSid, setLocalWorkspaceSid] = React.useState("")
   const workspaceSid = management?.workspaceSid ?? localWorkspaceSid
   const setWorkspaceSid = management?.setWorkspaceSid ?? setLocalWorkspaceSid
@@ -109,10 +112,13 @@ export function FetchWorkerForm() {
   const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const [data, setData] = React.useState<{ worker: WorkerData } | null>(null)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [confirmOpen, setConfirmOpen] = React.useState(false)
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -134,6 +140,8 @@ export function FetchWorkerForm() {
     setLoading(true)
     setError(null)
     setData(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     try {
       const res = await fetch("/api/taskrouter/get-worker-details", {
@@ -145,8 +153,10 @@ export function FetchWorkerForm() {
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
+        signal: controller.signal,
       })
       const json = (await res.json()) as { worker: WorkerData; error?: string }
+      if (controller.signal.aborted) return
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)
         return
@@ -160,12 +170,15 @@ export function FetchWorkerForm() {
         friendlyName: json.worker.friendlyName,
         activityName: json.worker.activityName,
       }
-      pushHistory(HISTORY_KEY, entry)
+      pushHistory(historyKey, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
     } catch {
-      setError(strings.common.networkError)
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -182,7 +195,7 @@ export function FetchWorkerForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }

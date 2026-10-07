@@ -19,3 +19,10 @@ export function pushHistory<T>(key: string, entry: T): void {
     )
   } catch {}
 }
+
+export function environmentHistoryKey(
+  baseKey: string,
+  environmentId: string
+): string {
+  return `${baseKey}:${environmentId}`
+}

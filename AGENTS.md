@@ -152,7 +152,7 @@ for (const p of participants) {}
 - **No prop drilling beyond 2 levels.** Use Context or composition.
 - **Destructive operations require `WarningBadge`.** Any form that modifies Twilio data must render `<WarningBadge />`.
 - **Cancellation is mandatory in SSE forms.** Forms that consume SSE must hold an `AbortController` in a ref and expose a cancel button.
-- Existing SSE consumers share `consumeSseStream` from `lib/sse-reader.ts`, with JSON parsing, completion and reader cleanup kept local. Routes share `SSE_HEADERS` from `lib/sse-headers.ts`. Preserve each flow's documented semantics in `docs/fase-2d-sse.md`; do not infer server cancellation from a client AbortController.
+- Existing SSE consumers share the strict `consumeSseStream` contract from `lib/sse-reader.ts`. Routes share `createSseResponse` and `SSE_HEADERS`. Preserve the final-event, cleanup and cancellation semantics documented in `docs/fase-2d-sse.md`; cancellation does not undo a Twilio write already sent.
 
 ### SSE form pattern
 
@@ -290,7 +290,7 @@ Two persistence patterns coexist — do not mix them:
 ### Operation history
 
 - Shared reading and prepending use `lib/operation-history.ts`. Forms retain their keys, entry types, payload transformations, state updates and clear actions. The specialized Conversation consultation history remains in its own hook.
-- Key format: `switchboard:<domain>-history`.
+- Key format: `switchboard:<domain>-history:<environmentId>`. Preserve unscoped legacy keys without attributing them to an environment.
 - Limit of 5 entries (`MAX_HISTORY`).
 
 ---
@@ -341,7 +341,7 @@ Run `npm test` for the existing Node.js suites, including focused Route Handler 
 
 - **No `console.log` in production.** Remove all debug logs before completing the task.
 - **Twilio API errors** must be caught in `lib/` and emitted via `sseEvent("error", ...)` for streaming operations, or returned as `{ error: string }` for synchronous operations.
-- **Retry with feedback.** Use `withRetry` from `features/conversations/lib/close.ts` as the standard for operations that should be retried. Emit a `"warning"` event on each failed attempt.
+- **Retry with feedback.** Use `withRetry` from `lib/retry.ts` only for safe read operations. Emit a `"warning"` event on each failed attempt; never retry writes automatically.
 - **`done: true`** in the final SSE payload signals end of operation to the client — never omit it.
 
 ---

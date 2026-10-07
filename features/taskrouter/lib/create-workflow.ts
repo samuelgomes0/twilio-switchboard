@@ -1,6 +1,6 @@
 import { strings } from "@/lib/strings"
 import { AppError } from "@/lib/errors"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import type { CreateWorkflowInput } from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
@@ -85,17 +85,20 @@ function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
 export async function createWorkflow(
   input: CreateWorkflowInput,
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  signal?: AbortSignal
 ): Promise<{
   workflowSid: string
   workflowName: string
   totalFilters: number
 }> {
   emit(sseEvent("info", strings.taskrouter.createWorkflow.log.loadingQueues))
+  signal?.throwIfAborted()
 
   const queues = await client.taskrouter.v1
     .workspaces(input.workspaceSid)
     .taskQueues.list()
+  signal?.throwIfAborted()
 
   const queueSidMap: Record<string, string> = {}
   for (const queue of queues) {
@@ -123,6 +126,7 @@ export async function createWorkflow(
   const filters: WorkflowFilter[] = []
 
   for (const { regra, fila } of rows) {
+    signal?.throwIfAborted()
     const queueSid = queueSidMap[fila]
     if (!queueSid) {
       throw new AppError(
@@ -161,6 +165,7 @@ export async function createWorkflow(
 
   const configuration = { task_routing: taskRouting }
 
+  signal?.throwIfAborted()
   const workflow = await client.taskrouter.v1
     .workspaces(input.workspaceSid)
     .workflows.create({

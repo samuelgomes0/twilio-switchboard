@@ -20,8 +20,6 @@ const flows = [
 ]
 
 for (const [endpoint, operationName, input, result] of flows) {
-  const strict = endpoint.endsWith("update-worker-feature")
-  const catches = strict || endpoint.endsWith("create-workflow") || endpoint.endsWith("add-particular-filter")
   const [domain, action] = endpoint.split("/")
   function route(operation) {
     const load = createLoader()
@@ -48,20 +46,17 @@ for (const [endpoint, operationName, input, result] of flows) {
     const last = events.at(-1)
     assert.equal(last.done, true)
     for (const [key, value] of Object.entries(result)) assert.equal(last[key], value)
-    assert.equal(last.level, strict || catches ? "success" : "info")
+    assert.equal(last.level, "success")
     assert.equal(events.length, action === "close" || action === "assign-workers" ? 3 : 2)
   })
 
-  test(`${endpoint}: unexpected operation errors preserve stream-error versus final-event behavior`, async () => {
+  test(`${endpoint}: unexpected operation errors become a sanitized final event`, async () => {
     const response = await route(async () => { throw new Error("private failure") })(request(new AbortController().signal))
-    if (!catches) await assert.rejects(response.text(), /private failure/)
-    else {
-      const text = await response.text()
-      assert.equal(text.includes("private failure"), false)
-      const last = JSON.parse(text.trim().split("\n\n").at(-1).slice(5))
-      assert.equal(last.done, true)
-      assert.equal(last.level, "error")
-    }
+    const text = await response.text()
+    assert.equal(text.includes("private failure"), false)
+    const last = JSON.parse(text.trim().split("\n\n").at(-1).slice(5))
+    assert.equal(last.done, true)
+    assert.equal(last.level, "error")
   })
 
   test(`${endpoint}: request abort and response cancellation retain signal propagation`, async () => {
@@ -79,11 +74,10 @@ for (const [endpoint, operationName, input, result] of flows) {
       const reader = response.body.getReader()
       if (mode === "request") controller.abort()
       if (mode === "response") await reader.cancel()
-      assert.equal(receivedSignal?.aborted, strict ? true : undefined)
+      if (mode === "preaborted") assert.equal(receivedSignal, undefined)
+      else assert.equal(receivedSignal?.aborted, true)
       finish()
-      // An aborted Worker Feature request suppresses both emissions and close.
-      if (strict && mode !== "response") await reader.cancel()
-      else if (mode !== "response") while (!(await reader.read()).done) { /* drain */ }
+      if (mode !== "response") await reader.cancel()
       reader.releaseLock()
     }
   })

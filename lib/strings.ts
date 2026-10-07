@@ -871,6 +871,13 @@ export const strings = {
           `Task ${taskSid}: cancelada, mas falha ao enviar mensagem para ${conversationSid}`,
         closeFailed: (taskSid: string, conversationSid: string) =>
           `Task ${taskSid}: cancelada, mas falha ao fechar conversa ${conversationSid}`,
+        conversationAlreadyProcessed: (
+          taskSid: string,
+          conversationSid: string
+        ) =>
+          `Task ${taskSid}: cancelada; a conversa ${conversationSid} já foi processada neste lote.`,
+        truncated: (limit: number) =>
+          `A fila possui mais de ${limit} tasks. Somente as primeiras ${limit} foram processadas; execute novamente para continuar.`,
         closed: (taskSid: string, status: string) =>
           `Task ${taskSid}: cancelada, mensagem enviada, conversa fechada (${status} → canceled)`,
         searching: (taskQueueName: string) =>
@@ -908,6 +915,8 @@ export const strings = {
         success: (n: number) => `${n} encerrada(s)`,
         skipped: (n: number) => `${n} ignorada(s)`,
         errors: (n: number) => `${n} erro(s)`,
+        partial:
+          "Ainda existem tasks além do limite deste lote. Execute novamente para continuar.",
       },
       history: {
         item: (n: number) => `${n} encerrada(s)`,

@@ -1,6 +1,5 @@
-import { SSE_HEADERS } from "@/lib/sse-headers"
 import { strings } from "@/lib/strings"
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import { addParticularFilter } from "@/features/taskrouter/lib/add-particular-filter"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { fromTwilioError, toApiResponse } from "@/lib/errors"
@@ -9,6 +8,7 @@ import { NextRequest } from "next/server"
 import { isTwilioSid, parseTwilioCredentials, readJsonObject } from "@/lib/request-validation"
 import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
 import { MAX_ITEMS } from "@/lib/constants"
+import { createSseResponse } from "@/lib/sse-response"
 
 export async function POST(req: NextRequest) {
   const body = await readJsonObject(req)
@@ -82,13 +82,10 @@ export async function POST(req: NextRequest) {
     return toApiResponse(err)
   }
 
-  const encoder = new TextEncoder()
-  const stream = new ReadableStream({
-    async start(controller) {
-      function emit(chunk: string) {
-        controller.enqueue(encoder.encode(chunk))
-      }
-
+  return createSseResponse(
+    req,
+    strings.taskrouter.addParticularFilter.log.unexpectedError,
+    async (emit, signal) => {
       try {
         const { totalAdded, totalSkipped, totalErrors } =
           await addParticularFilter(
@@ -98,7 +95,8 @@ export async function POST(req: NextRequest) {
               entries,
             },
             client,
-            emit
+            emit,
+            signal
           )
 
         const level = totalAdded > 0 || totalSkipped > 0 ? "success" : "error"
@@ -114,6 +112,7 @@ export async function POST(req: NextRequest) {
           )
         )
       } catch (err) {
+        if (signal.aborted) throw err
         const isTwilioError =
           typeof err === "object" &&
           err !== null &&
@@ -132,11 +131,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      controller.close()
-    },
-  })
-
-  return new Response(stream, {
-    headers: SSE_HEADERS,
-  })
+    }
+  )
 }

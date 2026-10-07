@@ -1,4 +1,4 @@
-import { sseEvent } from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
 import type { UpdateWorkerFeatureInput } from "@/features/taskrouter/types"
 import { resolveWorker } from "@/features/taskrouter/lib/resolve-worker"
 import { strings } from "@/lib/strings"

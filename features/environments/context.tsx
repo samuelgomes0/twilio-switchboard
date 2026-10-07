@@ -13,6 +13,7 @@ import * as React from "react"
 interface EnvironmentContextValue {
   environments: TwilioEnvironment[]
   activeEnvironment: TwilioEnvironment | null
+  activeEnvironmentRevision: number
   addEnvironment: (env: Omit<TwilioEnvironment, "id">) => void
   updateEnvironment: (
     id: string,
@@ -31,6 +32,8 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     []
   )
   const [activeId, setActiveId] = React.useState<string | null>(null)
+  const [activeEnvironmentRevision, bumpActiveEnvironmentRevision] =
+    React.useReducer((revision: number) => revision + 1, 0)
   const [hydrated, setHydrated] = React.useState(false)
 
   React.useEffect(() => {
@@ -64,6 +67,7 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     )
     setEnvironments(updated)
     saveEnvironments(updated)
+    if (activeId === id) bumpActiveEnvironmentRevision()
   }
 
   function deleteEnvironment(id: string) {
@@ -72,12 +76,14 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     saveEnvironments(updated)
     if (activeId === id) {
       setActiveId(null)
+      bumpActiveEnvironmentRevision()
       removeActiveEnvironmentId()
     }
   }
 
   function setActive(id: string) {
     setActiveId(id)
+    bumpActiveEnvironmentRevision()
     setActiveEnvironmentId(id)
   }
 
@@ -86,6 +92,7 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
       value={{
         environments,
         activeEnvironment,
+        activeEnvironmentRevision,
         addEnvironment,
         updateEnvironment,
         deleteEnvironment,

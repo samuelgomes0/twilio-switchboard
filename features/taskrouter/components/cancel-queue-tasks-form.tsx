@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label"
 import { WarningBadge } from "@/components/warning-badge"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -47,6 +47,7 @@ interface Summary {
   totalSuccess: number
   totalSkipped: number
   totalErrors: number
+  partial: boolean
 }
 
 interface HistoryEntry {
@@ -80,6 +81,9 @@ function fmtTs(ts: number) {
 
 export function CancelQueueTasksForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [taskQueueName, setTaskQueueName] = React.useState("")
   const [closeMessage, setCloseMessage] = React.useState<string>(
@@ -90,14 +94,16 @@ export function CancelQueueTasksForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
     {}
   )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -120,7 +126,7 @@ export function CancelQueueTasksForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }
@@ -170,29 +176,33 @@ export function CancelQueueTasksForm() {
       }
 
       const reader = res.body.getReader()
-      await consumeSseStream(reader, (dataLine) => {
-        try {
-          const payload = JSON.parse(dataLine.slice(5).trim()) as {
-            level: LogEntry["level"]
-            message: string
-            done?: boolean
-            totalSuccess?: number
-            totalSkipped?: number
-            totalErrors?: number
-            progress?: Progress
+      await consumeSseStream(reader, (payload) => {
+          if (
+            typeof payload.progress === "object" &&
+            payload.progress !== null &&
+            "current" in payload.progress &&
+            "total" in payload.progress &&
+            typeof payload.progress.current === "number" &&
+            typeof payload.progress.total === "number"
+          ) {
+            setProgress(payload.progress as Progress)
           }
-
-          if (payload.progress) setProgress(payload.progress)
           addLog(payload.level, payload.message)
 
-          if (payload.done) {
-            const success = payload.totalSuccess ?? 0
-            const skipped = payload.totalSkipped ?? 0
-            const errors = payload.totalErrors ?? 0
+          if (payload.done === true) {
+            if (payload.level === "error") {
+              setStatus("error")
+              return
+            }
+            const success = typeof payload.totalSuccess === "number" ? payload.totalSuccess : 0
+            const skipped = typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+            const errors = typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+            const partial = payload.partial === true
             setSummary({
               totalSuccess: success,
               totalSkipped: skipped,
               totalErrors: errors,
+              partial,
             })
             setStatus("done")
             const entry: HistoryEntry = {
@@ -203,15 +213,10 @@ export function CancelQueueTasksForm() {
               skipped,
               errors,
             }
-            pushHistory(HISTORY_KEY, entry)
+            pushHistory(historyKey, entry)
             setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
           }
-        } catch {
-          // Invalid events are ignored because the stream can contain partial data.
-        }
       })
-
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
@@ -447,6 +452,11 @@ export function CancelQueueTasksForm() {
                 )}
               </span>
             </>
+          )}
+          {summary.partial && (
+            <p className="mt-2 font-medium text-warning-foreground">
+              {strings.taskrouter.cancelQueueTasks.summary.partial}
+            </p>
           )}
         </div>
       )}

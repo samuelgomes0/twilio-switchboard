@@ -36,7 +36,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -73,6 +73,9 @@ function fmtTs(ts: number) {
 
 export function CreateWorkflowForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [workflowName, setWorkflowName] = React.useState("")
   const [csvFile, setCsvFile] = React.useState<File | null>(null)
@@ -81,11 +84,13 @@ export function CreateWorkflowForm() {
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -111,7 +116,7 @@ export function CreateWorkflowForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }
@@ -163,24 +168,20 @@ export function CreateWorkflowForm() {
       }
 
       const reader = res.body.getReader()
-      await consumeSseStream(reader, (dataLine) => {
-        try {
-          const payload = JSON.parse(dataLine.slice(5).trim()) as {
-            level: LogEntry["level"]
-            message: string
-            done?: boolean
-            workflowSid?: string
-            workflowName?: string
-            totalFilters?: number
-          }
-
+      await consumeSseStream(reader, (payload) => {
           addLog(payload.level, payload.message)
 
-          if (payload.done) {
-            if (payload.workflowSid) {
+          if (payload.done === true) {
+            if (typeof payload.workflowSid === "string") {
               const wfSid = payload.workflowSid
-              const wfName = payload.workflowName ?? workflowName.trim()
-              const totalFilters = payload.totalFilters ?? 0
+              const wfName =
+                typeof payload.workflowName === "string"
+                  ? payload.workflowName
+                  : workflowName.trim()
+              const totalFilters =
+                typeof payload.totalFilters === "number"
+                  ? payload.totalFilters
+                  : 0
               setSummary({
                 workflowSid: wfSid,
                 workflowName: wfName,
@@ -194,18 +195,13 @@ export function CreateWorkflowForm() {
                 workflowSid: wfSid,
                 totalFilters,
               }
-              pushHistory(HISTORY_KEY, entry)
+              pushHistory(historyKey, entry)
               setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
             } else {
               setStatus("error")
             }
           }
-        } catch {
-          // Invalid events are ignored because the stream can contain partial data.
-        }
       })
-
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)

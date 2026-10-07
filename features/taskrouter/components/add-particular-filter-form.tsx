@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { pushHistory, readHistory } from "@/lib/operation-history"
+import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -90,6 +90,9 @@ function fmtTs(ts: number) {
 
 export function AddParticularFilterForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [filterName, setFilterName] = React.useState("")
   const [rows, setRows] = React.useState<EntryRow[]>([{ ...EMPTY_ROW }])
@@ -104,14 +107,16 @@ export function AddParticularFilterForm() {
     AddParticularFilterEntry[]
   >([])
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
-    () => readHistory<HistoryEntry>(HISTORY_KEY),
-    []
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
   )
   const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const [filterNameError, setFilterNameError] = React.useState<string | null>(
     null
   )
   const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const filledRows = rows.filter(
     (r) => r.workflowSid.trim() && r.taskQueueSid.trim()
@@ -142,7 +147,7 @@ export function AddParticularFilterForm() {
 
   function clearHistory() {
     try {
-      localStorage.removeItem(HISTORY_KEY)
+      if (historyKey) localStorage.removeItem(historyKey)
     } catch {}
     setHistory([])
   }
@@ -261,23 +266,13 @@ export function AddParticularFilterForm() {
       }
 
       const reader = res.body.getReader()
-      await consumeSseStream(reader, (dataLine) => {
-        try {
-          const payload = JSON.parse(dataLine.slice(5).trim()) as {
-            level: LogEntry["level"]
-            message: string
-            done?: boolean
-            totalAdded?: number
-            totalSkipped?: number
-            totalErrors?: number
-          }
-
+      await consumeSseStream(reader, (payload) => {
           addLog(payload.level, payload.message)
 
-          if (payload.done) {
-            const totalAdded = payload.totalAdded ?? 0
-            const totalSkipped = payload.totalSkipped ?? 0
-            const totalErrors = payload.totalErrors ?? 0
+          if (payload.done === true) {
+            const totalAdded = typeof payload.totalAdded === "number" ? payload.totalAdded : 0
+            const totalSkipped = typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+            const totalErrors = typeof payload.totalErrors === "number" ? payload.totalErrors : 0
             setSummary({ totalAdded, totalSkipped, totalErrors })
             setStatus(totalAdded === 0 && totalSkipped === 0 ? "error" : "done")
             const entry: HistoryEntry = {
@@ -289,15 +284,10 @@ export function AddParticularFilterForm() {
               totalSkipped,
               totalErrors,
             }
-            pushHistory(HISTORY_KEY, entry)
+            pushHistory(historyKey, entry)
             setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
           }
-        } catch {
-          // Invalid events are ignored because the stream can contain partial data.
-        }
       })
-
-      setStatus((prev) => (prev !== "done" && prev !== "error" ? "done" : prev))
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
