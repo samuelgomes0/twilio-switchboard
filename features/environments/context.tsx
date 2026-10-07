@@ -38,8 +38,18 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      setEnvironments(getEnvironments())
-      setActiveId(getActiveEnvironmentId())
+      const storedEnvironments = getEnvironments()
+      const storedActiveId = getActiveEnvironmentId()
+      setEnvironments(storedEnvironments)
+      if (
+        storedActiveId &&
+        storedEnvironments.some((environment) => environment.id === storedActiveId)
+      ) {
+        setActiveId(storedActiveId)
+      } else {
+        setActiveId(null)
+        if (storedActiveId) removeActiveEnvironmentId()
+      }
       setHydrated(true)
     })
     return () => cancelAnimationFrame(frame)
@@ -54,8 +64,8 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
   function addEnvironment(env: Omit<TwilioEnvironment, "id">) {
     const newEnv: TwilioEnvironment = { id: crypto.randomUUID(), ...env }
     const updated = [...environments, newEnv]
+    if (!saveEnvironments(updated)) return
     setEnvironments(updated)
-    saveEnvironments(updated)
   }
 
   function updateEnvironment(
@@ -65,26 +75,26 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     const updated = environments.map((e) =>
       e.id === id ? { id, ...updates } : e
     )
+    if (!saveEnvironments(updated)) return
     setEnvironments(updated)
-    saveEnvironments(updated)
     if (activeId === id) bumpActiveEnvironmentRevision()
   }
 
   function deleteEnvironment(id: string) {
     const updated = environments.filter((e) => e.id !== id)
+    if (!saveEnvironments(updated)) return
+    if (activeId === id) removeActiveEnvironmentId()
     setEnvironments(updated)
-    saveEnvironments(updated)
     if (activeId === id) {
       setActiveId(null)
       bumpActiveEnvironmentRevision()
-      removeActiveEnvironmentId()
     }
   }
 
   function setActive(id: string) {
+    if (!setActiveEnvironmentId(id)) return
     setActiveId(id)
     bumpActiveEnvironmentRevision()
-    setActiveEnvironmentId(id)
   }
 
   return (

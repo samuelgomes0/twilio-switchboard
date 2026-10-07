@@ -1,5 +1,6 @@
 import { strings } from "@/lib/strings"
 import { STORED_KEYS } from "./stored-keys"
+import { readStorageJson, writeStorageJson } from "@/lib/browser-storage"
 
 const MAX_SAVED = 10
 
@@ -8,38 +9,32 @@ function effectiveKey(key: string, environmentId?: string): string {
 }
 
 export function readVariables(key: string, environmentId?: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(effectiveKey(key, environmentId))
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
+  const values = readStorageJson(
+    effectiveKey(key, environmentId),
+    (value): value is string[] =>
+      Array.isArray(value) && value.every((item) => typeof item === "string"),
+    []
+  )
+  return [...new Set(values.filter((value) => value.trim().length > 0))].slice(
+    0,
+    MAX_SAVED
+  )
 }
 
-function writeVariables(key: string, values: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(values))
-  } catch {}
-}
-
-// Autocomplete fields pass their local snapshot to preserve instance-local updates.
 export function addVariable(
   key: string,
   value: string,
-  environmentId?: string,
-  currentValues?: string[]
+  environmentId?: string
 ): string[] {
   const eKey = effectiveKey(key, environmentId)
   const t = value.trim()
   if (!t) return readVariables(key, environmentId)
-  const previous =
-    currentValues === undefined ? readVariables(key, environmentId) : currentValues
+  const previous = readVariables(key, environmentId)
   const next = [
     t,
     ...previous.filter((v) => v !== t),
   ].slice(0, MAX_SAVED)
-  writeVariables(eKey, next)
+  writeStorageJson(eKey, next)
   return next
 }
 
@@ -55,51 +50,77 @@ export function updateVariable(
   const next = readVariables(key, environmentId).map((v) =>
     v === oldValue ? t : v
   )
-  writeVariables(eKey, next)
+  writeStorageJson(eKey, next)
   return next
 }
 
-// Omitting the snapshot keeps the Variables manager's read-before-write behavior.
 export function deleteVariable(
   key: string,
   value: string,
-  environmentId?: string,
-  currentValues?: string[]
+  environmentId?: string
 ): string[] {
   const eKey = effectiveKey(key, environmentId)
-  const previous =
-    currentValues === undefined ? readVariables(key, environmentId) : currentValues
+  const previous = readVariables(key, environmentId)
   const next = previous.filter((v) => v !== value)
-  writeVariables(eKey, next)
+  writeStorageJson(eKey, next)
   return next
 }
 
 export type VariableGroup = {
   key: string
   label: string
+  scope: "environment" | "global"
 }
 
 export const VARIABLE_GROUPS: VariableGroup[] = [
   {
     key: STORED_KEYS.workspaceSids,
     label: strings.variables.groups.workspaceSids,
+    scope: "environment",
   },
-  { key: STORED_KEYS.queueNames, label: strings.variables.groups.queueNames },
-  { key: STORED_KEYS.skillNames, label: strings.variables.groups.skillNames },
+  {
+    key: STORED_KEYS.queueNames,
+    label: strings.variables.groups.queueNames,
+    scope: "environment",
+  },
+  {
+    key: STORED_KEYS.skillNames,
+    label: strings.variables.groups.skillNames,
+    scope: "environment",
+  },
   {
     key: STORED_KEYS.workflowNames,
     label: strings.variables.groups.workflowNames,
+    scope: "environment",
   },
   {
     key: STORED_KEYS.workerIdentifiers,
     label: strings.variables.groups.workerIdentifiers,
+    scope: "environment",
   },
   {
     key: STORED_KEYS.conversationSids,
     label: strings.variables.groups.conversationSids,
+    scope: "environment",
   },
   {
     key: STORED_KEYS.closeMessages,
     label: strings.variables.groups.closeMessages,
+    scope: "global",
+  },
+  {
+    key: STORED_KEYS.flexAddresses,
+    label: strings.variables.groups.flexAddresses,
+    scope: "environment",
+  },
+  {
+    key: STORED_KEYS.conversationServiceSids,
+    label: strings.variables.groups.conversationServiceSids,
+    scope: "environment",
+  },
+  {
+    key: STORED_KEYS.studioFlowSids,
+    label: strings.variables.groups.studioFlowSids,
+    scope: "environment",
   },
 ]

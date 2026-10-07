@@ -97,7 +97,7 @@ Não foram alterados endpoints, nomes ou formatos de payloads, autenticação Tw
 
 Credenciais continuam vindo de `EnvironmentProvider`, persistidas nas mesmas chaves do navegador e enviadas no corpo POST. Não existe autenticação/RBAC da aplicação. O servidor rejeita credenciais ausentes e não lê credenciais de variáveis de ambiente; a interface não inventa permissões.
 
-Históricos continuam limitados a cinco entradas; autocomplete mantém limite de dez. Os históricos de escrita permanecem informativos, sem repetir operações ao clicar. Após a Etapa 3, históricos operacionais são isolados pelo identificador do ambiente; chaves globais legadas permanecem intactas sem atribuição automática a uma conta.
+Históricos continuam limitados a cinco entradas; autocomplete mantém limite de dez. Os históricos de escrita permanecem informativos, sem repetir operações ao clicar. Após a Etapa 3, históricos operacionais são isolados pelo identificador do ambiente; chaves globais legadas permanecem intactas sem atribuição automática a uma conta. Após a Etapa 4, conteúdo JSON persistido é validado em runtime, falhas de armazenamento geram aviso global e mutações releem o valor atual antes de gravar. O catálogo de variáveis explicita o escopo: mensagens de encerramento são globais e os demais grupos são vinculados ao ambiente.
 
 Após a Etapa 2, os seis fluxos SSE propagam cancelamento ao backend e interrompem passos futuros quando o sinal é observado. Uma chamada já enviada à Twilio não pode ser interrompida nem desfeita. A Etapa 3 também aborta requests das páginas quando o ambiente muda ou suas credenciais são editadas.
 

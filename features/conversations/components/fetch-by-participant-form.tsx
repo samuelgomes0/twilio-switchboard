@@ -33,7 +33,7 @@ import { FetchByParticipantResultsSkeleton } from "@/features/conversations/comp
 import { useParticipantSearch } from "@/features/conversations/components/use-participant-search"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
 
@@ -163,9 +163,7 @@ function ParticipantSearchForm() {
   }
 
   function clearHistory() {
-    try {
-      if (historyKey) localStorage.removeItem(historyKey)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 

@@ -107,7 +107,7 @@ Versões declaradas não são necessariamente as versões instaladas. A coluna i
 | Lucide React | `^1.7.0` | `1.40.0` | Ícones |
 | next-themes | `^0.4.6` | `0.4.6` | Tema system/light/dark |
 | Twilio | `^5.13.1` | `5.13.1` | SDK REST servidor |
-| xlsx | `^0.18.5` | `0.18.5` | Exportação de Numbers em Excel |
+| write-excel-file | `^4.1.1` | `4.1.1` | Escrita de XLSX de Numbers no navegador, carregada sob demanda |
 | class-variance-authority | `^0.7.1` | `0.7.1` | Variantes Button/Badge |
 | clsx / tailwind-merge | `^2.1.1` / `^3.5.0` | `2.1.1` / `3.6.0` | `cn()` |
 | tw-animate-css | `^1.4.0` | `1.4.0` | Animações de UI |
@@ -119,7 +119,7 @@ Runtime exigido: Node `>=22`; auditoria executada com Node **22.23.2** e npm **1
 
 ### 3.1 Gerenciadores, lockfiles e scripts
 
-README prioriza Bun e aceita npm. Há **`bun.lock` e `package-lock.json` rastreados**, sem campo `packageManager`. O lock npm versão 3 corresponde ao manifesto atual. O Bun tem workspace chamado `next-app`, inclui `@eslint/eslintrc` e não registra `xlsx` na lista raiz: **divergência observada**, sem executar uma reinstalação para medir o efeito.
+O projeto usa npm, declara `packageManager: npm@10.9.8` e rastreia apenas `package-lock.json` versão 3. O lock corresponde ao manifesto atual.
 
 | Script | Comando | Contrato |
 | --- | --- | --- |
@@ -349,7 +349,7 @@ Normalização remove prefixo whatsapp case-insensitive e espaços. Dedup por te
 
 Resultados: tabela com friendlyName/SID, telefone e serviço. Busca contém nome/número case-insensitive; filtro por serviço; sort asc/desc por nome/serviço, locale pt-BR, initial friendlyName asc. Sem paginação, tabela scroll/sticky header. Atualizar refaz fetch e conserva filtros/sort. Vazio da API e vazio filtrado são distintos.
 
-Export dropdown CSV ou XLSX usa **`results` inteiro**, não displayedResults nem ordenação visual. CSV BOM, vírgula, LF; friendlyName escapado com aspas, demais células sem escaping uniforme/defesa de fórmula. XLSX json_to_sheet/book_new/write no cliente. Nome `whatsapp-senders.csv/.xlsx`, planilha `Senders`, colunas Marca / Identificação, Número, Serviço, SID. URL Blob é revogada. Não há histórico.
+Export dropdown CSV ou XLSX usa **`results` inteiro**, não displayedResults nem ordenação visual. Ambos neutralizam fórmulas; CSV usa BOM, CRLF e escaping uniforme. XLSX usa uma biblioteca somente de escrita carregada sob demanda. Nome `whatsapp-senders.csv/.xlsx`, planilha `Senders`, colunas Marca / Identificação, Número, Serviço, SID. Não há histórico.
 
 **Limitação grave:** uma ou ambas as fontes podem falhar e mesmo assim retornar 200 com lista parcial ou vazia; erro de credenciais remotas pode parecer ausência de números. Não há warning de fonte indisponível.
 
@@ -627,7 +627,7 @@ Custos observados/inferidos:
 
 - Histórias/messages/tasks podem ter até1.000 elementos sem virtualização; alignment de cada mensagem faz busca em até200 participantes. Não há profiling que quantifique lentidão.
 - Logs não têm limite de entradas; a cada evento copia array completo e scrollIntoView smooth; React pode re-renderizar a lista. Lote com retry/páginas pode gerar muitos eventos.
-- Numbers importa `xlsx` estaticamente no Client Component; módulo de exportação pode aumentar bundle inicial dessa ferramenta. Não foi produzido relatório de bundle/bytes.
+- Numbers carrega o escritor XLSX dinamicamente somente ao exportar. Não foi produzido relatório de bundle/bytes.
 - `workers` monta os três formulários; carrega storage de todos mesmo quando ocultos, e Workspace controlado propaga estado/contexto.
 - Fechamento lista todos os vínculos por número, sem teto; operação pode demorar/consumir memória. Sem maxDuration/reconnect/job persistido.
 - Cancel fila é concorrência controlada5, não sequencial; há risco de rate limit e concorrência por Conversation, mesmo sem paralelismo ilimitado.
@@ -648,7 +648,8 @@ Sem métricas de Core Web Vitals, tempo de API, requests reais, memória, suport
 | `conversation-consult.test.mjs` | Alinhamento cliente/agent/bot/proxy; validação/trim/par de credenciais; forwarding; sanitização das duas rotas | Operações fetch/history são mockadas; não testam limit1001/media/filter/export/hooks |
 | `twilio-client.test.mjs` | Factory rejeita credenciais ausentes mesmo quando variáveis de servidor existem; encaminha somente o par recebido | Cliente Twilio é mockado; não faz autenticação real |
 | `update-worker-feature.test.mjs` | Merge preserva outros atributos e enabled false; cria containers; rejeita inválidos; sequential/falha/email/cancel; route validation/dedup/final SSE | Não prova propagação abort do fetch real em deploy |
-| `operation-messages.test.mjs` | Storage JSON/order/dedup/limites/snapshots/falhas/SSR; inferChannel; errors/logs sanitizados; retry; CSV erro/no write; sucesso básico workflow; falha filter continua; close final | Não é suíte completa de todas as regras CSV/skill/filter/Numbers/Flex |
+| `operation-messages.test.mjs` | Storage JSON/order/dedup/limites/concorrência/falhas/SSR; inferChannel; errors/logs sanitizados; retry; CSV erro/no write; sucesso básico workflow; falha filter continua; close final | Não é suíte completa de todas as regras CSV/skill/filter/Numbers/Flex |
+| `storage-hardening.test.mjs` | Corrupção e falhas do storage, guards de contatos/ambientes, resultado de writes e cobertura/escopo do catálogo de variáveis | Não simula quota ou bloqueio em um navegador real |
 | `sse-client.test.mjs` | 6 consumers: fragmentação UTF8, múltiplos frames, tail/CRLF, malformed/callback, EOF, final duplicado, HTTP/network/abort | AST extrai handler real, mas sem montar React/effects/eventos |
 | `sse-server.test.mjs` | 6 rotas: headers/UTF8/final, erro stream vs catch, request/response cancel propagation, sseEvent | Operações mockadas; timeout/proxy real não testado |
 | `typescript-loader.test.mjs` | Alias/cache/export/class identity/mocks/isolamento/relative override | Infraestrutura de suíte |
@@ -697,18 +698,18 @@ IDs permitem cruzar com os riscos da próxima seção. Severidade considera impa
 | D07 **Resolvida na Etapa 2** | Todos os consumers exigem payload válido e `done: true`; final de erro permanece erro | EOF incompleto e frames inválidos não produzem mais falso sucesso ou histórico |
 | D08 **Parcialmente resolvida na Etapa 1** | Guards de skill, Flex, workflow, filtros e expressões foram fortalecidos; merge read-modify-write continua sem versionamento | Inputs inválidos não chegam ao SDK, mas edições concorrentes ainda podem sobrescrever atributos remotos |
 | D09 **Resolvida na Etapa 2** | Fila detecta o item 1001, sinaliza lote parcial, processa sequencialmente, deduplica CH e não repete writes | A execução continua limitada a 1000 por segurança; o usuário recebe instrução explícita para continuar em novo lote |
-| D10 **Alta** | Filtro Task e Workflow monta expressões interpolando strings sem escape | Aspas podem quebrar/alterar expressão Twilio; não equivale a execução JS comprovada |
-| D11 **Alta** | Sidebar escondida só por transform; sem keyboard close/trap/inert | Navegação mobile potencialmente inacessível/foco fora da tela |
-| D12 **Alta** | xlsx0.18.5 vulnerável no audit | Dependency alta; produto só exporta, não lê XLSX, então alcance de parsing não comprovado |
-| D13 **Média** | CSV Numbers não neutraliza fórmulas/escaping completo | FriendlyName remoto pode virar fórmula em planilha; CSV de mensagens tem defesa diferente |
-| D14 **Média** | Texto/asteriscos obrigatórios do Flex não correspondem aos guards; backend aceita campos sem enum/formato | Falhas evitáveis da API, request inconsistência, potencial configuração indevida |
-| D15 **Média** | Paginação participante usa estado atual/token anterior; concatenação sem snapshot/ignore late | Misturar consultas/contas/páginas e duplicar cards |
-| D16 **Média** | Contatos/variáveis/históricos aceitam JSON shape errado; write failures silenciosos, ambientes podem throw | Crash/dados locais não persistidos sem feedback |
-| D17 **Média** | closeMessages global vs gestor scoped; 3 grupos Flex não gerenciáveis | Gestão não representa o autocomplete real |
-| D18 **Média** | Lint17 erros setState-in-effect | Quality gate não passa; hidratação/render adicional; não corrigido |
+| D10 **Resolvida na Etapa 1** | Literais TaskRouter rejeitam aspas, barras e controles antes de compor expressões | Regras inválidas não alcançam a API Twilio |
+| D11 **Resolvida no redesign** | Navegação mobile usa Radix Dialog com overlay, foco contido, Escape e retorno de foco | A sidebar oculta deixou de permanecer interativa fora da tela |
+| D12 **Resolvida na Etapa 5** | `xlsx` foi substituído por `write-excel-file`, biblioteca somente de escrita e carregada sob demanda | Auditoria npm da árvore de produção retorna zero vulnerabilidades |
+| D13 **Resolvida na Etapa 1** | CSV e XLSX neutralizam fórmulas; CSV aplica quoting uniforme e CRLF | Dados remotos não são interpretados diretamente como fórmulas ao abrir a exportação |
+| D14 **Resolvida na Etapa 5** | Cliente e Route Handler exigem Flow SID válido para Studio e URL HTTP(S) para Webhook | Campos marcados como obrigatórios correspondem ao contrato efetivamente aceito |
+| D15 **Resolvida na Etapa 1** | Busca pagina sequencialmente com snapshot, deduplicação, abort, proteção contra token repetido e ordenação estável | Respostas antigas não se misturam e a paginação não cria loop ou duplicatas |
+| D16 **Resolvida na Etapa 4** | Acesso direto foi centralizado, leitores validam shapes e falhas emitem aviso global; estado de ambientes só muda após persistência bem-sucedida | Dados locais inválidos usam fallback seguro e falhas deixam de ser silenciosas |
+| D17 **Resolvida na Etapa 4** | Todos os `STORED_KEYS` estão no gestor e cada grupo declara escopo; `closeMessages` permanece global | Gestor e componentes agora acessam as mesmas chaves efetivas |
+| D18 **Resolvida no redesign** | Hidratação foi isolada e o lint atual passa sem erros | O quality gate voltou a ser executável |
 | D19 **Média** | Componentes448–712 linhas, repetição SSE/histórico/datas e dependência TaskRouter→Conversations | Elevado risco de regressão ao trocar apresentação |
 | D20 **Média** | Sem browser/e2e, mocks de operações em vários tests | Preservação de tabs/foco/requests/viewport não garantida |
-| D21 **Média** | bun.lock diverge do package/lock npm | Builds/instalações podem resolver grafos diferentes; sem gerenciador fixado |
+| D21 **Resolvida na Etapa 0** | npm está declarado em `packageManager` e apenas `package-lock.json` é rastreado | Instalações usam uma única resolução versionada |
 | D22 **Média** | CSV parser manual, header-only pode criar0filters; sem limites/treatment aspas | Input legítimo pode perder regras; conteúdo grande sem limite autoral |
 | D23 **Resolvida na Etapa 2** | As seis rotas usam lifecycle compartilhado e as seis telas usam parser/final/cleanup único | Erros inesperados terminam em payload seguro; reader e sinais seguem o mesmo contrato |
 | D24 **Média** | Smooth logs sem cap, listas1000, XLSX estático, tabs todas montadas | Custos de CPU/memória/bundle inferidos, sem profiling |
@@ -720,13 +721,13 @@ IDs permitem cruzar com os riscos da próxima seção. Severidade considera impa
 
 ### 18.1 Dependências: evidência temporal e alcance
 
-Consulta npm desta auditoria retornou **9 pacotes**, não nove CVEs: next crítico; brace-expansion, postcss transitivo no Next, sharp, undici e xlsx altos; fast-uri, hono e ip-address moderados. Avisos agregam múltiplos advisories. Não houve instalação, atualização ou correção automática.
+Na revalidação da Etapa 5, `npm audit --omit=dev` retornou **zero vulnerabilidades de produção**. A auditoria completa ainda aponta nove pacotes altos exclusivamente no grafo de ferramentas (`eslint-config-next`, `shadcn` e transitivas); o npm sugere downgrades major incompatíveis, portanto não foi aplicado `audit fix --force`.
 
 Para Next, a versão16.1.7 pertence ao intervalo afetado pelo aviso de [RCE em servidores Windows, publicado pelos mantenedores](https://github.com/vercel/next.js/security/advisories/GHSA-p293-qw3h-jr36); a condição inclui filesystem Windows e aplicação sem Cache Components. Esta cópia não habilita Cache Components e foi auditada em Windows; OS/alcance do deploy são desconhecidos. Há também [RCE condicionado a AVIF na otimização de imagem](https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4). Não foi encontrada importação autoral `next/image` ou upload AVIF, nem foi testada exploração. Esses avisos justificam priorização de segurança, sem afirmar exploração ocorrida.
 
-`xlsx`0.18.5 foi sinalizado por [prototype pollution](https://github.com/advisories/GHSA-4r6h-8v6p-xvw6) e [ReDoS](https://github.com/advisories/GHSA-5pgg-2g8v-p4x9). O frontend usa geração de planilha, não importação XLSX não confiável; esse limite reduz o alcance demonstrado, não remove a dívida da dependência. O npm reporta `fixAvailable:false` para xlsx, o que não significa inexistência de alternativas fora dessa resolução.
+`xlsx` 0.18.5, antes sinalizado por [prototype pollution](https://github.com/advisories/GHSA-4r6h-8v6p-xvw6) e [ReDoS](https://github.com/advisories/GHSA-5pgg-2g8v-p4x9), foi removido. A exportação foi preservada com `write-excel-file` 4.1.1, que expõe uma entrada específica de navegador e somente escrita.
 
-Demais avisos precisam triagem de caminhos runtime/build/tooling antes de atribuir risco de exploração à aplicação. Não se concluiu obsolescência de uma biblioteca só pelo número de versão. `shadcn` tem uso em CSS, portanto não foi declarado desnecessário por ser ferramenta; `xlsx` tem uso funcional explícito. Os cinco `extraneous` instalados não demonstram dependência autoral desnecessária e não foram apagados.
+Os avisos restantes estão no caminho de lint/scaffolding, não no grafo de produção. Isso não os torna irrelevantes, mas não há evidência de entrada não confiável alimentando os globs durante CI ou desenvolvimento. Devem ser revistos quando versões compatíveis forem publicadas, sem downgrade forçado das ferramentas atuais.
 
 ## 19. Risks — riscos para a reconstrução
 

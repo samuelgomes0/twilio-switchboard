@@ -37,6 +37,7 @@ import { normalizeClosePhone } from "@/features/conversations/lib/normalize-clos
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
 import {
+  clearHistory as clearStoredHistory,
   environmentHistoryKey,
   pushHistory,
   readHistory,
@@ -119,9 +120,7 @@ export function CloseForm() {
   }
 
   function clearHistory() {
-    try {
-      if (historyKey) localStorage.removeItem(historyKey)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 

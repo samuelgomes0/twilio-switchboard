@@ -280,11 +280,15 @@ async function handleSubmit() {
 
 Two persistence patterns coexist — do not mix them:
 
+- All direct browser storage access is centralized in `lib/browser-storage.ts`. Readers must validate parsed JSON with a type guard; read, write and removal failures use the shared storage error event instead of being silently ignored.
+- `AppShell` displays the shared persistence warning. Feature code must not call `localStorage` directly.
+
 ### Autocomplete (`StoredInput` / `StoredTextarea`)
 
 - Managed by `lib/variables.ts` (`readVariables`, `addVariable`).
 - Keys defined in `lib/stored-keys.ts` (`STORED_KEYS` + `STORED_KEY_LABELS`).
 - When adding a field with autocomplete, add the key to `STORED_KEYS` and register the group in `VARIABLE_GROUPS` (in `lib/variables.ts`) so it appears on the Variables settings page.
+- Every variable group declares whether it is global or environment-scoped. Do not infer scope from whether an environment happens to be active.
 - Limit of 10 items per key (`MAX_ITEMS`).
 
 ### Operation history

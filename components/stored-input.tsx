@@ -60,11 +60,11 @@ export function StoredInput({
   function saveValue(val: string) {
     const t = val.trim()
     if (!t) return
-    setSaved((prev) => addVariable(effectiveKey, t, undefined, prev))
+    setSaved(addVariable(effectiveKey, t))
   }
 
   function deleteValue(val: string) {
-    setSaved((prev) => deleteVariable(effectiveKey, val, undefined, prev))
+    setSaved(deleteVariable(effectiveKey, val))
   }
 
   function handleBlur(e: React.FocusEvent) {

@@ -1,3 +1,5 @@
+import { readStorageJson, writeStorageJson } from "@/lib/browser-storage"
+
 export interface Contact {
   id: string
   name: string
@@ -7,19 +9,27 @@ export interface Contact {
 const CONTACTS_KEY = "switchboard:contacts"
 
 export function readContacts(): Contact[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(CONTACTS_KEY)
-    return raw ? (JSON.parse(raw) as Contact[]) : []
-  } catch {
-    return []
-  }
+  return readStorageJson(
+    CONTACTS_KEY,
+    (value): value is Contact[] =>
+      Array.isArray(value) &&
+      value.every(
+        (contact) =>
+          typeof contact === "object" &&
+          contact !== null &&
+          typeof contact.id === "string" &&
+          contact.id.length > 0 &&
+          typeof contact.name === "string" &&
+          contact.name.trim().length > 0 &&
+          typeof contact.phone === "string" &&
+          contact.phone.trim().length > 0
+      ),
+    []
+  )
 }
 
 function writeContacts(contacts: Contact[]) {
-  try {
-    localStorage.setItem(CONTACTS_KEY, JSON.stringify(contacts))
-  } catch {}
+  writeStorageJson(CONTACTS_KEY, contacts)
 }
 
 export function addContact(data: Omit<Contact, "id">): Contact {

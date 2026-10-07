@@ -162,30 +162,31 @@ export function ListNumbersForm() {
   }
 
   async function exportExcel() {
-    const XLSX = await import("xlsx")
     if (!results) return
-    const data = results.map((r) => ({
-      [s.table.colMark]: sanitizeSpreadsheetCell(r.friendlyName),
-      [s.table.colNumber]: sanitizeSpreadsheetCell(r.phoneNumber),
-      [s.table.colService]: sanitizeSpreadsheetCell(serviceLabel(r.service)),
-      [s.table.colSid]: sanitizeSpreadsheetCell(r.id),
-    }))
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, s.table.sheetName)
-    const wbout = XLSX.write(wb, {
-      bookType: "xlsx",
-      type: "array",
-    }) as ArrayBuffer
-    const blob = new Blob([wbout], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${s.table.exportFilename}.xlsx`
-    a.click()
-    URL.revokeObjectURL(url)
+    try {
+      const { default: writeXlsxFile } = await import(
+        "write-excel-file/browser"
+      )
+      const data = [
+        [
+          s.table.colMark,
+          s.table.colNumber,
+          s.table.colService,
+          s.table.colSid,
+        ],
+        ...results.map((record) => [
+          sanitizeSpreadsheetCell(record.friendlyName),
+          sanitizeSpreadsheetCell(record.phoneNumber),
+          sanitizeSpreadsheetCell(serviceLabel(record.service)),
+          sanitizeSpreadsheetCell(record.id),
+        ]),
+      ]
+      await writeXlsxFile(data, { sheet: s.table.sheetName }).toFile(
+        `${s.table.exportFilename}.xlsx`
+      )
+    } catch {
+      setError(strings.common.unknown)
+    }
   }
 
   function toggleSort(field: SortField) {

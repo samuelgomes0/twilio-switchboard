@@ -31,7 +31,7 @@ function mockStorage(t, initial = {}) {
   return { values, storage }
 }
 
-test("storage readers preserve old arrays and recover from malformed JSON", (t) => {
+test("storage readers validate shapes, enforce limits and recover from malformed JSON", (t) => {
   const { values, storage } = mockStorage(t)
   const load = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })
   const { readVariables } = load("lib/variables.ts")
@@ -42,10 +42,13 @@ test("storage readers preserve old arrays and recover from malformed JSON", (t) 
       assert.deepEqual(read("key"), [])
     }
     assert.deepEqual(read("missing"), [])
-    const entries = Array.from({ length: 12 }, (_, i) => `valor-${i}`)
-    values.set("key", JSON.stringify(entries))
-    assert.deepEqual(read("key"), entries)
   }
+  const variables = Array.from({ length: 12 }, (_, i) => `valor-${i}`)
+  values.set("key", JSON.stringify(variables))
+  assert.deepEqual(readVariables("key"), variables.slice(0, 10))
+  const history = Array.from({ length: 7 }, (_, i) => ({ value: i }))
+  values.set("key", JSON.stringify(history))
+  assert.deepEqual(readHistory("key"), history.slice(0, 5))
   storage.getItem = () => { throw new Error("denied") }
   assert.deepEqual(readVariables("key"), [])
   assert.deepEqual(readHistory("key"), [])
@@ -63,16 +66,13 @@ test("autocomplete preserves order, deduplication, limits and individual deletio
   assert.deepEqual(addVariable("key", "new"), ["new", ...Array.from({ length: 9 }, (_, i) => String(i))])
 })
 
-test("autocomplete snapshots preserve stale-instance writes without rereading storage", (t) => {
-  const { values, storage } = mockStorage(t, { key: '["other-instance"]' })
+test("autocomplete mutations reread storage to preserve concurrent writes", (t) => {
+  const { values } = mockStorage(t, { key: '["other-instance"]' })
   const { addVariable, deleteVariable } = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })("lib/variables.ts")
-  storage.getItem = () => { throw new Error("must not read") }
-  assert.deepEqual(addVariable("key", "new", undefined, ["local"]), ["new", "local"])
-  assert.equal(values.get("key"), '["new","local"]')
-  assert.deepEqual(deleteVariable("key", "local", undefined, ["local", "kept"]), ["kept"])
-  assert.equal(values.get("key"), '["kept"]')
-  assert.throws(() => addVariable("key", "new", undefined, null), TypeError)
-  assert.throws(() => deleteVariable("key", "old", undefined, null), TypeError)
+  assert.deepEqual(addVariable("key", "new"), ["new", "other-instance"])
+  values.set("key", '["new","other-instance","concurrent"]')
+  assert.deepEqual(deleteVariable("key", "new"), ["other-instance", "concurrent"])
+  assert.equal(values.get("key"), '["other-instance","concurrent"]')
 })
 
 test("autocomplete keeps global and environment keys isolated", (t) => {
@@ -95,9 +95,9 @@ test("operation history prepends without deduplication and preserves entry paylo
   const { values } = mockStorage(t, { key: JSON.stringify([entry, 2, 3, 4, 5]), other: "[]" })
   const { pushHistory, readHistory } = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })("lib/operation-history.ts")
   assert.equal(pushHistory("key", entry), undefined)
-  assert.deepEqual(readHistory("key"), [entry, entry, 2, 3, 4])
+  assert.deepEqual(readHistory("key"), [entry])
   assert.equal(values.get("other"), "[]")
-  assert.equal(values.get("key"), JSON.stringify([entry, entry, 2, 3, 4]))
+  assert.equal(values.get("key"), JSON.stringify([entry]))
 })
 
 test("storage write failures preserve return values and do not escape history writes", (t) => {
@@ -126,17 +126,17 @@ test("readers avoid storage during SSR and tolerate unavailable browser storage"
   assert.doesNotThrow(() => pushHistory("key", "new"))
 })
 
-test("valid JSON with unexpected shape retains legacy read and write behavior", (t) => {
+test("valid JSON with unexpected shape falls back safely before the next write", (t) => {
   const { values } = mockStorage(t)
   const load = createLoader({ "./stored-keys": createLoader()("lib/stored-keys.ts") })
   const { readVariables } = load("lib/variables.ts")
   const { readHistory, pushHistory } = load("lib/operation-history.ts")
   for (const raw of ["null", "{}", "42"]) {
     values.set("key", raw)
-    assert.deepEqual(readVariables("key"), JSON.parse(raw))
-    assert.deepEqual(readHistory("key"), JSON.parse(raw))
-    assert.doesNotThrow(() => pushHistory("key", "new"))
-    assert.equal(values.get("key"), raw)
+    assert.deepEqual(readVariables("key"), [])
+    assert.deepEqual(readHistory("key"), [])
+    assert.doesNotThrow(() => pushHistory("key", { value: "new" }))
+    assert.equal(values.get("key"), '[{"value":"new"}]')
   }
 })
 

@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -146,9 +146,7 @@ export function AddParticularFilterForm() {
   }
 
   function clearHistory() {
-    try {
-      if (historyKey) localStorage.removeItem(historyKey)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 

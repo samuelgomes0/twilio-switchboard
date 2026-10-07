@@ -51,8 +51,12 @@ import type {
   AddressConfigType,
   AutoCreationType,
 } from "@/features/flex/types"
+import {
+  isValidStudioFlowSid,
+  isValidWebhookUrl,
+} from "@/features/flex/lib/validate-create-address-config"
 import { MAX_HISTORY } from "@/lib/constants"
-import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -154,7 +158,15 @@ export function CreateAddressConfigForm() {
     historyKey
   )
 
-  const canSubmit = address.trim().length > 0 && !loading && !!activeEnvironment
+  const hasValidIntegration =
+    integrationType === "default" ||
+    (integrationType === "studio" && isValidStudioFlowSid(studioFlowSid)) ||
+    (integrationType === "webhook" && isValidWebhookUrl(webhookUrl))
+  const canSubmit =
+    address.trim().length > 0 &&
+    hasValidIntegration &&
+    !loading &&
+    !!activeEnvironment
 
   async function runCreate() {
     if (!canSubmit || !activeEnvironment) return
@@ -228,9 +240,7 @@ export function CreateAddressConfigForm() {
   }
 
   function clearHistory() {
-    try {
-      if (historyKey) localStorage.removeItem(historyKey)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
@@ -401,6 +411,10 @@ export function CreateAddressConfigForm() {
                     value={studioFlowSid}
                     onChange={setStudioFlowSid}
                     aria-describedby="studio-flow-hint"
+                    aria-invalid={
+                      studioFlowSid.length > 0 &&
+                      !isValidStudioFlowSid(studioFlowSid)
+                    }
                     placeholder={s.studioFlowPlaceholder}
                     disabled={loading}
                   />
@@ -429,6 +443,9 @@ export function CreateAddressConfigForm() {
                   type="url"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
+                  aria-invalid={
+                    webhookUrl.length > 0 && !isValidWebhookUrl(webhookUrl)
+                  }
                   placeholder={strings.common.placeholders.webhook}
                   disabled={loading}
                 />

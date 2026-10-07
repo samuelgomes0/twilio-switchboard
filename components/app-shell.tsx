@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { strings } from "@/lib/strings"
 import { useEnvironment } from "@/features/environments/context"
+import { STORAGE_ERROR_EVENT } from "@/lib/browser-storage"
 import { Menu, SunMoon, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Dialog } from "radix-ui"
@@ -18,6 +19,7 @@ import * as React from "react"
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const { activeEnvironment, activeEnvironmentRevision } = useEnvironment()
+  const [storageError, setStorageError] = React.useState(false)
   const { setTheme } = useTheme()
   React.useEffect(() => {
     const media = window.matchMedia("(min-width: 64rem)")
@@ -26,6 +28,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     media.addEventListener("change", closeOnDesktop)
     return () => media.removeEventListener("change", closeOnDesktop)
+  }, [])
+  React.useEffect(() => {
+    const showStorageError = () => setStorageError(true)
+    window.addEventListener(STORAGE_ERROR_EVENT, showStorageError)
+    return () =>
+      window.removeEventListener(STORAGE_ERROR_EVENT, showStorageError)
   }, [])
   return (
     <div className="app-shell">
@@ -103,6 +111,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           tabIndex={-1}
           className="shell-content"
         >
+          {storageError && (
+            <div
+              role="alert"
+              className="mb-4 flex items-start justify-between gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
+              <span>{strings.common.storageError}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setStorageError(false)}
+              >
+                {strings.common.dismiss}
+              </Button>
+            </div>
+          )}
           {children}
         </main>
       </div>

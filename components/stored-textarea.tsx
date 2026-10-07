@@ -44,11 +44,11 @@ export function StoredTextarea({
   function saveValue(val: string) {
     const t = val.trim()
     if (!t) return
-    setSaved((prev) => addVariable(storageKey, t, undefined, prev))
+    setSaved(addVariable(storageKey, t))
   }
 
   function deleteValue(val: string) {
-    setSaved((prev) => deleteVariable(storageKey, val, undefined, prev))
+    setSaved(deleteVariable(storageKey, val))
   }
 
   return (

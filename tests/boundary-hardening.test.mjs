@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
 import test from "node:test"
 import { createLoader } from "./typescript-loader.mjs"
 
@@ -6,6 +7,17 @@ const credentials = {
   accountSid: `AC${"1".repeat(32)}`,
   authToken: "2".repeat(32),
 }
+
+test("Excel export uses the writer-only browser dependency", () => {
+  const manifest = JSON.parse(readFileSync("package.json", "utf8"))
+  const source = readFileSync(
+    "features/numbers/components/list-numbers-form.tsx",
+    "utf8"
+  )
+  assert.equal(manifest.dependencies.xlsx, undefined)
+  assert.equal(manifest.dependencies["write-excel-file"], "^4.1.1")
+  assert.match(source, /import\(\s*"write-excel-file\/browser"\s*\)/)
+})
 
 test("request validation accepts only objects with a complete credential pair", async () => {
   const { isRecord, parseTwilioCredentials, readJsonObject, isTwilioSid } =
@@ -85,8 +97,12 @@ test("number listing reports partial and truncated results and fails when both s
   await assert.rejects(listNumbers(failedClient))
 })
 
-test("Flex input validation rejects invalid types and optional field shapes", () => {
-  const { validateCreateAddressConfig } = createLoader()(
+test("Flex input validation enforces conditional integration fields", () => {
+  const {
+    isValidStudioFlowSid,
+    isValidWebhookUrl,
+    validateCreateAddressConfig,
+  } = createLoader()(
     "features/flex/lib/validate-create-address-config.ts"
   )
   assert.deepEqual(validateCreateAddressConfig({ address: "+5511999999999", type: "whatsapp" }), {
@@ -98,4 +114,85 @@ test("Flex input validation rejects invalid types and optional field shapes", ()
     validateCreateAddressConfig({ address: "x", type: "whatsapp", autoCreationWebhookFilters: [1] }),
     null
   )
+  assert.equal(
+    validateCreateAddressConfig({
+      address: "x",
+      type: "whatsapp",
+      autoCreationEnabled: true,
+      autoCreationType: "studio",
+    }),
+    null
+  )
+  assert.equal(
+    validateCreateAddressConfig({
+      address: "x",
+      type: "whatsapp",
+      autoCreationEnabled: true,
+      autoCreationType: "webhook",
+      autoCreationWebhookUrl: "javascript:alert(1)",
+    }),
+    null
+  )
+  const flowSid = `FW${"a".repeat(32)}`
+  assert.equal(isValidStudioFlowSid(` ${flowSid} `), true)
+  assert.equal(isValidStudioFlowSid("FW-invalid"), false)
+  assert.equal(isValidWebhookUrl("https://example.com/hook"), true)
+  assert.equal(isValidWebhookUrl("javascript:alert(1)"), false)
+  assert.deepEqual(
+    validateCreateAddressConfig({
+      address: "x",
+      type: "whatsapp",
+      autoCreationEnabled: true,
+      autoCreationType: "studio",
+      autoCreationStudioFlowSid: ` ${flowSid} `,
+    }),
+    {
+      address: "x",
+      type: "whatsapp",
+      autoCreationEnabled: true,
+      autoCreationType: "studio",
+      autoCreationStudioFlowSid: flowSid,
+    }
+  )
+})
+
+test("Flex route rejects incomplete integrations before creating a client", async () => {
+  let clients = 0
+  const { POST } = createLoader({
+    "@/lib/twilio-client": {
+      getTwilioClient: () => {
+        clients++
+        return {}
+      },
+    },
+  })("app/api/flex/create-conversation-address/route.ts")
+  for (const integration of [
+    { autoCreationEnabled: true, autoCreationType: "studio" },
+    {
+      autoCreationEnabled: true,
+      autoCreationType: "studio",
+      autoCreationStudioFlowSid: "FW-invalid",
+    },
+    { autoCreationEnabled: true, autoCreationType: "webhook" },
+    {
+      autoCreationEnabled: true,
+      autoCreationType: "webhook",
+      autoCreationWebhookUrl: "file:///secret",
+    },
+  ]) {
+    const response = await POST(
+      new Request("http://localhost/api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: "+5511999999999",
+          type: "whatsapp",
+          ...integration,
+          ...credentials,
+        }),
+      })
+    )
+    assert.equal(response.status, 400)
+  }
+  assert.equal(clients, 0)
 })

@@ -56,6 +56,9 @@ export const strings = {
     description: "Interface visual para operações Twilio",
   },
   common: {
+    storageError:
+      "Não foi possível acessar o armazenamento do navegador. Algumas alterações podem não ter sido salvas.",
+    dismiss: "Fechar aviso",
     errors: {
       auth: "Credenciais inválidas ou sem permissão.",
       notFound: "Recurso não encontrado.",

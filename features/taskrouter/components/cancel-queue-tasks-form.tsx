@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label"
 import { WarningBadge } from "@/components/warning-badge"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -125,9 +125,7 @@ export function CancelQueueTasksForm() {
   }
 
   function clearHistory() {
-    try {
-      if (historyKey) localStorage.removeItem(historyKey)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 

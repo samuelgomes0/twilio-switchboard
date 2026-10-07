@@ -34,7 +34,7 @@ interface GroupState {
   confirmDeleteIndex: number | null
 }
 
-function initGroup(key: string, environmentId: string): GroupState {
+function initGroup(key: string, environmentId?: string): GroupState {
   return {
     values: readVariables(key, environmentId),
     showAdd: false,
@@ -50,7 +50,7 @@ function VariableGroupSection({
   environmentId,
 }: {
   group: VariableGroup
-  environmentId: string
+  environmentId?: string
 }) {
   const [state, setState] = useBrowserState<GroupState>(
     () => initGroup(group.key, environmentId),
@@ -62,7 +62,7 @@ function VariableGroupSection({
       editValue: "",
       confirmDeleteIndex: null,
     },
-    group.key + environmentId
+    `${group.key}:${environmentId ?? "global"}`
   )
 
   function set(patch: Partial<GroupState>) {
@@ -259,6 +259,9 @@ function VariableGroupSection({
 
 export function VariablesManager() {
   const { activeEnvironment } = useEnvironment()
+  const visibleGroups = activeEnvironment
+    ? VARIABLE_GROUPS
+    : VARIABLE_GROUPS.filter((group) => group.scope === "global")
 
   return (
     <div className="workspace-page">
@@ -269,27 +272,28 @@ export function VariablesManager() {
         parent={{ href: "/settings", label: strings.environments.page.title }}
       />
 
-      {!activeEnvironment ? (
-        <NoEnvironmentSelected className="mb-0" />
-      ) : (
-        <>
+      {!activeEnvironment && <NoEnvironmentSelected className="mb-4" />}
+      {activeEnvironment && (
           <p className="mb-4 text-xs text-muted-foreground">
             {s.environmentLabel}{" "}
             <span className="font-medium text-foreground">
               {activeEnvironment.name}
             </span>
           </p>
-          <div className="settings-list">
-            {VARIABLE_GROUPS.map((group) => (
-              <VariableGroupSection
-                key={`${group.key}:${activeEnvironment.id}`}
-                group={group}
-                environmentId={activeEnvironment.id}
-              />
-            ))}
-          </div>
-        </>
       )}
+      <div className="settings-list">
+        {visibleGroups.map((group) => {
+          const environmentId =
+            group.scope === "environment" ? activeEnvironment?.id : undefined
+          return (
+            <VariableGroupSection
+              key={`${group.key}:${environmentId ?? "global"}`}
+              group={group}
+              environmentId={environmentId}
+            />
+          )
+        })}
+      </div>
     </div>
   )
 }

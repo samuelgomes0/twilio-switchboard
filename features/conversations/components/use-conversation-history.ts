@@ -1,6 +1,11 @@
 "use client"
 
 import { MAX_HISTORY } from "@/lib/constants"
+import {
+  readStorageJson,
+  readStorageValue,
+  writeStorageJson,
+} from "@/lib/browser-storage"
 import * as React from "react"
 
 interface HistoryEntry {
@@ -10,38 +15,30 @@ interface HistoryEntry {
 const SID_PATTERN = /^CH[a-f0-9]{32}$/i
 
 function readHistory(key: string): HistoryEntry[] {
-  try {
-    const value: unknown = JSON.parse(localStorage.getItem(key) ?? "[]")
-    if (!Array.isArray(value)) return []
-    return value
-      .filter(
-        (entry): entry is HistoryEntry =>
-          typeof entry === "object" &&
-          entry !== null &&
-          typeof entry.sid === "string" &&
-          SID_PATTERN.test(entry.sid) &&
-          typeof entry.timestamp === "number" &&
-          Number.isFinite(entry.timestamp)
-      )
-      .slice(0, MAX_HISTORY)
-  } catch {
-    return []
-  }
+  const value = readStorageJson<unknown[]>(key, Array.isArray, [])
+  return value
+    .filter(
+      (entry): entry is HistoryEntry => {
+        if (typeof entry !== "object" || entry === null) return false
+        const candidate = entry as Record<string, unknown>
+        return (
+          typeof candidate.sid === "string" &&
+          SID_PATTERN.test(candidate.sid) &&
+          typeof candidate.timestamp === "number" &&
+          Number.isFinite(candidate.timestamp)
+        )
+      }
+    )
+    .slice(0, MAX_HISTORY)
 }
 
 export function useConversationHistory(environmentId: string) {
   const storageKey = `switchboard:conversation-consult-history:${environmentId}`
   const [history, setHistory] = React.useState(() => {
     // Legacy details history has no environment, so it cannot be safely attributed.
-    try {
-      return localStorage.getItem(storageKey) !== null
-        ? readHistory(storageKey)
-        : readHistory(
-            `switchboard:conversation-message-history:${environmentId}`
-          )
-    } catch {
-      return []
-    }
+    return readStorageValue(storageKey) !== null
+      ? readHistory(storageKey)
+      : readHistory(`switchboard:conversation-message-history:${environmentId}`)
   })
 
   function remember(sid: string) {
@@ -50,16 +47,12 @@ export function useConversationHistory(environmentId: string) {
       ...history.filter((entry) => entry.sid !== sid),
     ].slice(0, MAX_HISTORY)
     setHistory(next)
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(next))
-    } catch {}
+    writeStorageJson(storageKey, next)
   }
 
   function clearHistory() {
     setHistory([])
-    try {
-      localStorage.setItem(storageKey, "[]")
-    } catch {}
+    writeStorageJson(storageKey, [])
   }
 
   return { history, remember, clearHistory }

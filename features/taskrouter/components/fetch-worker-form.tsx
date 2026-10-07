@@ -34,7 +34,7 @@ import { Separator } from "@/components/ui/separator"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
@@ -194,9 +194,7 @@ export function FetchWorkerForm() {
   }
 
   function clearHistory() {
-    try {
-      if (historyKey) localStorage.removeItem(historyKey)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
