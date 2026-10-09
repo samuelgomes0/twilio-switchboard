@@ -124,18 +124,27 @@ export function CreateWorkflowForm() {
 
     reset()
     setStatus("running")
+    const controller = new AbortController()
+    abortRef.current = controller
 
     let csvContent: string
     try {
       csvContent = await csvFile.text()
-    } catch {
-      addLog("error", strings.taskrouter.createWorkflow.csvReadError)
-      setStatus("error")
+      controller.signal.throwIfAborted()
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
+        addLog("warning", strings.common.aborted)
+        setStatus("idle")
+      } else {
+        addLog("error", strings.taskrouter.createWorkflow.csvReadError)
+        setStatus("error")
+      }
+      if (abortRef.current === controller) abortRef.current = null
       return
     }
-
-    const controller = new AbortController()
-    abortRef.current = controller
 
     try {
       const res = await fetch("/api/taskrouter/create-workflow-from-csv", {
@@ -167,38 +176,38 @@ export function CreateWorkflowForm() {
 
       const reader = res.body.getReader()
       await consumeSseStream(reader, (payload) => {
-          addLog(payload.level, payload.message)
+        addLog(payload.level, payload.message)
 
-          if (payload.done === true) {
-            if (typeof payload.workflowSid === "string") {
-              const wfSid = payload.workflowSid
-              const wfName =
-                typeof payload.workflowName === "string"
-                  ? payload.workflowName
-                  : workflowName.trim()
-              const totalFilters =
-                typeof payload.totalFilters === "number"
-                  ? payload.totalFilters
-                  : 0
-              setSummary({
-                workflowSid: wfSid,
-                workflowName: wfName,
-                totalFilters,
-              })
-              setStatus("done")
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                workspaceSid: workspaceSid.trim(),
-                workflowName: wfName,
-                workflowSid: wfSid,
-                totalFilters,
-              }
-              pushHistory(historyKey, entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            } else {
-              setStatus("error")
+        if (payload.done === true) {
+          if (typeof payload.workflowSid === "string") {
+            const wfSid = payload.workflowSid
+            const wfName =
+              typeof payload.workflowName === "string"
+                ? payload.workflowName
+                : workflowName.trim()
+            const totalFilters =
+              typeof payload.totalFilters === "number"
+                ? payload.totalFilters
+                : 0
+            setSummary({
+              workflowSid: wfSid,
+              workflowName: wfName,
+              totalFilters,
+            })
+            setStatus("done")
+            const entry: HistoryEntry = {
+              ts: Date.now(),
+              workspaceSid: workspaceSid.trim(),
+              workflowName: wfName,
+              workflowSid: wfSid,
+              totalFilters,
             }
+            pushHistory(historyKey, entry)
+            setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+          } else {
+            setStatus("error")
           }
+        }
       })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -210,7 +219,7 @@ export function CreateWorkflowForm() {
       addLog("error", message)
       setStatus("error")
     } finally {
-      abortRef.current = null
+      if (abortRef.current === controller) abortRef.current = null
     }
   }
 

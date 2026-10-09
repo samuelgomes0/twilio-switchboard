@@ -113,3 +113,19 @@ for (const [name] of clients) {
     assert.equal(aborted.state.logs.at(-1).level, "warning")
   })
 }
+
+test("create-workflow: cancelamento durante leitura do arquivo impede o request", async () => {
+  let result
+  const csvFile = {
+    text: async () => {
+      result.abortRef.current.abort()
+      return "Regra de Negócio;Fila Twilio\nRegra;Suporte"
+    },
+  }
+  result = clientHarness("create-workflow", { csvFile })
+  await result.run({})
+  assert.equal(result.trace.some(([type]) => type === "fetch"), false)
+  assert.equal(result.state.status, "idle")
+  assert.equal(result.state.logs.at(-1).level, "warning")
+  assert.equal(result.abortRef.current, null)
+})

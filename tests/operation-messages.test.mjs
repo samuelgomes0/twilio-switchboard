@@ -284,6 +284,71 @@ test("workflow CSV validation keeps its actionable message and performs no write
   assert.equal(writes, 0)
 })
 
+test("workflow CSV supports BOM, quoted separators and escaped quotes", () => {
+  const { parseWorkflowCsv } = createLoader()(
+    "features/taskrouter/lib/create-workflow.ts"
+  )
+  assert.deepEqual(
+    parseWorkflowCsv(
+      '\uFEFF"Regra de Negócio";"Fila Twilio"\r\n"Regra; especial";"Suporte; Nível 1"\r\nRegra 2;"Fila ""VIP"""'
+    ),
+    [
+      { regra: "Regra; especial", fila: "Suporte; Nível 1" },
+      { regra: "Regra 2", fila: 'Fila "VIP"' },
+    ]
+  )
+})
+
+test("workflow CSV rejects malformed or empty datasets before Twilio reads", async () => {
+  const load = createLoader()
+  const { createWorkflow, parseWorkflowCsv } = load(
+    "features/taskrouter/lib/create-workflow.ts"
+  )
+  const { strings } = load("lib/strings.ts")
+  for (const csv of [
+    'Regra de Negócio;Fila Twilio\n"regra;Suporte',
+    "Regra de Negócio;Fila Twilio",
+    "Regra de Negócio;Fila Twilio\n-;-",
+  ]) {
+    assert.throws(
+      () => parseWorkflowCsv(csv),
+      (error) =>
+        error instanceof Error &&
+        [
+          strings.taskrouter.createWorkflow.log.invalidCsv,
+          strings.taskrouter.createWorkflow.log.noValidRows,
+        ].includes(error.message)
+    )
+  }
+  let queueReads = 0
+  const client = {
+    taskrouter: {
+      v1: {
+        workspaces: () => ({
+          taskQueues: {
+            list: async () => {
+              queueReads++
+              return []
+            },
+          },
+        }),
+      },
+    },
+  }
+  await assert.rejects(
+    createWorkflow(
+      {
+        workspaceSid,
+        workflowName: "Teste",
+        csvContent: "Regra de Negócio;Fila Twilio",
+      },
+      client,
+      () => {}
+    )
+  )
+  assert.equal(queueReads, 0)
+})
+
 test("filter update sanitizes upstream failures and continues the batch", async () => {
   const load = createLoader()
   const { addParticularFilter } = load(

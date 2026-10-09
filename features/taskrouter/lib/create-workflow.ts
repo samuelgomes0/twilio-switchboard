@@ -35,12 +35,81 @@ function buildRoutingTargets(taskQueueSid: string): RoutingTarget[] {
   return targets
 }
 
-function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
-  const lines = csvContent.split(/\r?\n/)
-  if (lines.length < 2) return []
+function parseSemicolonRows(csvContent: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let cell = ""
+  let quoted = false
+  let closedQuote = false
 
-  const headerLine = lines[0]
-  const headers = headerLine.split(";").map((h) => h.trim())
+  function finishCell() {
+    row.push(cell)
+    cell = ""
+    closedQuote = false
+  }
+
+  function finishRow() {
+    finishCell()
+    rows.push(row)
+    row = []
+  }
+
+  for (let index = 0; index < csvContent.length; index++) {
+    const character = csvContent[index]
+    if (quoted) {
+      if (character === '"') {
+        if (csvContent[index + 1] === '"') {
+          cell += '"'
+          index++
+        } else {
+          quoted = false
+          closedQuote = true
+        }
+      } else {
+        cell += character
+      }
+      continue
+    }
+    if (character === '"') {
+      if (cell.length > 0 || closedQuote) throw new Error("invalid-csv")
+      quoted = true
+    } else if (character === ";") {
+      finishCell()
+    } else if (character === "\n" || character === "\r") {
+      finishRow()
+      if (character === "\r" && csvContent[index + 1] === "\n") index++
+    } else if (closedQuote) {
+      if (character !== " " && character !== "\t")
+        throw new Error("invalid-csv")
+    } else {
+      cell += character
+    }
+  }
+  if (quoted) throw new Error("invalid-csv")
+  if (cell.length > 0 || row.length > 0) finishRow()
+  return rows
+}
+
+export function parseWorkflowCsv(
+  csvContent: string
+): Array<{ regra: string; fila: string }> {
+  let parsedRows: string[][]
+  try {
+    parsedRows = parseSemicolonRows(csvContent.replace(/^\uFEFF/, ""))
+  } catch {
+    throw new AppError(
+      "validation",
+      strings.taskrouter.createWorkflow.log.invalidCsv
+    )
+  }
+  const [headerRow, ...dataRows] = parsedRows
+  if (!headerRow) {
+    throw new AppError(
+      "validation",
+      strings.taskrouter.createWorkflow.log.invalidColumns
+    )
+  }
+  const headers = headerRow.map((header) => header.trim())
 
   const regraIdx = headers.indexOf("Regra de Negócio")
   const filaIdx = headers.indexOf("Fila Twilio")
@@ -55,11 +124,8 @@ function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
   const seen = new Set<string>()
   const rows: Array<{ regra: string; fila: string }> = []
 
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (!line) continue
-
-    const cols = line.split(";")
+  for (const cols of dataRows) {
+    if (cols.every((column) => !column.trim())) continue
     const regra = (cols[regraIdx] ?? "").trim()
     const fila = (cols[filaIdx] ?? "").trim()
 
@@ -78,7 +144,12 @@ function parseCsv(csvContent: string): Array<{ regra: string; fila: string }> {
 
     rows.push({ regra, fila })
   }
-
+  if (rows.length === 0) {
+    throw new AppError(
+      "validation",
+      strings.taskrouter.createWorkflow.log.noValidRows
+    )
+  }
   return rows
 }
 
@@ -92,6 +163,7 @@ export async function createWorkflow(
   workflowName: string
   totalFilters: number
 }> {
+  const rows = parseWorkflowCsv(input.csvContent)
   emit(sseEvent("info", strings.taskrouter.createWorkflow.log.loadingQueues))
   signal?.throwIfAborted()
 
@@ -122,7 +194,6 @@ export async function createWorkflow(
     )
   }
 
-  const rows = parseCsv(input.csvContent)
   const filters: WorkflowFilter[] = []
 
   for (const { regra, fila } of rows) {

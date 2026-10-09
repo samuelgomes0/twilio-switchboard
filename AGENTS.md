@@ -1,445 +1,266 @@
 # AGENTS.md
 
-Mandatory guide for any AI agent operating in this repository.
-Read this document **in full** before modifying any file.
+Guia obrigatório para agentes de IA que operam neste repositório. Leia-o por inteiro antes de alterar arquivos.
 
----
+## 1. Autoridade documental
 
-## 1. Project Overview
+- `README.md` é a fonte de verdade funcional e técnica para desenvolvedores.
+- `AGENTS.md` é a fonte de verdade operacional para agentes.
+- `CLAUDE.md` apenas aponta para este arquivo.
+- Não crie documentação paralela de fases, auditorias ou redesign. Atualize `README.md` quando o comportamento ou a estrutura mudar e este arquivo quando as regras de contribuição mudarem.
+- Código e testes prevalecem se uma divergência documental for encontrada; corrija a documentação no mesmo trabalho e sinalize a divergência.
 
-**Switchboard** is an internal web dashboard for Twilio operations, aimed at support and operations teams that need to interact with the Twilio API without writing code. It provides visual interfaces for the Conversations API, TaskRouter API, Numbers API, and Flex.
+## 2. Contexto do projeto
 
-### Stack
+Switchboard é um dashboard interno, em pt-BR, para operações Twilio em Conversations, TaskRouter, Numbers e Flex.
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript — Strict Mode required |
-| UI | React 19, Tailwind CSS, shadcn/ui, Lucide Icons |
-| External API | Twilio SDK (`twilio` npm package) |
-| Runtime | Node.js >= 22 |
-| Storage | `localStorage` only (no database) |
+| Camada | Tecnologia |
+| --- | --- |
+| Framework | Next.js 16, App Router |
+| Linguagem | TypeScript estrito |
+| UI | React 19, Tailwind CSS 4, Radix UI/shadcn e Lucide |
+| API externa | pacote `twilio` |
+| Runtime | Node.js 22 ou superior |
+| Persistência | somente `localStorage`; sem banco de dados |
 
-### Principles
+Princípios: clareza antes de abstração, responsabilidade única, composição, segurança por padrão e mudanças incrementais. Não introduza pattern ou camada sem um problema concreto e repetido.
 
-- **Clarity over abstraction**: readable code is preferable to "clever" code.
-- **Single responsibility**: each module, component, and function does one thing.
-- **Secure by default**: browser-managed credentials are persisted only in the browser; the server receives them via POST to call Twilio and does not persist them.
-- **UI language**: every user-visible string is in **pt-BR**.
+## 3. Arquitetura e boundaries
 
----
-
-## 2. General Rules
-
-The rules below are **non-negotiable**. No exception is accepted without explicit justification in the PR.
-
-- **TypeScript Strict Mode always on.** `tsconfig.json` already sets `"strict": true`; never change that.
-- **No `any`.** Use precise types, `unknown` with type guards, or `ReturnType<typeof fn>`.
-- **No dead code.** Unused variables, imports, functions, and code branches must be removed.
-- **No commented-out code.** If code was removed, it was removed. Git history is the source of truth.
-- **No unmarked temporary solutions.** If a short-term fix is needed, mark it with `// TODO(reason): description` and register it as technical debt.
-- **Clarity over premature abstraction.** Three similar lines do not justify an abstraction. Only abstract when the pattern repeats three or more times and the abstraction does not obscure the intent.
-- **Composition over inheritance.** React components, hooks, and utilities must be composed, not extended.
-- **No logic duplication.** Before writing new logic, check whether it already exists in `lib/`, `features/<domain>/lib/`, or the shared components.
-
----
-
-## 3. Architecture
-
-### Directory structure
-
-```
-app/
-  (pages)/          # Page components — Server Components that wrap form components
-  api/              # Route Handlers — all Twilio API calls go through here
-features/
-  <domain>/
-    components/     # Domain-specific forms and UI (Client Components)
-    lib/            # Business logic called by Route Handlers
-    types.ts        # Domain types
-    tools.ts        # Nav item definitions for the domain landing page
-components/         # Shared UI primitives and composed components
-lib/                # Cross-cutting utilities
-  constants.ts      # Global numeric constants
-  contacts.ts       # Saved contacts
-  stored-keys.ts    # localStorage autocomplete keys
-  strings.ts        # ALL user-visible strings
-  twilio-client.ts  # Twilio client factory
-  utils.ts          # General utilities
-  variables.ts      # Autocomplete management (readVariables, addVariable)
+```text
+app/(pages)/                 páginas Server Component e metadata
+app/api/                     Route Handlers POST
+features/<domain>/components Client Components do domínio
+features/<domain>/lib/       regras de negócio e chamadas Twilio
+features/<domain>/types.ts   tipos do domínio
+features/<domain>/tools.ts   catálogo do domínio
+components/                  UI e componentes compartilhados
+lib/                         contratos transversais
+tests/                       testes Node e scripts auxiliares
 ```
 
-### Layer responsibilities
+| Camada | Deve fazer | Não deve fazer |
+| --- | --- | --- |
+| `app/(pages)` | importar o componente da feature e exportar metadata pt-BR | estado cliente, API ou regra de negócio |
+| `app/api` | ler e validar JSON, criar cliente Twilio, orquestrar lib e responder | implementar regra de negócio |
+| `features/*/lib` | regra do domínio e SDK Twilio | ler Request, criar Response ou acessar browser |
+| `features/*/components` | estado, browser, confirmação e chamada `/api` | importar/usar SDK Twilio |
+| `lib` | utilidade usada por mais de um domínio | depender de uma feature específica |
 
-| Layer | Responsibility | Forbidden |
-|---|---|---|
-| `app/(pages)/` | Page wrapper; only imports the form component | Business logic, API calls |
-| `app/api/` | Input validation, instantiate `getTwilioClient`, orchestrate lib calls, return Response | Business logic (delegate to `features/<domain>/lib/`) |
-| `features/<domain>/lib/` | Business logic and Twilio calls | Reading `req`, manipulating Response, accessing `localStorage` |
-| `features/<domain>/components/` | UI, local state, reading `localStorage`, calling `/api/` | Direct Twilio SDK calls |
-| `lib/` | Reusable utilities across domains | Domain-specific dependencies |
+Fluxo esperado: página -> formulário -> endpoint POST -> validação -> `getTwilioClient` -> lib do domínio -> Twilio.
 
-### Navigation pattern
+As URLs canônicas e seus aliases ficam em `lib/route-migrations.mjs`. Páginas antigas são redirects permanentes; endpoints antigos apenas reexportam o mesmo `POST`. Não crie redirect para endpoint POST nem cadeia de redirects. Navegação e componentes devem usar somente a rota canônica.
 
-Each domain registers its navigation items in **two mandatory places**:
+## 4. Regras gerais de código
 
-1. `components/sidebar-nav.tsx` — `NavItem[]` array used by the sidebar
-2. `features/<domain>/tools.ts` — `Tool[]` array used by the domain landing page
+- Preserve `strict: true`; nunca use `any`. Prefira tipos precisos, `unknown` com guard ou `ReturnType`.
+- Remova import, variável, função e branch sem uso. Não deixe código comentado.
+- Solução temporária precisa de `// TODO(motivo): descrição` e dívida rastreável.
+- Evite duplicação de lógica; procure antes em `lib` e em `features/<domain>/lib`.
+- Não extraia uma abstração apenas por semelhança superficial. Como regra prática, espere pelo menos três usos com o mesmo contrato.
+- Prefira composição a herança.
+- Não altere API pública, payload, DTO, chave de storage ou semântica de rota sem justificar, atualizar testes e documentar compatibilidade.
+- Não instale dependência quando a plataforma ou o projeto já resolverem o problema.
+- Não faça memoização preventiva; use `useMemo`/`useCallback` apenas com motivo observável.
 
-The shared `Tool` contract lives in `lib/tool.ts`. `ToolCard` renders the catalogs on landing pages; its `available: boolean` field controls whether an item is a link or a "coming soon" card. Keep domain catalogs and sidebar navigation separate.
+## 5. Convenções
 
----
+### Arquivos e símbolos
 
-## 4. Code Conventions
+| Tipo | Convenção | Exemplo |
+| --- | --- | --- |
+| componente React | `kebab-case.tsx`, símbolo PascalCase | `close-form.tsx`, `CloseForm` |
+| hook | arquivo/função `use-*` / `useX` | `use-conversation-query.ts` |
+| rota | `route.ts` em pasta semântica | `app/api/conversations/close-by-number/route.ts` |
+| utilitário/lib | `kebab-case.ts` | `twilio-client.ts` |
+| tipos | PascalCase em `types.ts` | `ConversationData` |
+| constante de módulo | `UPPER_SNAKE_CASE` | `MAX_HISTORY` |
+| função | camelCase e nome específico | `formatPhoneNumber` |
+| chave local | prefixo `switchboard:` e kebab-case | `switchboard:workspace-sids` |
 
-### File naming
+Comentários explicam por que uma decisão não óbvia existe; não narram o código.
 
-| Type | Convention | Example |
-|---|---|---|
-| React component | `kebab-case.tsx` | `close-form.tsx` |
-| Route Handler | `route.ts` inside a semantic folder | `app/api/conversations/close/route.ts` |
-| Lib / utility | `kebab-case.ts` | `twilio-client.ts` |
-| Domain types | `types.ts` at the domain root | `features/conversations/types.ts` |
-| Nav tools | `tools.ts` at the domain root | `features/taskrouter/tools.ts` |
+### Strings e metadata
 
-### Symbol naming
+- Toda string visível fica em `lib/strings.ts`; não escreva texto de UI inline.
+- A interface e a metadata são em pt-BR. Identificadores de protocolo/API podem conservar o nome original.
+- Toda página exporta `metadata` com `title` e `description`.
 
-```typescript
-// React component — PascalCase
-export function CloseForm() {}
+### React e acessibilidade
 
-// Hook — camelCase with "use" prefix
-export function useEnvironment() {}
+- Server Component por padrão; use `"use client"` no menor nível que precise de estado, evento ou API do navegador.
+- Formulários de feature são Client Components. Extraia hook quando lógica reutilizável ou estado/efeitos extensos prejudicarem a leitura.
+- Não faça prop drilling além de dois níveis; use composição ou Context quando houver estado realmente compartilhado.
+- Todo campo possui `Label` associado; use elementos semânticos e foco visível.
+- Botão sem texto precisa de `aria-label`. Operação destrutiva precisa de rótulo descritivo e `WarningBadge`.
+- Regiões de status usam `role="status"`, `role="alert"`, `role="log"` ou `aria-live` conforme o comportamento.
+- Interação não pode depender apenas de mouse, hover ou cor.
+- Não use `dangerouslySetInnerHTML`; dados Twilio são renderizados por JSX.
 
-// Type / Interface — PascalCase
-interface ConversationData {}
-type Status = "idle" | "running" | "done" | "error"
+## 6. Endpoints, validação e erros
 
-// Module-level constant — UPPER_SNAKE_CASE
-const HISTORY_KEY = "switchboard:close-history"
+- Route Handlers autorais expõem somente `POST`.
+- O body sempre contém `accountSid: string` e `authToken: string`; valide objeto, tipos, formatos, limites e campos do domínio antes de criar o cliente.
+- Retorne `400` para entrada inválida. Falha de credencial ou Twilio retorna `500`, exceto status de domínio explicitamente tratado, como conflito.
+- Mensagem entregue ao usuário é genérica e vem de `lib/strings.ts`. Nunca retorne stack, payload técnico, token ou mensagem bruta potencialmente sensível.
+- `features/*/lib` converte falhas esperadas em `AppError` seguro. Rotas JSON retornam `{ error: string }`; rotas SSE emitem evento `error` final.
+- Parâmetros dinâmicos e campos opcionais são validados antes do uso. Não confie na validação feita pelo formulário.
+- Não registre `accountSid`, `authToken`, atributos sensíveis ou corpo completo de requisição. Não deixe `console.log` de debug.
 
-// Exported lib constant — UPPER_SNAKE_CASE
-export const MAX_HISTORY = 5
+## 7. Credenciais e segurança
 
-// Utility function — camelCase
-export function formatPhoneNumber(raw: string): string {}
+- `EnvironmentProvider`/`useEnvironment()` é a única fonte de credenciais no cliente.
+- Credenciais ficam somente no `localStorage` do navegador e seguem no body POST. O servidor não persiste e não usa variáveis de ambiente como fallback.
+- Nunca coloque credenciais em código, `.env.local`, URL, query string, log, resposta ou exportação.
+- O projeto não possui autenticação/RBAC próprio. Não descreva a posse de credenciais Twilio como autenticação da aplicação.
+- Preserve o princípio de menor acesso nos recursos Twilio usados.
+- Antes de adicionar pacote, confira necessidade, licença e vulnerabilidades. Nunca aplique `npm audit fix --force` automaticamente.
 
-// localStorage key — "switchboard:" prefix in kebab-case
-"switchboard:workspace-sids"
+Checklist de segurança por mudança:
+
+- nenhuma credencial ou detalhe interno exposto;
+- toda entrada externa revalidada no servidor;
+- nenhuma stack ou erro bruto retornado;
+- nenhum `dangerouslySetInnerHTML`;
+- nenhuma dependência vulnerável nova.
+
+## 8. Persistência no navegador
+
+Todo acesso direto a `localStorage` fica em `lib/browser-storage.ts`. Feature e componente usam os módulos de domínio/transversais, nunca `localStorage` diretamente.
+
+- Leitores de JSON usam type guard.
+- Falhas de leitura, escrita e remoção disparam o evento compartilhado; `AppShell` mostra o aviso de persistência.
+- Leia novamente antes de escrever quando múltiplas instâncias podem alterar a mesma coleção.
+- Não remova nem atribua silenciosamente dados legados a um ambiente.
+
+Autocomplete:
+
+- chaves em `lib/stored-keys.ts`;
+- leitura/escrita e `VARIABLE_GROUPS` em `lib/variables.ts`;
+- cada grupo declara escopo global ou por ambiente;
+- limite de 10 valores por chave.
+
+Histórico de operações:
+
+- use `lib/operation-history.ts` para leitura e prepend compartilhados;
+- a consulta especializada de Conversation conserva seu hook próprio;
+- chave por ambiente: `switchboard:<domain>-history:<environmentId>`;
+- limite de 5 entradas;
+- históricos de writes são informativos e nunca disparam replay.
+
+## 9. SSE, cancelamento e concorrência
+
+As rotas SSE usam `createSseResponse`, que aplica os headers compartilhados e liga o cancelamento da request/response ao sinal da operação. Os clientes usam `consumeSseStream`.
+
+Contrato obrigatório:
+
+- frame `data: <JSON>\n\n` em UTF-8;
+- nível `info`, `success`, `warning` ou `error`;
+- exatamente um payload final válido com `done: true`;
+- evento final de erro permanece erro;
+- malformed frame, EOF sem final e final duplicado são falhas;
+- reader e controller são liberados em `finally`;
+- todo formulário SSE mantém `AbortController` em ref, oferece cancelar e aborta no unmount/remount;
+- cancelamento impede passos posteriores quando observado, mas não desfaz write já enviado.
+
+Use `withRetry` somente em leituras seguras, emitindo warning por tentativa. Nunca repita writes automaticamente. Lotes de escrita são sequenciais; não introduza `Promise.all` sobre recursos Twilio sem uma decisão explícita e proteção contra rate limit/races.
+
+Ao trocar ambiente ou editar suas credenciais, o shell remonta o conteúdo por `environmentId + revision`; requests devem abortar e respostas antigas não podem restaurar estado.
+
+## 10. Regras de negócio que exigem cuidado
+
+- Telefones não têm normalização universal. Fechamento de Conversations, busca por participante e busca de Tasks possuem contratos diferentes; reutilize a função específica da feature.
+- Fechamento por número percorre páginas e altera somente Conversations `active`.
+- Cancelamento de fila atua somente em Tasks `pending`/`reserved`: cancela a Task antes de tentar mensagem e fechamento; falha ao cancelar impede os efeitos seguintes.
+- Atualizações de Worker preservam todos os demais atributos. `false`, `0` e ausência são valores semanticamente distintos.
+- Resolução de Worker usa SID WK direto ou `friendlyName` com limite 1; o campo historicamente chamado email não consulta atributo `email`.
+- CSV de Workflow usa `;`, BOM opcional, aspas e LF/CRLF; headers obrigatórios `Regra de Negócio` e `Fila Twilio`. Entrada inválida ou sem linha útil não pode criar Workflow.
+- Consulta de mensagens carrega no máximo 1.000 e exporta apenas mensagens carregadas e filtradas.
+- Numbers prioriza configurações de Conversations na deduplicação; a classificação restante como Programmable Chat é heurística e não deve ser apresentada como origem comprovada.
+
+Quando uma dessas regras precisar mudar, trate como alteração de contrato: acrescente casos de teste e atualize `README.md`.
+
+## 11. Como criar ou modificar funcionalidades
+
+Antes de editar:
+
+1. Leia `README.md` e este arquivo.
+2. Inspecione todos os arquivos envolvidos e trace imports/referências com `rg`.
+3. Verifique lógica existente em `lib` e `features/<domain>/lib`.
+4. Para UI, localize as strings em `lib/strings.ts`.
+5. Para autocomplete, revise `lib/stored-keys.ts` e `lib/variables.ts`.
+6. Para rota renomeada, revise `lib/route-migrations.mjs` e seus testes.
+
+Sequência para nova ferramenta:
+
+1. `features/<domain>/types.ts`;
+2. `features/<domain>/lib/<action>.ts`;
+3. `app/api/<domain>/<action>/route.ts`;
+4. `features/<domain>/components/<action>-form.tsx`;
+5. `app/(pages)/<domain>/<action>/page.tsx`;
+6. `lib/strings.ts`;
+7. `lib/stored-keys.ts` e `lib/variables.ts`, se houver autocomplete;
+8. `components/sidebar-nav.tsx`;
+9. `features/<domain>/tools.ts`;
+10. testes da regra, rota e estados críticos;
+11. `README.md`, se o comportamento público, endpoint ou limitação mudar.
+
+Os dois registros de navegação são obrigatórios e deliberadamente separados: sidebar e catálogo do domínio. `Tool.available` controla link versus “em breve”; não anuncie funcionalidade como disponível antes da implementação.
+
+## 12. Testes
+
+`npm test` executa as suítes Node em `tests/*.test.mjs`. Priorize comportamento e invariantes, não detalhes internos.
+
+- Route Handler: JSON inválido, body não objeto, credenciais ausentes, formatos/limites, status e sanitização.
+- Regra de negócio: golden path, vazio, resultado parcial, falha intermediária, preservação de dados e nenhuma escrita em entrada inválida.
+- SSE: fragmentação, UTF-8, CRLF/LF, final único, erro final, EOF, abort e cleanup.
+- Persistência: JSON corrompido, type guard, falha de storage, escopo e compatibilidade legada.
+- Writes: confirmação, double submit, cancelamento, nenhuma repetição automática e nenhum replay por histórico.
+
+O loader `tests/typescript-loader.mjs` possui duas políticas: `createLoader(overrides)` mantém cache isolado naquela instância; `load(relative, overrides)` recarrega módulos TypeScript sem cache. Preserve a política usada por cada suíte.
+
+Scripts `tests/redesign-browser.mjs`, `tests/redesign-preview.mjs` e `tests/route-migrations-http.mjs` são auxiliares e não pertencem a `npm test`. Os dois primeiros dependem de Playwright externo. Validação SSR não substitui teclado, foco, viewport e contraste em browser.
+
+## 13. Validação obrigatória
+
+Antes de declarar uma mudança concluída, execute separadamente:
+
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
-**Incorrect examples:**
-```typescript
-// ❌ — name too generic
-function handleClick() {}
+Além dos comandos, confirme conforme o escopo:
 
-// ❌ — any
-function process(data: any) {}
+### Código e arquitetura
 
-// ❌ — comment describing what the code does
-// Iterates over participants
-for (const p of participants) {}
-```
+- sem `any`, código morto, import não usado, debug ou código comentado;
+- boundaries preservados e sem dependência circular nova;
+- nenhuma API pública alterada sem teste e justificativa;
+- nenhuma dependência adicionada sem necessidade comprovada.
 
----
+### UI e acessibilidade
 
-## 5. React Components
+- strings e metadata em pt-BR via `lib/strings.ts`;
+- labels, nomes acessíveis, foco e navegação por teclado;
+- `WarningBadge` e confirmação em writes;
+- estados de loading, vazio, erro, parcial e cancelado coerentes;
+- registro da ferramenta na sidebar e no catálogo.
 
-- **Single responsibility.** If a component does more than one logically distinct thing, split it.
-- **Server Components by default.** Add `"use client"` only when the component needs state, effects, event handlers, or browser APIs (`localStorage`, `AbortController`).
-- **Forms are Client Components.** All forms under `features/<domain>/components/` use `"use client"`.
-- **Extract logic into hooks.** Reusable logic or more than ~30 lines of state/effects must go into a custom hook.
-- **No prop drilling beyond 2 levels.** Use Context or composition.
-- **Destructive operations require `WarningBadge`.** Any form that modifies Twilio data must render `<WarningBadge />`.
-- **Cancellation is mandatory in SSE forms.** Forms that consume SSE must hold an `AbortController` in a ref and expose a cancel button.
-- Existing SSE consumers share the strict `consumeSseStream` contract from `lib/sse-reader.ts`. Routes share `createSseResponse` and `SSE_HEADERS`. Preserve the final-event, cleanup and cancellation semantics documented in `docs/fase-2d-sse.md`; cancellation does not undo a Twilio write already sent.
+### Segurança e persistência
 
-### SSE form pattern
+- credenciais ausentes de código, logs, URLs e respostas;
+- validação server-side antes do cliente Twilio;
+- storage via fronteira compartilhada, com guard, escopo e prefixo corretos;
+- compatibilidade dos dados legados preservada.
 
-```typescript
-"use client"
+### SSE
 
-const abortRef = React.useRef<AbortController | null>(null)
-const [status, setStatus] = React.useState<Status>("idle")
-const [logs, setLogs] = React.useState<LogEntry[]>([])
+- final único com `done: true`;
+- headers e parser compartilhados;
+- `AbortController`, cancelamento e cleanup;
+- nenhum retry automático de escrita.
 
-async function handleSubmit() {
-  abortRef.current = new AbortController()
-  setStatus("running")
-
-  const res = await fetch("/api/<domain>/<action>", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...fields, accountSid, authToken }),
-    signal: abortRef.current.signal,
-  })
-
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    const lines = decoder.decode(value).split("\n")
-    for (const line of lines) {
-      if (!line.startsWith("data:")) continue
-      const event = JSON.parse(line.slice(5).trim())
-      setLogs((prev) => [...prev, createLogEntry(event.level, event.message)])
-      if (event.done) setStatus("done")
-    }
-  }
-}
-```
-
----
-
-## 6. Next.js
-
-### Route Handlers (`app/api/`)
-
-- Every route accepts `POST` only.
-- The JSON body **always** includes valid `accountSid: string` and `authToken: string`, validated before being forwarded to `getTwilioClient()`.
-- Validate the body in the Route Handler before instantiating the Twilio client.
-- Return `400` for invalid input, `500` for credential errors or API failures.
-- Long-running operation routes return `text/event-stream`. Include these headers:
-  ```
-  Content-Type: text/event-stream
-  Cache-Control: no-cache
-  Connection: keep-alive
-  X-Accel-Buffering: no
-  ```
-- Never log `accountSid` or `authToken` — not even in development.
-
-### Metadata
-
-- Every page must export `metadata` with `title` and `description` in pt-BR.
-
-### Client Components
-
-- Use `"use client"` only at the lowest necessary level.
-- Never mark a page (`app/(pages)/.../page.tsx`) as a Client Component; the page wrapper is a Server Component that imports the form.
-
-### Dynamic Routes
-
-- Route parameters must be validated before any operation.
-
----
-
-## 7. Strings and i18n
-
-**Every user-visible string lives in `lib/strings.ts`.**
-
-- Never inline strings in components.
-- Always reference `strings.<domain>.<key>`.
-- When adding a feature, add the corresponding strings to `strings.ts` **in the same PR**.
-- The UI is in **pt-BR**. Do not introduce English strings in the user interface.
-
-```typescript
-// ✅
-<p>{strings.common.processing}</p>
-
-// ❌
-<p>Processando...</p>
-```
-
----
-
-## 8. Credentials and Environments
-
-- Twilio credentials (`accountSid`, `authToken`) are stored **only in the browser's `localStorage`**.
-- The server never persists credentials — they arrive via POST body and are discarded after the request.
-- `getTwilioClient(accountSid?, authToken?)` uses only the credentials from the request body and rejects requests when either value is absent.
-- **Never** hardcode credentials in any file.
-- **Never** commit `.env.local`.
-- `EnvironmentProvider` / `useEnvironment()` is the only source of credentials on the client.
-
----
-
-## 9. Security
-
-### Mandatory rules
-
-- **Never expose secrets.** No `console.log`, API response, or error message may contain `accountSid`, `authToken`, tokens, or any secret.
-- **Validate all external input.** Every field received by Route Handlers must be validated by type and format before use.
-- **Sanitize rendered data.** Data from the Twilio API is displayed only via React (JSX escapes by default). Never use `dangerouslySetInnerHTML`.
-- **Do not trust client data.** Route Handlers revalidate all parameters even if the form already validates on the client.
-- **Errors without leakage.** Error messages shown to users must be generic. Technical details must not appear in the UI.
-- **Principle of least privilege.** Use only the Twilio scopes and resources required for each operation.
-
-### Security checklist (required before completing any task)
-
-- [ ] No credential or secret visible in code, logs, or responses
-- [ ] All user input validated in the Route Handler
-- [ ] No error message exposes a stack trace or internal details to the user
-- [ ] No use of `dangerouslySetInnerHTML`
-- [ ] No new dependency with a known vulnerability
-
----
-
-## 10. localStorage and Persistence
-
-Two persistence patterns coexist — do not mix them:
-
-- All direct browser storage access is centralized in `lib/browser-storage.ts`. Readers must validate parsed JSON with a type guard; read, write and removal failures use the shared storage error event instead of being silently ignored.
-- `AppShell` displays the shared persistence warning. Feature code must not call `localStorage` directly.
-
-### Autocomplete (`StoredInput` / `StoredTextarea`)
-
-- Managed by `lib/variables.ts` (`readVariables`, `addVariable`).
-- Keys defined in `lib/stored-keys.ts` (`STORED_KEYS` + `STORED_KEY_LABELS`).
-- When adding a field with autocomplete, add the key to `STORED_KEYS` and register the group in `VARIABLE_GROUPS` (in `lib/variables.ts`) so it appears on the Variables settings page.
-- Every variable group declares whether it is global or environment-scoped. Do not infer scope from whether an environment happens to be active.
-- Limit of 10 items per key (`MAX_ITEMS`).
-
-### Operation history
-
-- Shared reading and prepending use `lib/operation-history.ts`. Forms retain their keys, entry types, payload transformations, state updates and clear actions. The specialized Conversation consultation history remains in its own hook.
-- Key format: `switchboard:<domain>-history:<environmentId>`. Preserve unscoped legacy keys without attributing them to an environment.
-- Limit of 5 entries (`MAX_HISTORY`).
-
----
-
-## 11. Performance
-
-- **Memoize only when necessary.** Do not add `useMemo`/`useCallback` preemptively; add them only when profiling identifies an unnecessary re-render or expensive computation.
-- **No unnecessary dependencies.** Before installing a package, check whether the functionality already exists in the project or the standard library.
-- **Lazy loading for heavy pages and components.** Use `next/dynamic` for large components used conditionally.
-- **No implicit N+1 queries.** Batch operations over arrays must be sequential with SSE feedback, not uncontrolled parallel calls (respect Twilio API rate limits).
-
-### Performance checklist
-
-- [ ] No `useEffect` with a missing dependency or an unnecessary empty array
-- [ ] No API call in the Server Component render path that could be cached
-- [ ] No new package added without demonstrated necessity
-
----
-
-## 12. Accessibility
-
-- **Semantic HTML required.** Use `<button>`, `<label>`, `<fieldset>`, `<legend>`, `<nav>`, `<main>` according to the element's role.
-- **Labels required.** Every `<input>`, `<select>`, and `<textarea>` must have an associated `<Label>` (via `htmlFor` or wrapper).
-- **Keyboard navigation.** All interactive elements must be reachable via `Tab` and activated via `Enter`/`Space`.
-- **Visible focus states.** Do not remove the focus outline without replacing it with an equivalent visual indicator.
-- **Screen readers.** Destructive actions must have a descriptive `aria-label`. Status regions (SSE log) must have `role="log"` or `aria-live`.
-
-### Accessibility checklist
-
-- [ ] Every input has an associated label
-- [ ] Every button has text or a descriptive `aria-label`
-- [ ] Focus is visible on all interactive elements
-- [ ] No interactive element is accessible only by mouse
-
----
-
-## 13. Testing
-
-Run `npm test` for the existing Node.js suites, including focused Route Handler and business-logic scenarios with mocked Twilio calls and shared-loader regression tests; they do not replace manual UI validation. Use `tests/typescript-loader.mjs`: `createLoader(overrides)` provides a cache isolated to that instance, while `load(relative, overrides)` reloads TypeScript modules without caching. Preserve each suite's existing cache policy.
-
-- Manually validate the golden path and edge cases of every new feature before declaring the task complete.
-- For destructive operations (closing conversations, cancelling tasks, assigning workers), also validate cancellation behavior via `AbortController`.
-- When extending the suite, prioritize integration tests over Route Handlers (invalid input, missing credentials, SSE response) and component tests for complex form logic.
-
----
-
-## 14. Observability
-
-- **No `console.log` in production.** Remove all debug logs before completing the task.
-- **Twilio API errors** must be caught in `lib/` and emitted via `sseEvent("error", ...)` for streaming operations, or returned as `{ error: string }` for synchronous operations.
-- **Retry with feedback.** Use `withRetry` from `lib/retry.ts` only for safe read operations. Emit a `"warning"` event on each failed attempt; never retry writes automatically.
-- **`done: true`** in the final SSE payload signals end of operation to the client — never omit it.
-
----
-
-## 15. Documentation
-
-- **`lib/strings.ts`** is the UI documentation — keep it organized and consistent.
-- **`CLAUDE.md`** documents the architecture for AI tools — update it when structural patterns change.
-- **`AGENTS.md`** (this file) documents rules for agents — update it when rules change.
-- Add code comments only when the **reason** is non-obvious from the symbol name. Never document what the code does, only why it does it in a non-obvious way.
-- Update documentation in the same PR that changes behavior — stale documentation is worse than none.
-
----
-
-## 16. Rules for AI Agents
-
-### Before modifying code
-
-1. **Read the full context.** Read `CLAUDE.md` and this file. Inspect the files that will be modified, not just the target file.
-2. **Understand the impact.** Identify all files that depend on the code being changed. Use grep to trace imports and references.
-3. **Check `lib/strings.ts`.** If the task involves UI, locate the existing string or add a new one — never inline.
-4. **Check `lib/stored-keys.ts`** if the task introduces new fields with autocomplete.
-
-### During implementation
-
-- **Do not change public APIs without justification.** Changes to the signature of functions exported from `lib/` or `features/<domain>/lib/` can break Route Handlers. Document in the PR.
-- **Do not introduce dependencies without need.** Check whether the functionality exists in the project before installing a package.
-- **Do not remove functionality without validation.** Confirm that no Route Handler, component, or page depends on the code before removing it.
-- **Follow the two navigation registration places.** When adding a feature, register it in both `sidebar-nav.tsx` AND `features/<domain>/tools.ts`.
-- **Maintain SSE pattern consistency.** Long-running operations must follow the established `ReadableStream` + `sseEvent` pattern.
-
-### When finishing
-
-- Explain non-obvious decisions in a code comment or commit message.
-- Identify risks introduced by the change.
-- Suggest architectural improvements when you identify excessive coupling, responsibility violations, or inconsistent patterns — but do not implement beyond the task scope.
-
----
-
-## 17. Adding a New Feature
-
-Follow this sequence **exactly**:
-
-1. `features/<domain>/types.ts` — define the domain types
-2. `features/<domain>/lib/<action>.ts` — implement the business logic
-3. `app/api/<domain>/<action>/route.ts` — Route Handler with validation and SSE (if applicable)
-4. `features/<domain>/components/<action>-form.tsx` — form Client Component
-5. `app/(pages)/<domain>/<action>/page.tsx` — page wrapper (Server Component)
-6. `lib/strings.ts` — add all new strings
-7. `lib/stored-keys.ts` — add autocomplete keys if needed
-8. `lib/variables.ts` — register the group in `VARIABLE_GROUPS` if keys were added
-9. `components/sidebar-nav.tsx` — register the navigation item
-10. `features/<domain>/tools.ts` — register the item on the landing page
-
----
-
-## 18. Mandatory Final Checklist
-
-Run **every** item before declaring a task complete:
-
-### Code
-
-- [ ] `npm run typecheck` passes with no errors
-- [ ] `npm run lint` passes with no errors
-- [ ] `npm run build` completes with no errors
-- [ ] No `any` introduced
-- [ ] No dead code or unused imports
-- [ ] No debug `console.log`
-
-### Strings and UI
-
-- [ ] All user-visible strings are in `lib/strings.ts`
-- [ ] No English strings in the user interface
-- [ ] New feature registered in both `sidebar-nav.tsx` and `features/<domain>/tools.ts`
-
-### Security
-
-- [ ] No credential exposed in code, logs, or responses
-- [ ] All Route Handler input validated before use
-- [ ] No error message leaks internal information
-
-### Accessibility
-
-- [ ] Every input has a label
-- [ ] Every button has text or an `aria-label`
-- [ ] Destructive operation displays `WarningBadge`
-
-### Persistence
-
-- [ ] New autocomplete fields have a key in `stored-keys.ts` and a group in `variables.ts`
-- [ ] No localStorage key introduced without the `switchboard:` prefix
-
-### SSE (if applicable)
-
-- [ ] Final event includes `done: true`
-- [ ] Component holds `AbortController` and exposes cancellation
-- [ ] Correct SSE headers (`text/event-stream`, `no-cache`, `keep-alive`, `X-Accel-Buffering: no`)
+Faça também validação manual do golden path e dos principais edge cases da funcionalidade alterada. Operações reais de escrita só podem ser testadas em ambiente Twilio autorizado e com o alvo revisado.

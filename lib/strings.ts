@@ -734,6 +734,8 @@ export const strings = {
         unexpectedError: "Erro inesperado ao criar workflow.",
         invalidColumns:
           'Colunas "Regra de Negócio" e "Fila Twilio" não encontradas no CSV.',
+        invalidCsv: "O arquivo CSV possui aspas ou colunas malformadas.",
+        noValidRows: "O arquivo CSV não contém regras válidas para importar.",
         invalidRule:
           "O CSV contém uma regra com caracteres não permitidos.",
         loadingQueues: "Carregando filas do workspace...",

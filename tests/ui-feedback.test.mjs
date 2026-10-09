@@ -177,6 +177,16 @@ test("credential verification distinguishes existing success from failure", () =
   assert.ok(!failure.includes(strings.environments.form.testSuccess))
 })
 
+test("credential verification aborts stale requests when form values change", () => {
+  const source = readFileSync(
+    "features/environments/components/environment-form.tsx",
+    "utf8"
+  )
+  assert.match(source, /testAbortRef\.current\?\.abort\(\)/)
+  assert.match(source, /signal: controller\.signal/)
+  assert.match(source, /testAbortRef\.current !== controller/)
+})
+
 test("initial skeleton announces loading once and hides decorative content", () => {
   const html = render("components/page-loading.tsx", "PageLoading")
   assert.equal((html.match(/role="status"/g) ?? []).length, 1)

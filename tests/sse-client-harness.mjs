@@ -59,7 +59,7 @@ export function clientHarness(name, options = {}) {
     canSubmit: true, activeEnvironment: {}, participants: ["11999999999"],
     workspaceSid: "workspace", skill: "skill", levelInput: "", emails: ["worker"],
     taskQueueName: "queue", closeMessage: "message", workflowName: "workflow",
-    csvFile: { text: async () => "csv" }, filterName: "filter", pendingEntries: [{}],
+    csvFile: options.csvFile ?? { text: async () => "csv" }, filterName: "filter", pendingEntries: [{}],
     abortRef,
     reset() { trace.push(["reset"]) },
     setStatus: setter("status"), setLogs: setter("logs"), setHistory: setter("history"),

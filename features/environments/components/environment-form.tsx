@@ -56,12 +56,16 @@ export function EnvironmentForm({
   const [showToken, setShowToken] = React.useState(false)
   const [testState, setTestState] = React.useState<TestState>("idle")
   const [testError, setTestError] = React.useState<string | null>(null)
+  const testAbortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => testAbortRef.current?.abort(), [])
 
   const credentialsComplete =
     /^AC[a-f0-9]{32}$/i.test(form.accountSid.trim()) &&
     form.authToken.trim().length === 32
 
   function handleChange(field: keyof FormState, value: string) {
+    testAbortRef.current?.abort()
+    testAbortRef.current = null
     setForm((prev) => ({ ...prev, [field]: value }))
     setTestState("idle")
     setTestError(null)
@@ -107,6 +111,9 @@ export function EnvironmentForm({
 
     setTestState("loading")
     setTestError(null)
+    const controller = new AbortController()
+    testAbortRef.current?.abort()
+    testAbortRef.current = controller
 
     try {
       const res = await fetch("/api/environments/verify-twilio-credentials", {
@@ -116,17 +123,27 @@ export function EnvironmentForm({
           accountSid: form.accountSid.trim(),
           authToken: form.authToken.trim(),
         }),
+        signal: controller.signal,
       })
       const json = (await res.json()) as { ok?: boolean; error?: string }
+      if (controller.signal.aborted || testAbortRef.current !== controller)
+        return
       if (res.ok && json.ok) {
         setTestState("success")
       } else {
         setTestState("error")
         setTestError(json.error ?? strings.environments.form.testError)
       }
-    } catch {
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
+      )
+        return
       setTestState("error")
       setTestError(strings.common.networkError)
+    } finally {
+      if (testAbortRef.current === controller) testAbortRef.current = null
     }
   }
 
