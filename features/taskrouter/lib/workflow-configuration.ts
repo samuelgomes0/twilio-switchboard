@@ -126,3 +126,27 @@ export function stringifyWorkflowConfiguration(
 ): string {
   return JSON.stringify(sortJsonValue(configuration), null, space)
 }
+
+export function getValidatedWorkflowQueueSids(
+  configuration: WorkflowConfiguration
+): string[] | null {
+  const queueSids = new Set<string>()
+  const filters = configuration.task_routing.filters ?? []
+
+  for (const filter of filters) {
+    if (!filter.expression?.trim() || !filter.targets?.length) return null
+    for (const target of filter.targets) {
+      if (!target.queue || !/^WQ[0-9a-f]{32}$/i.test(target.queue)) return null
+      queueSids.add(target.queue)
+    }
+  }
+
+  const defaultQueue = configuration.task_routing.default_filter?.queue
+  if (configuration.task_routing.default_filter && !defaultQueue) return null
+  if (defaultQueue) {
+    if (!/^WQ[0-9a-f]{32}$/i.test(defaultQueue)) return null
+    queueSids.add(defaultQueue)
+  }
+
+  return [...queueSids]
+}

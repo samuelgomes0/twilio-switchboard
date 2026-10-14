@@ -108,6 +108,23 @@ export interface WorkflowListResult {
   nextPageToken: string | null
 }
 
+export interface UpdateWorkflowInput {
+  workspaceSid: string
+  workflowSid: string
+  friendlyName: string
+  assignmentCallbackUrl: string | null
+  fallbackAssignmentCallbackUrl: string | null
+  taskReservationTimeout: number
+  configuration: string
+  reEvaluateTasks: boolean
+  expectedDateUpdated: string
+}
+
+export interface UpdateWorkflowResult {
+  workflow: WorkflowDetails
+  reEvaluatedTasks: boolean
+}
+
 export interface TaskData {
   sid: string
   workspaceSid: string

@@ -26,16 +26,18 @@ function mapWorkflowSummary(workflow: TwilioWorkflowLike): WorkflowSummary {
     sid: workflow.sid,
     workspaceSid: workflow.workspaceSid,
     friendlyName: workflow.friendlyName,
-    assignmentCallbackUrl: workflow.assignmentCallbackUrl ?? null,
+    assignmentCallbackUrl: workflow.assignmentCallbackUrl?.trim() || null,
     fallbackAssignmentCallbackUrl:
-      workflow.fallbackAssignmentCallbackUrl ?? null,
+      workflow.fallbackAssignmentCallbackUrl?.trim() || null,
     taskReservationTimeout: workflow.taskReservationTimeout,
     dateCreated: toIsoString(workflow.dateCreated),
     dateUpdated: toIsoString(workflow.dateUpdated),
   }
 }
 
-function mapWorkflowDetails(workflow: TwilioWorkflowLike): WorkflowDetails {
+export function mapWorkflowDetails(
+  workflow: TwilioWorkflowLike
+): WorkflowDetails {
   const parsed = parseWorkflowConfiguration(workflow.configuration)
   return {
     ...mapWorkflowSummary(workflow),

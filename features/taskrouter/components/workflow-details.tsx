@@ -11,6 +11,7 @@ import { StoredInput } from "@/components/stored-input"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
+import { WorkflowEditor } from "@/features/taskrouter/components/workflow-editor"
 import type {
   WorkflowDetails as WorkflowDetailsData,
   WorkflowFilter,
@@ -57,6 +58,8 @@ export function WorkflowDetails({
   )
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [success, setSuccess] = React.useState<string | null>(null)
+  const [editing, setEditing] = React.useState(false)
   const [fieldErrors, setFieldErrors] = React.useState<{
     workspaceSid?: string
     workflowSid?: string
@@ -72,6 +75,8 @@ export function WorkflowDetails({
       if (!activeEnvironment || loading) return
       setLoading(true)
       setError(null)
+      setSuccess(null)
+      setEditing(false)
       setWorkflow(null)
       const controller = new AbortController()
       abortRef.current?.abort()
@@ -273,10 +278,42 @@ export function WorkflowDetails({
 
       {workflow && !loading && (
         <div className="mt-6 space-y-6">
+          {success && (
+            <div
+              role="status"
+              className="rounded-lg border border-success/40 bg-success-soft px-4 py-3 text-sm text-success"
+            >
+              {success}
+            </div>
+          )}
+
+          {editing && (
+            <WorkflowEditor
+              key={`${workflow.sid}-${workflow.dateUpdated ?? "unknown"}`}
+              workflow={workflow}
+              onCancel={() => setEditing(false)}
+              onUpdated={(updatedWorkflow) => {
+                setWorkflow(updatedWorkflow)
+                setEditing(false)
+                setSuccess(labels.edit.success)
+              }}
+            />
+          )}
+
           <section aria-labelledby="workflow-general-heading">
-            <h2 id="workflow-general-heading" className="text-base font-semibold">
-              {labels.details.general}
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2
+                id="workflow-general-heading"
+                className="text-base font-semibold"
+              >
+                {labels.details.general}
+              </h2>
+              {!editing && (
+                <ActionButton action="edit" onClick={() => setEditing(true)}>
+                  {labels.edit.open}
+                </ActionButton>
+              )}
+            </div>
             <dl className="mt-3 grid gap-x-6 gap-y-4 rounded-lg border border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <dt className="text-xs text-muted-foreground">

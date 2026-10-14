@@ -30,7 +30,7 @@ O Switchboard não possui banco de dados nem autenticação própria. Cada ambie
 
 - Consulta de Task por SID ou telefone.
 - Consulta de Worker e gerenciamento de skills e feature flags.
-- Listagem paginada e consulta detalhada de Workflows, incluindo a configuração de roteamento e o JSON bruto retornado pela Twilio.
+- Listagem paginada, consulta detalhada e edição segura de Workflows, incluindo callbacks, timeout, configuração de roteamento e o JSON bruto retornado pela Twilio.
 - Criação de Workflow a partir de CSV, com prévia por linha e validação das Task Queues antes da confirmação.
 - Inclusão de regra de negócio em Workflows.
 - Cancelamento de Tasks elegíveis de uma fila, com tentativa de mensagem e encerramento da Conversation associada.
@@ -180,6 +180,7 @@ Todos os endpoints são `POST`, recebem `accountSid` e `authToken` no JSON e rev
 | TaskRouter | `/taskrouter/search-tasks-by-sid-or-number` | `/api/taskrouter/search-tasks-by-number` |
 | TaskRouter | `/taskrouter/workflows` | `/api/taskrouter/workflows/list` |
 | TaskRouter | `/taskrouter/workflows/[workflowSid]` | `/api/taskrouter/workflows/get` |
+| TaskRouter | `/taskrouter/workflows/[workflowSid]` | `/api/taskrouter/workflows/update` |
 | TaskRouter | `/taskrouter/create-workflow-from-csv` | `/api/taskrouter/workflows/preview-import` |
 | TaskRouter | `/taskrouter/create-workflow-from-csv` | `/api/taskrouter/create-workflow-from-csv` |
 | TaskRouter | `/taskrouter/add-business-rule-filter` | `/api/taskrouter/add-business-rule-filter` |
@@ -208,6 +209,7 @@ O botão de cancelar interrompe a conexão e impede novos passos quando o sinal 
 - nomes de plugins do Flex começam com uma letra e aceitam letras, números, hífen e sublinhado, com até 100 caracteres;
 - o CSV de Workflow usa `;`, aceita BOM, campos entre aspas, `""` escapado e finais LF/CRLF; cabeçalhos obrigatórios: `Regra de Negócio` e `Fila Twilio`;
 - antes da criação, o CSV de Workflow é analisado por linha e as filas são conferidas no Workspace; qualquer erro bloqueia a confirmação, enquanto linhas vazias, incompletas, excluídas ou duplicadas são identificadas e ignoradas.
+- a edição de Workflow valida o JSON e todos os Queue SIDs alterados antes do write, compara a versão carregada com `dateUpdated` e exige confirmação após exibir o antes/depois; `ReEvaluateTasks` é sempre uma escolha explícita e começa desativada.
 
 ### Escritas destrutivas
 
@@ -251,7 +253,7 @@ npm run build
 - Não há banco, sincronização entre navegadores, execução em background nem retomada de operações após recarregar a página.
 - Cancelar uma requisição não equivale a rollback remoto.
 - Consultas extensas têm limites explícitos; mensagens além de 1.000 não são paginadas pela interface.
-- Atualizações read-modify-write de atributos Twilio não possuem versionamento e podem conflitar com alterações concorrentes externas.
+- Atualizações read-modify-write de atributos Twilio não possuem versionamento transacional. A edição de Workflow detecta mudanças anteriores pelo `dateUpdated`, mas uma alteração externa ainda pode ocorrer entre a leitura de verificação e o write.
 - Os scripts de browser são auxiliares e não instalam Playwright como dependência do projeto.
 - A compatibilidade real com contas, permissões, volume e limites da Twilio deve ser validada em um ambiente de homologação autorizado; a suíte usa mocks e não chama uma conta real.
 

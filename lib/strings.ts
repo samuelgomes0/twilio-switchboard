@@ -604,11 +604,11 @@ export const strings = {
     workflows: {
       title: "Gerenciar Workflows",
       subtitle:
-        "Liste e consulte as configurações de roteamento de um Workspace.",
+        "Liste, consulte e edite as configurações de roteamento de um Workspace.",
       metadata: {
         title: "Gerenciar Workflows do TaskRouter",
         description:
-          "Liste e consulte Workflows e suas configurações de roteamento no TaskRouter.",
+          "Liste, consulte e edite Workflows e suas configurações de roteamento no TaskRouter.",
       },
       workspaceLabel: "Workspace SID",
       workflowSidLabel: "Workflow SID",
@@ -637,7 +637,7 @@ export const strings = {
       details: {
         title: "Detalhes do Workflow",
         subtitle:
-          "Consulte os dados e a configuração completa de um Workflow.",
+          "Consulte e edite os dados e a configuração completa de um Workflow.",
         submit: "Consultar Workflow",
         notFound: "Workflow não encontrado neste Workspace.",
         general: "Dados gerais",
@@ -664,6 +664,70 @@ export const strings = {
         queues: "Filas dos targets",
         unnamedFilter: (position: number) => `Filtro ${position}`,
         noFilters: "Este Workflow não possui filtros configurados.",
+      },
+      edit: {
+        open: "Editar Workflow",
+        title: "Editar Workflow",
+        description:
+          "Altere os dados e o roteamento. O JSON preserva campos adicionais aceitos pela Twilio.",
+        friendlyName: "Nome",
+        assignmentCallback: "Callback de atribuição",
+        fallbackCallback: "Callback de fallback",
+        optionalCallback: "Deixe vazio para remover o callback.",
+        callbackPlaceholder: "https://exemplo.com/callback",
+        reservationTimeout: "Tempo de reserva (segundos)",
+        reservationTimeoutHint: "Use um valor entre 1 e 86.400.",
+        configuration: "Configuração de roteamento (JSON)",
+        configurationHint:
+          "A ordem dos filtros e targets é significativa. Filas devem usar um SID WQ válido deste Workspace.",
+        reEvaluateTasks: "Reavaliar Tasks existentes após salvar",
+        reEvaluateTasksWarning:
+          "Tasks pendentes deste Workflow poderão passar novamente pelo ciclo de atribuição.",
+        review: "Revisar alterações",
+        reviewTitle: "Alterações pendentes",
+        reviewDescription:
+          "Confira o antes e depois. Nenhuma alteração foi enviada à Twilio ainda.",
+        field: "Campo",
+        before: "Antes",
+        after: "Depois",
+        unchangedConfiguration: "Configuração sem alteração",
+        changedConfiguration: "Configuração de roteamento alterada",
+        notConfigured: "Não configurado",
+        enabled: "Sim",
+        disabled: "Não",
+        cancel: "Descartar edição",
+        confirmTitle: "Salvar alterações no Workflow?",
+        confirmDescription: (name: string, workspaceSid: string) =>
+          `O Workflow "${name}" será atualizado no Workspace ${workspaceSid}.`,
+        confirmReEvaluate:
+          "As Tasks existentes serão reavaliadas após a atualização.",
+        confirmAction: "Salvar alterações",
+        saving: "Salvando...",
+        success: "Workflow atualizado com sucesso.",
+        invalidInput:
+          "Dados inválidos. Revise nome, callbacks, timeout, JSON e data da versão carregada.",
+        invalidName: "Informe um nome com até 256 caracteres.",
+        invalidCallback: "Informe uma URL HTTP ou HTTPS válida, ou deixe vazio.",
+        invalidTimeout: "Informe um número inteiro entre 1 e 86.400.",
+        invalidConfiguration:
+          "A configuração precisa ser um JSON válido com uma seção task_routing reconhecida.",
+        invalidRouting:
+          "Cada filtro deve ter expressão e ao menos um target com um Queue SID WQ válido; a fila padrão também deve usar um SID WQ válido.",
+        queueNotFound: (queueSid: string) =>
+          `A fila ${queueSid} não foi encontrada neste Workspace.`,
+        noChanges: "Nenhuma alteração foi informada.",
+        concurrentChange:
+          "O Workflow foi alterado desde a última consulta. Recarregue os dados e revise as mudanças antes de salvar.",
+        missingVersion:
+          "A Twilio não retornou uma data de atualização. Recarregue o Workflow antes de editar.",
+        fields: {
+          friendlyName: "Nome",
+          assignmentCallback: "Callback de atribuição",
+          fallbackCallback: "Callback de fallback",
+          reservationTimeout: "Tempo de reserva",
+          configuration: "Configuração de roteamento",
+          reEvaluateTasks: "Reavaliar Tasks",
+        },
       },
     },
     workerManagement: {

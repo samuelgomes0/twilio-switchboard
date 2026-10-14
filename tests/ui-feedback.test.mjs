@@ -338,6 +338,68 @@ test("workflow details expose routing and preserve malformed configuration", () 
   assert.doesNotMatch(html, /role="alert"/)
 })
 
+test("workflow editing exposes a review diff and keeps task re-evaluation explicit", () => {
+  const detailsFile = "features/taskrouter/components/workflow-details.tsx"
+  const editorFile = "features/taskrouter/components/workflow-editor.tsx"
+  const queueSid = `WQ${"5".repeat(32)}`
+  const workflow = {
+    sid: `WW${"3".repeat(32)}`,
+    workspaceSid: `WS${"4".repeat(32)}`,
+    friendlyName: "Suporte",
+    assignmentCallbackUrl: "https://example.com/assign",
+    fallbackAssignmentCallbackUrl: null,
+    taskReservationTimeout: 60,
+    dateCreated: null,
+    dateUpdated: "2026-10-14T12:00:00.000Z",
+    configuration: JSON.stringify({
+      task_routing: {
+        filters: [
+          {
+            expression: "segment == 'customer'",
+            targets: [{ queue: queueSid }],
+          },
+        ],
+      },
+    }),
+    parsedConfiguration: {
+      task_routing: {
+        filters: [
+          {
+            expression: "segment == 'customer'",
+            targets: [{ queue: queueSid }],
+          },
+        ],
+      },
+    },
+    configurationIssue: null,
+  }
+  const html = render(detailsFile, "WorkflowDetails", {
+    states: {
+      [detailsFile]: { workflow, editing: true },
+      [editorFile]: {
+        draft: {
+          friendlyName: "Suporte prioritário",
+          assignmentCallbackUrl: "https://example.com/assign",
+          fallbackAssignmentCallbackUrl: "",
+          taskReservationTimeout: "90",
+          configuration: workflow.configuration,
+          reEvaluateTasks: true,
+        },
+      },
+    },
+  })
+
+  assert.ok(html.includes(strings.taskrouter.workflows.edit.title))
+  assert.ok(html.includes(strings.taskrouter.workflows.edit.reviewTitle))
+  assert.ok(html.includes(strings.taskrouter.workflows.edit.reEvaluateTasksWarning))
+  assert.ok(html.includes("Suporte prioritário"))
+  assert.ok(html.includes(strings.taskrouter.workflows.edit.fields.reEvaluateTasks))
+  assert.match(html, /type="checkbox"[^>]*checked=""/)
+  assert.match(html, /data-action="save"/)
+  assert.match(html, /data-action="cancel"/)
+  inspectReferences(html)
+})
+
 test("workflow CSV preview gates creation and explains every diagnosed row", () => {
   const file = "features/taskrouter/components/create-workflow-form.tsx"
   const diagnostic = {
