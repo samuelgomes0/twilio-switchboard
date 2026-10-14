@@ -30,6 +30,7 @@ O Switchboard não possui banco de dados nem autenticação própria. Cada ambie
 
 - Consulta de Task por SID ou telefone.
 - Consulta de Worker e gerenciamento de skills e feature flags.
+- Listagem paginada e consulta detalhada de Workflows, incluindo a configuração de roteamento e o JSON bruto retornado pela Twilio.
 - Criação de Workflow a partir de CSV.
 - Inclusão de regra de negócio em Workflows.
 - Cancelamento de Tasks elegíveis de uma fila, com tentativa de mensagem e encerramento da Conversation associada.
@@ -177,6 +178,8 @@ Todos os endpoints são `POST`, recebem `accountSid` e `authToken` no JSON e rev
 | TaskRouter | `/taskrouter/manage-workers?tab=features` | `/api/taskrouter/set-worker-feature-status` |
 | TaskRouter | `/taskrouter/search-tasks-by-sid-or-number` | `/api/taskrouter/get-task-by-sid` |
 | TaskRouter | `/taskrouter/search-tasks-by-sid-or-number` | `/api/taskrouter/search-tasks-by-number` |
+| TaskRouter | `/taskrouter/workflows` | `/api/taskrouter/workflows/list` |
+| TaskRouter | `/taskrouter/workflows/[workflowSid]` | `/api/taskrouter/workflows/get` |
 | TaskRouter | `/taskrouter/create-workflow-from-csv` | `/api/taskrouter/create-workflow-from-csv` |
 | TaskRouter | `/taskrouter/add-business-rule-filter` | `/api/taskrouter/add-business-rule-filter` |
 | TaskRouter | `/taskrouter/cancel-queue-tasks-and-close-conversations` | `/api/taskrouter/cancel-queue-tasks-and-close-conversations` |
@@ -199,6 +202,7 @@ O botão de cancelar interrompe a conexão e impede novos passos quando o sinal 
 - operações em lote expostas pelos formulários: no máximo 10 itens;
 - histórico de mensagens: até 1.000 mensagens carregadas, com aviso de truncamento;
 - listagens de Tasks e senders: até 1.000 resultados, com detecção de item adicional quando aplicável;
+- a listagem de Workflows carrega páginas de até 50 itens e só solicita a página seguinte por ação explícita;
 - operações remotas em lote são sequenciais para respeitar limite de API e manter feedback determinístico;
 - nomes de plugins do Flex começam com uma letra e aceitam letras, números, hífen e sublinhado, com até 100 caracteres;
 - o CSV de Workflow usa `;`, aceita BOM, campos entre aspas, `""` escapado e finais LF/CRLF; cabeçalhos obrigatórios: `Regra de Negócio` e `Fila Twilio`.

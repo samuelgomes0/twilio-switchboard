@@ -68,6 +68,11 @@ const taskrouterNavItems: NavItem[] = [
     icon: Search,
   },
   {
+    label: strings.sidebar.nav.taskrouter.workflows.label,
+    href: "/taskrouter/workflows",
+    icon: Workflow,
+  },
+  {
     label: strings.sidebar.nav.taskrouter.createWorkflow.label,
     href: "/taskrouter/create-workflow-from-csv",
     icon: GitBranch,

@@ -76,7 +76,7 @@ export interface WorkflowDetails extends WorkflowSummary {
 
 export interface WorkflowListResult {
   workflows: WorkflowSummary[]
-  hasMore: boolean
+  nextPageToken: string | null
 }
 
 export interface TaskData {

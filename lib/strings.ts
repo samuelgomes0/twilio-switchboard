@@ -91,6 +91,9 @@ export const strings = {
         "Workspace SID inválido. Formato esperado: WS + 32 caracteres hex",
       queueRequired: "O campo 'taskQueueName' é obrigatório",
       workflowRequired: "O campo 'workflowName' é obrigatório",
+      workflowSidRequired: "O campo 'workflowSid' é obrigatório",
+      invalidWorkflowSid:
+        "Workflow SID inválido. Formato esperado: WW + 32 caracteres hex",
       csvRequired: "O campo 'csvContent' é obrigatório",
       typeRequired: "O campo 'type' é obrigatório",
       filterRequired: "O campo 'filterName' é obrigatório",
@@ -207,6 +210,9 @@ export const strings = {
         },
       },
       taskrouter: {
+        workflows: {
+          label: "Gerenciar Workflows",
+        },
         createWorkflow: {
           label: "Criar Workflow por CSV",
         },
@@ -595,6 +601,71 @@ export const strings = {
     },
   },
   taskrouter: {
+    workflows: {
+      title: "Gerenciar Workflows",
+      subtitle:
+        "Liste e consulte as configurações de roteamento de um Workspace.",
+      metadata: {
+        title: "Gerenciar Workflows do TaskRouter",
+        description:
+          "Liste e consulte Workflows e suas configurações de roteamento no TaskRouter.",
+      },
+      workspaceLabel: "Workspace SID",
+      workflowSidLabel: "Workflow SID",
+      load: "Carregar Workflows",
+      loadMore: "Carregar mais",
+      loadingMore: "Carregando mais Workflows...",
+      searchLabel: "Pesquisar Workflows carregados",
+      searchPlaceholder: "Nome ou SID do Workflow",
+      count: (count: number) => `${count} Workflow(s) carregado(s)`,
+      countFiltered: (shown: number, total: number) =>
+        `${shown} de ${total} Workflow(s) carregado(s)`,
+      pageAvailable:
+        "Há mais Workflows disponíveis. Carregue a próxima página para ampliar a pesquisa.",
+      empty: "Nenhum Workflow encontrado neste Workspace.",
+      emptyFiltered: "Nenhum Workflow carregado corresponde à pesquisa.",
+      open: "Abrir Workflow",
+      openSid: "Consultar o SID informado",
+      table: {
+        caption: "Workflows carregados",
+        name: "Workflow",
+        updated: "Última atualização",
+        timeout: "Tempo de reserva",
+        actions: "Ações",
+      },
+      timeoutSeconds: (seconds: number) => `${seconds} s`,
+      details: {
+        title: "Detalhes do Workflow",
+        subtitle:
+          "Consulte os dados e a configuração completa de um Workflow.",
+        submit: "Consultar Workflow",
+        notFound: "Workflow não encontrado neste Workspace.",
+        general: "Dados gerais",
+        routing: "Configuração de roteamento",
+        rawConfiguration: "JSON original",
+        malformedConfiguration:
+          "A configuração retornada pela Twilio não possui uma estrutura reconhecida. O JSON original permanece disponível para consulta.",
+        invalidJson:
+          "A configuração retornada pela Twilio não contém JSON válido.",
+        friendlyName: "Nome",
+        workspaceSid: "Workspace SID",
+        workflowSid: "Workflow SID",
+        createdAt: "Criado em",
+        updatedAt: "Atualizado em",
+        assignmentCallback: "Callback de atribuição",
+        fallbackCallback: "Callback de fallback",
+        reservationTimeout: "Tempo de reserva",
+        defaultQueue: "Fila padrão",
+        noDefaultQueue: "Não configurada",
+        filters: (count: number) => `${count} filtro(s)`,
+        targets: (count: number) => `${count} target(s)`,
+        filter: "Filtro",
+        expression: "Expressão",
+        queues: "Filas dos targets",
+        unnamedFilter: (position: number) => `Filtro ${position}`,
+        noFilters: "Este Workflow não possui filtros configurados.",
+      },
+    },
     workerManagement: {
       title: "Gerenciar Workers",
       subtitle: "Consulte Workers e gerencie suas skills e plugins do Flex.",

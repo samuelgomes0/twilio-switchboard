@@ -7,8 +7,7 @@ import { parseWorkflowConfiguration } from "@/features/taskrouter/lib/workflow-c
 import { getTwilioClient } from "@/lib/twilio-client"
 import { toIsoString } from "@/lib/to-iso-string"
 
-export const DEFAULT_WORKFLOW_LIST_LIMIT = 50
-export const MAX_WORKFLOW_LIST_LIMIT = 1000
+export const WORKFLOW_PAGE_SIZE = 50
 
 interface TwilioWorkflowLike {
   sid: string
@@ -49,22 +48,29 @@ function mapWorkflowDetails(workflow: TwilioWorkflowLike): WorkflowDetails {
 export async function listWorkflows(
   workspaceSid: string,
   client: ReturnType<typeof getTwilioClient>,
-  options: { friendlyName?: string; limit?: number } = {}
+  options: { friendlyName?: string; pageToken?: string } = {}
 ): Promise<WorkflowListResult> {
-  const limit = options.limit ?? DEFAULT_WORKFLOW_LIST_LIMIT
-  const workflows = await client.taskrouter.v1
+  const page = await client.taskrouter.v1
     .workspaces(workspaceSid)
-    .workflows.list({
+    .workflows.page({
       ...(options.friendlyName
         ? { friendlyName: options.friendlyName }
         : {}),
-      limit: limit + 1,
+      ...(options.pageToken ? { pageToken: options.pageToken } : {}),
+      pageSize: WORKFLOW_PAGE_SIZE,
     })
 
   return {
-    workflows: workflows.slice(0, limit).map(mapWorkflowSummary),
-    hasMore: workflows.length > limit,
+    workflows: page.instances.map(mapWorkflowSummary),
+    nextPageToken: readPageToken(page.nextPageUrl),
   }
+}
+
+function readPageToken(nextPageUrl: string | undefined): string | null {
+  if (!nextPageUrl) return null
+  return new URL(nextPageUrl, "https://taskrouter.twilio.com").searchParams.get(
+    "PageToken"
+  )
 }
 
 export async function getWorkflow(

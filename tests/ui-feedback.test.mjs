@@ -25,10 +25,15 @@ const tools = [
   ["taskrouter/fetch-worker", "FetchWorkerForm"],
   ["taskrouter/search-tasks", "SearchTasksForm"],
   ["taskrouter/update-worker-feature", "UpdateWorkerFeatureForm"],
+  ["taskrouter/workflow-details", "WorkflowDetails"],
+  ["taskrouter/workflow-list", "WorkflowList"],
   ["variables/variables-manager", "VariablesManager"],
 ].map(([entry, name]) => {
   const [domain, component] = entry.split("/")
-  return [`features/${domain}/components/${component}${/manager/.test(component) ? "" : "-form"}.tsx`, name]
+  return [
+    `features/${domain}/components/${component}${/manager|workflow-(?:details|list)/.test(component) ? "" : "-form"}.tsx`,
+    name,
+  ]
 })
 
 // SSR seeds hook initializers in memory; effects, requests and handlers do not run.
@@ -89,7 +94,7 @@ function inspectReferences(html) {
     for (const reference of match[1].split(/\s+/)) assert.ok(ids.includes(reference), reference)
 }
 
-test("all 13 missing-environment consumers expose one nonurgent contextual status", () => {
+test("all missing-environment consumers expose one nonurgent contextual status", () => {
   for (const [file, name] of tools) {
     const html = render(file, name, { activeEnvironment: null })
     assert.equal(html.split(strings.common.noEnvironmentSelected.title).length - 1, 1, file)
@@ -243,6 +248,93 @@ test("valid empty results and filtered emptiness remain distinct from failures",
   assert.ok(html.includes(strings.conversations.history.result.noFilteredMessages))
   inspectInputActions(html, ["export", "clear"])
   assert.ok(!html.includes(strings.conversations.history.result.empty))
+  assert.doesNotMatch(html, /role="alert"/)
+})
+
+test("workflow list distinguishes loaded, empty and locally filtered results", () => {
+  const file = "features/taskrouter/components/workflow-list.tsx"
+  const workflow = {
+    sid: `WW${"1".repeat(32)}`,
+    workspaceSid: `WS${"2".repeat(32)}`,
+    friendlyName: "Atendimento",
+    assignmentCallbackUrl: null,
+    fallbackAssignmentCallbackUrl: null,
+    taskReservationTimeout: 120,
+    dateCreated: "2026-10-10T10:00:00.000Z",
+    dateUpdated: "2026-10-11T10:00:00.000Z",
+  }
+  let html = render(file, "WorkflowList", {
+    states: { [file]: { workflows: [workflow], nextPageToken: "next" } },
+  })
+  assert.ok(html.includes(workflow.friendlyName))
+  assert.ok(html.includes(workflow.sid))
+  assert.ok(html.includes(strings.taskrouter.workflows.pageAvailable))
+  assert.ok(html.includes(strings.taskrouter.workflows.loadMore))
+  assert.match(html, new RegExp(`/taskrouter/workflows/${workflow.sid}`))
+  inspectReferences(html)
+
+  html = render(file, "WorkflowList", {
+    states: { [file]: { workflows: [] } },
+  })
+  assert.ok(html.includes(strings.taskrouter.workflows.empty))
+  assert.doesNotMatch(html, /role="alert"/)
+
+  html = render(file, "WorkflowList", {
+    states: { [file]: { workflows: [workflow], search: "ausente" } },
+  })
+  assert.ok(html.includes(strings.taskrouter.workflows.emptyFiltered))
+  assert.ok(!html.includes(strings.taskrouter.workflows.empty))
+})
+
+test("workflow details expose routing and preserve malformed configuration", () => {
+  const file = "features/taskrouter/components/workflow-details.tsx"
+  const workflow = {
+    sid: `WW${"3".repeat(32)}`,
+    workspaceSid: `WS${"4".repeat(32)}`,
+    friendlyName: "Suporte",
+    assignmentCallbackUrl: "https://example.com/assign",
+    fallbackAssignmentCallbackUrl: null,
+    taskReservationTimeout: 60,
+    dateCreated: null,
+    dateUpdated: null,
+    configuration: '{"task_routing":{"filters":[]}}',
+    parsedConfiguration: {
+      task_routing: {
+        filters: [
+          {
+            filter_friendly_name: "Clientes",
+            expression: "segment == 'customer'",
+            targets: [{ queue: `WQ${"5".repeat(32)}` }],
+          },
+        ],
+        default_filter: { queue: `WQ${"6".repeat(32)}` },
+      },
+    },
+    configurationIssue: null,
+  }
+  let html = render(file, "WorkflowDetails", {
+    states: { [file]: { workflow } },
+  })
+  assert.ok(html.includes(workflow.friendlyName))
+  assert.ok(html.includes("Clientes"))
+  assert.ok(html.includes(`WQ${"5".repeat(32)}`))
+  assert.ok(html.includes(strings.taskrouter.workflows.details.rawConfiguration))
+  inspectReferences(html)
+
+  html = render(file, "WorkflowDetails", {
+    states: {
+      [file]: {
+        workflow: {
+          ...workflow,
+          configuration: "not-json",
+          parsedConfiguration: null,
+          configurationIssue: "invalid-json",
+        },
+      },
+    },
+  })
+  assert.ok(html.includes(strings.taskrouter.workflows.details.invalidJson))
+  assert.match(html, /role="status"/)
   assert.doesNotMatch(html, /role="alert"/)
 })
 

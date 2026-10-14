@@ -1,4 +1,4 @@
-import { Filter, GitBranch, ListX, Search, User } from "lucide-react"
+import { Filter, GitBranch, ListX, Search, User, Workflow } from "lucide-react"
 
 import { strings } from "@/lib/strings"
 import type { Tool } from "@/lib/tool"
@@ -16,6 +16,13 @@ export const taskrouterTools: Tool[] = [
     description: strings.taskrouter.searchTasks.subtitle,
     href: "/taskrouter/search-tasks-by-sid-or-number",
     icon: Search,
+    available: true,
+  },
+  {
+    label: strings.taskrouter.workflows.title,
+    description: strings.taskrouter.workflows.subtitle,
+    href: "/taskrouter/workflows",
+    icon: Workflow,
     available: true,
   },
   {
