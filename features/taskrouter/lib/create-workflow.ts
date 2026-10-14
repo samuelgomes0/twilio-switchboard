@@ -4,6 +4,8 @@ import { sseEvent } from "@/lib/sse-event"
 import type {
   CreateWorkflowInput,
   WorkflowConfiguration,
+  WorkflowCsvDiagnostic,
+  WorkflowCsvPreview,
   WorkflowFilter,
   WorkflowTarget,
 } from "@/features/taskrouter/types"
@@ -28,12 +30,24 @@ function buildRoutingTargets(taskQueueSid: string): WorkflowTarget[] {
   return targets
 }
 
-function parseSemicolonRows(csvContent: string): string[][] {
-  const rows: string[][] = []
+interface CsvRow {
+  lineNumber: number
+  columns: string[]
+}
+
+interface WorkflowCsvAnalysis {
+  diagnostics: WorkflowCsvDiagnostic[]
+  rows: Array<{ regra: string; fila: string }>
+}
+
+function parseSemicolonRows(csvContent: string): CsvRow[] {
+  const rows: CsvRow[] = []
   let row: string[] = []
   let cell = ""
   let quoted = false
   let closedQuote = false
+  let lineNumber = 1
+  let rowLineNumber = 1
 
   function finishCell() {
     row.push(cell)
@@ -43,7 +57,7 @@ function parseSemicolonRows(csvContent: string): string[][] {
 
   function finishRow() {
     finishCell()
-    rows.push(row)
+    rows.push({ lineNumber: rowLineNumber, columns: row })
     row = []
   }
 
@@ -58,6 +72,14 @@ function parseSemicolonRows(csvContent: string): string[][] {
           quoted = false
           closedQuote = true
         }
+      } else if (character === "\r" || character === "\n") {
+        if (character === "\r" && csvContent[index + 1] === "\n") {
+          cell += "\r\n"
+          index++
+        } else {
+          cell += character
+        }
+        lineNumber++
       } else {
         cell += character
       }
@@ -71,6 +93,8 @@ function parseSemicolonRows(csvContent: string): string[][] {
     } else if (character === "\n" || character === "\r") {
       finishRow()
       if (character === "\r" && csvContent[index + 1] === "\n") index++
+      lineNumber++
+      rowLineNumber = lineNumber
     } else if (closedQuote) {
       if (character !== " " && character !== "\t")
         throw new Error("invalid-csv")
@@ -86,7 +110,24 @@ function parseSemicolonRows(csvContent: string): string[][] {
 export function parseWorkflowCsv(
   csvContent: string
 ): Array<{ regra: string; fila: string }> {
-  let parsedRows: string[][]
+  const analysis = analyzeWorkflowCsv(csvContent)
+  if (analysis.diagnostics.some(({ reason }) => reason === "invalid-rule")) {
+    throw new AppError(
+      "validation",
+      strings.taskrouter.createWorkflow.log.invalidRule
+    )
+  }
+  if (analysis.rows.length === 0) {
+    throw new AppError(
+      "validation",
+      strings.taskrouter.createWorkflow.log.noValidRows
+    )
+  }
+  return analysis.rows
+}
+
+export function analyzeWorkflowCsv(csvContent: string): WorkflowCsvAnalysis {
+  let parsedRows: CsvRow[]
   try {
     parsedRows = parseSemicolonRows(csvContent.replace(/^\uFEFF/, ""))
   } catch {
@@ -102,7 +143,7 @@ export function parseWorkflowCsv(
       strings.taskrouter.createWorkflow.log.invalidColumns
     )
   }
-  const headers = headerRow.map((header) => header.trim())
+  const headers = headerRow.columns.map((header) => header.trim())
 
   const regraIdx = headers.indexOf("Regra de Negócio")
   const filaIdx = headers.indexOf("Fila Twilio")
@@ -116,34 +157,151 @@ export function parseWorkflowCsv(
 
   const seen = new Set<string>()
   const rows: Array<{ regra: string; fila: string }> = []
+  const diagnostics: WorkflowCsvDiagnostic[] = []
 
-  for (const cols of dataRows) {
+  for (const { lineNumber: rowNumber, columns: cols } of dataRows) {
     if (cols.every((column) => !column.trim())) continue
     const regra = (cols[regraIdx] ?? "").trim()
     const fila = (cols[filaIdx] ?? "").trim()
 
-    if (!regra || !fila) continue
-    if (fila === "Fechar" || fila === "-" || regra === "-") continue
+    if (!regra || !fila) {
+      diagnostics.push({
+        lineNumber: rowNumber,
+        rule: regra,
+        queueName: fila,
+        queueSid: null,
+        status: "ignored",
+        reason: "incomplete-row",
+      })
+      continue
+    }
+    if (fila === "Fechar" || fila === "-" || regra === "-") {
+      diagnostics.push({
+        lineNumber: rowNumber,
+        rule: regra,
+        queueName: fila,
+        queueSid: null,
+        status: "ignored",
+        reason: "excluded-row",
+      })
+      continue
+    }
     if (!isSafeTaskRouterLiteral(regra)) {
-      throw new AppError(
-        "validation",
-        strings.taskrouter.createWorkflow.log.invalidRule
-      )
+      diagnostics.push({
+        lineNumber: rowNumber,
+        rule: regra,
+        queueName: fila,
+        queueSid: null,
+        status: "error",
+        reason: "invalid-rule",
+      })
+      continue
     }
 
     const key = `${regra}|||${fila}`
-    if (seen.has(key)) continue
+    if (seen.has(key)) {
+      diagnostics.push({
+        lineNumber: rowNumber,
+        rule: regra,
+        queueName: fila,
+        queueSid: null,
+        status: "ignored",
+        reason: "duplicate-row",
+      })
+      continue
+    }
     seen.add(key)
 
     rows.push({ regra, fila })
+    diagnostics.push({
+      lineNumber: rowNumber,
+      rule: regra,
+      queueName: fila,
+      queueSid: null,
+      status: "valid",
+      reason: "ready",
+    })
   }
-  if (rows.length === 0) {
-    throw new AppError(
-      "validation",
-      strings.taskrouter.createWorkflow.log.noValidRows
-    )
+  return { diagnostics, rows }
+}
+
+async function loadTaskQueueMap(
+  workspaceSid: string,
+  client: ReturnType<typeof getTwilioClient>
+): Promise<{ queueSidMap: Map<string, string>; queueCount: number }> {
+  const queues = await client.taskrouter.v1
+    .workspaces(workspaceSid)
+    .taskQueues.list()
+  return {
+    queueSidMap: new Map(
+      queues.map((queue) => [queue.friendlyName, queue.sid])
+    ),
+    queueCount: queues.length,
   }
-  return rows
+}
+
+function resolveWorkflowCsvDiagnostics(
+  diagnostics: WorkflowCsvDiagnostic[],
+  queueSidMap: Map<string, string>
+): WorkflowCsvDiagnostic[] {
+  return diagnostics.map((diagnostic) => {
+    if (diagnostic.status !== "valid") return diagnostic
+    const queueSid = queueSidMap.get(diagnostic.queueName)
+    return queueSid
+      ? { ...diagnostic, queueSid }
+      : {
+          ...diagnostic,
+          status: "error",
+          reason: "queue-not-found",
+        }
+  })
+}
+
+export async function previewWorkflowCsv(
+  input: Pick<CreateWorkflowInput, "workspaceSid" | "csvContent">,
+  client: ReturnType<typeof getTwilioClient>
+): Promise<WorkflowCsvPreview> {
+  const analysis = analyzeWorkflowCsv(input.csvContent)
+  const rowsReadyForResolution = analysis.diagnostics.some(
+    ({ status }) => status === "valid"
+  )
+  if (!rowsReadyForResolution) {
+    const errorRows = analysis.diagnostics.filter(
+      ({ status }) => status === "error"
+    ).length
+    return {
+      diagnostics: analysis.diagnostics,
+      totalRows: analysis.diagnostics.length,
+      validRows: 0,
+      ignoredRows: analysis.diagnostics.filter(
+        ({ status }) => status === "ignored"
+      ).length,
+      errorRows,
+      defaultQueueFound: null,
+      canCreate: false,
+    }
+  }
+
+  const { queueSidMap } = await loadTaskQueueMap(input.workspaceSid, client)
+  const diagnostics = resolveWorkflowCsvDiagnostics(
+    analysis.diagnostics,
+    queueSidMap
+  )
+  const validRows = diagnostics.filter(({ status }) => status === "valid").length
+  const ignoredRows = diagnostics.filter(
+    ({ status }) => status === "ignored"
+  ).length
+  const errorRows = diagnostics.filter(({ status }) => status === "error").length
+
+  return {
+    diagnostics,
+    totalRows: diagnostics.length,
+    validRows,
+    ignoredRows,
+    errorRows,
+    defaultQueueFound: queueSidMap.has(DEFAULT_QUEUE_NAME),
+    canCreate: validRows > 0 && errorRows === 0,
+  }
 }
 
 export async function createWorkflow(
@@ -160,24 +318,20 @@ export async function createWorkflow(
   emit(sseEvent("info", strings.taskrouter.createWorkflow.log.loadingQueues))
   signal?.throwIfAborted()
 
-  const queues = await client.taskrouter.v1
-    .workspaces(input.workspaceSid)
-    .taskQueues.list()
+  const { queueSidMap, queueCount } = await loadTaskQueueMap(
+    input.workspaceSid,
+    client
+  )
   signal?.throwIfAborted()
-
-  const queueSidMap: Record<string, string> = {}
-  for (const queue of queues) {
-    queueSidMap[queue.friendlyName] = queue.sid
-  }
 
   emit(
     sseEvent(
       "info",
-      strings.taskrouter.createWorkflow.log.queuesLoaded(queues.length)
+      strings.taskrouter.createWorkflow.log.queuesLoaded(queueCount)
     )
   )
 
-  const defaultQueueSid = queueSidMap[DEFAULT_QUEUE_NAME] ?? null
+  const defaultQueueSid = queueSidMap.get(DEFAULT_QUEUE_NAME) ?? null
   if (!defaultQueueSid) {
     emit(
       sseEvent(
@@ -191,7 +345,7 @@ export async function createWorkflow(
 
   for (const { regra, fila } of rows) {
     signal?.throwIfAborted()
-    const queueSid = queueSidMap[fila]
+    const queueSid = queueSidMap.get(fila)
     if (!queueSid) {
       throw new AppError(
         "validation",

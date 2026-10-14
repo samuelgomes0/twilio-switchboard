@@ -338,6 +338,83 @@ test("workflow details expose routing and preserve malformed configuration", () 
   assert.doesNotMatch(html, /role="alert"/)
 })
 
+test("workflow CSV preview gates creation and explains every diagnosed row", () => {
+  const file = "features/taskrouter/components/create-workflow-form.tsx"
+  const diagnostic = {
+    lineNumber: 2,
+    rule: "Suporte",
+    queueName: "Fila A",
+    queueSid: "WQ-test",
+    status: "valid",
+    reason: "ready",
+  }
+  const baseState = {
+    workspaceSid: `WS${"1".repeat(32)}`,
+    workflowName: "Atendimento",
+    csvFile: { name: "workflow.csv" },
+    analyzedCsvContent: "csv",
+    previewStatus: "ready",
+  }
+  let html = render(file, "CreateWorkflowForm", {
+    states: {
+      [file]: {
+        ...baseState,
+        preview: {
+          diagnostics: [diagnostic],
+          totalRows: 1,
+          validRows: 1,
+          ignoredRows: 0,
+          errorRows: 0,
+          defaultQueueFound: true,
+          canCreate: true,
+        },
+      },
+    },
+  })
+  assert.ok(html.includes(strings.taskrouter.createWorkflow.analysisReady))
+  assert.ok(html.includes(strings.taskrouter.createWorkflow.previewReason.ready))
+  assert.ok(html.includes("WQ-test"))
+  assert.doesNotMatch(
+    html.match(/<button\b[^>]*data-action="primary"[^>]*>/)?.[0] ?? "",
+    /\sdisabled(?:=|\s|>)/
+  )
+  inspectInputActions(html, ["search", "primary"])
+  inspectReferences(html)
+
+  html = render(file, "CreateWorkflowForm", {
+    states: {
+      [file]: {
+        ...baseState,
+        preview: {
+          diagnostics: [
+            {
+              ...diagnostic,
+              queueSid: null,
+              status: "error",
+              reason: "queue-not-found",
+            },
+          ],
+          totalRows: 1,
+          validRows: 0,
+          ignoredRows: 0,
+          errorRows: 1,
+          defaultQueueFound: false,
+          canCreate: false,
+        },
+      },
+    },
+  })
+  assert.ok(html.includes(strings.taskrouter.createWorkflow.analysisBlocked))
+  assert.ok(
+    html.includes(strings.taskrouter.createWorkflow.previewReason.queueNotFound)
+  )
+  assert.ok(html.includes("EVERYONE"))
+  assert.match(
+    html.match(/<button\b[^>]*data-action="primary"[^>]*>/)?.[0] ?? "",
+    /\sdisabled(?:=|\s|>)/
+  )
+})
+
 test("message truncation remains a nonblocking warning", () => {
   const html = render("features/conversations/components/conversation-messages.tsx", "ConversationMessages", {
     props: { participants: [], data: { messages: [], hasMore: true, conversation: { sid: "test" } } },

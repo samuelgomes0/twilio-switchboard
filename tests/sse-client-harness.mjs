@@ -56,14 +56,18 @@ export function clientHarness(name, options = {}) {
   }
   const context = {
     ...dependencies,
+    previewLabels: dependencies.strings?.taskrouter.createWorkflow,
     canSubmit: true, activeEnvironment: {}, participants: ["11999999999"],
     workspaceSid: "workspace", skill: "skill", levelInput: "", emails: ["worker"],
     taskQueueName: "queue", closeMessage: "message", workflowName: "workflow",
     csvFile: options.csvFile ?? { text: async () => "csv" }, filterName: "filter", pendingEntries: [{}],
+    analyzedCsvContent: "csv",
     abortRef,
     reset() { trace.push(["reset"]) },
     setStatus: setter("status"), setLogs: setter("logs"), setHistory: setter("history"),
     setSummary: setter("summary"), setProgress: setter("progress"),
+    setPreviewError: () => {}, setPreviewStatus: () => {},
+    invalidatePreview: () => {},
     addLog(level, message) {
       if (options.throwLog === message) throw new Error("callback failure")
       setter("logs")([...state.logs, { level, message }])

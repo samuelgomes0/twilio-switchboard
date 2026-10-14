@@ -11,6 +11,35 @@ export interface CreateWorkflowInput {
   csvContent: string
 }
 
+export type WorkflowCsvDiagnosticStatus = "valid" | "ignored" | "error"
+
+export type WorkflowCsvDiagnosticReason =
+  | "ready"
+  | "incomplete-row"
+  | "excluded-row"
+  | "duplicate-row"
+  | "invalid-rule"
+  | "queue-not-found"
+
+export interface WorkflowCsvDiagnostic {
+  lineNumber: number
+  rule: string
+  queueName: string
+  queueSid: string | null
+  status: WorkflowCsvDiagnosticStatus
+  reason: WorkflowCsvDiagnosticReason
+}
+
+export interface WorkflowCsvPreview {
+  diagnostics: WorkflowCsvDiagnostic[]
+  totalRows: number
+  validRows: number
+  ignoredRows: number
+  errorRows: number
+  defaultQueueFound: boolean | null
+  canCreate: boolean
+}
+
 export type JsonPrimitive = string | number | boolean | null
 
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[]

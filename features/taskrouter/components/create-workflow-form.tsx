@@ -10,7 +10,7 @@ import { ActionBar } from "@/components/action-bar"
 import { ActionButton } from "@/components/action-button"
 
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import { Loader2, Play } from "lucide-react"
+import { FileSearch2, Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -35,6 +35,8 @@ import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
+import { WorkflowCsvPreviewPanel } from "@/features/taskrouter/components/workflow-csv-preview"
+import type { WorkflowCsvPreview } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
 import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
@@ -42,6 +44,7 @@ import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
+type PreviewStatus = "idle" | "loading" | "ready" | "error"
 
 interface Summary {
   workflowSid: string
@@ -61,6 +64,56 @@ const HISTORY_KEY = "switchboard:create-workflow-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const WF_NAMES_KEY = STORED_KEYS.workflowNames
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
+const previewLabels = strings.taskrouter.createWorkflow
+
+function isWorkflowCsvPreview(value: unknown): value is WorkflowCsvPreview {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+  const preview = value as Record<string, unknown>
+  const validStatuses = new Set(["valid", "ignored", "error"])
+  const validReasons = new Set([
+    "ready",
+    "incomplete-row",
+    "excluded-row",
+    "duplicate-row",
+    "invalid-rule",
+    "queue-not-found",
+  ])
+  const isCount = (count: unknown) =>
+    typeof count === "number" && Number.isInteger(count) && count >= 0
+
+  return (
+    Array.isArray(preview.diagnostics) &&
+    preview.diagnostics.every((diagnostic) => {
+      if (
+        typeof diagnostic !== "object" ||
+        diagnostic === null ||
+        Array.isArray(diagnostic)
+      ) {
+        return false
+      }
+      const row = diagnostic as Record<string, unknown>
+      return (
+        isCount(row.lineNumber) &&
+        typeof row.rule === "string" &&
+        typeof row.queueName === "string" &&
+        (row.queueSid === null || typeof row.queueSid === "string") &&
+        typeof row.status === "string" &&
+        validStatuses.has(row.status) &&
+        typeof row.reason === "string" &&
+        validReasons.has(row.reason)
+      )
+    }) &&
+    isCount(preview.totalRows) &&
+    isCount(preview.validRows) &&
+    isCount(preview.ignoredRows) &&
+    isCount(preview.errorRows) &&
+    (preview.defaultQueueFound === null ||
+      typeof preview.defaultQueueFound === "boolean") &&
+    typeof preview.canCreate === "boolean"
+  )
+}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -82,6 +135,13 @@ export function CreateWorkflowForm() {
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
+  const [preview, setPreview] = React.useState<WorkflowCsvPreview | null>(null)
+  const [previewStatus, setPreviewStatus] =
+    React.useState<PreviewStatus>("idle")
+  const [previewError, setPreviewError] = React.useState<string | null>(null)
+  const [analyzedCsvContent, setAnalyzedCsvContent] = React.useState<
+    string | null
+  >(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [history, setHistory] = useBrowserState<HistoryEntry[]>(
     () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
@@ -92,12 +152,17 @@ export function CreateWorkflowForm() {
   const abortRef = React.useRef<AbortController | null>(null)
   React.useEffect(() => () => abortRef.current?.abort(), [])
 
-  const canSubmit =
+  const busy = status === "running" || previewStatus === "loading"
+  const canAnalyze =
     workspaceSid.trim().length > 0 &&
-    workflowName.trim().length > 0 &&
     csvFile !== null &&
-    status !== "running" &&
+    !busy &&
     !!activeEnvironment
+  const canSubmit =
+    canAnalyze &&
+    workflowName.trim().length > 0 &&
+    preview?.canCreate === true &&
+    analyzedCsvContent !== null
 
   function addLog(level: LogEntry["level"], message: string) {
     setLogs((prev) => [...prev, createLogEntry(level, message)])
@@ -110,6 +175,13 @@ export function CreateWorkflowForm() {
     setWsSidError(null)
   }
 
+  function invalidatePreview() {
+    setPreview(null)
+    setPreviewStatus("idle")
+    setPreviewError(null)
+    setAnalyzedCsvContent(null)
+  }
+
   function handleAbort() {
     abortRef.current?.abort()
   }
@@ -119,8 +191,87 @@ export function CreateWorkflowForm() {
     setHistory([])
   }
 
+  async function runPreview() {
+    const requestedWorkspaceSid = workspaceSid.trim()
+    if (!canAnalyze || !activeEnvironment || !csvFile) return
+    if (!WS_SID_RE.test(requestedWorkspaceSid)) {
+      setWsSidError(strings.common.workspaceSidInvalid)
+      return
+    }
+
+    setWsSidError(null)
+    setPreview(null)
+    setPreviewError(null)
+    setAnalyzedCsvContent(null)
+    setPreviewStatus("loading")
+    const controller = new AbortController()
+    abortRef.current?.abort()
+    abortRef.current = controller
+
+    try {
+      const csvContent = await csvFile.text()
+      controller.signal.throwIfAborted()
+      const response = await fetch(
+        "/api/taskrouter/workflows/preview-import",
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceSid: requestedWorkspaceSid,
+            csvContent,
+            accountSid: activeEnvironment.accountSid,
+            authToken: activeEnvironment.authToken,
+          }),
+        }
+      )
+      const data: unknown = await response.json()
+      if (controller.signal.aborted) return
+      if (!response.ok) {
+        const message =
+          typeof data === "object" &&
+          data !== null &&
+          "error" in data &&
+          typeof data.error === "string"
+            ? data.error
+            : strings.common.unknown
+        setPreviewError(message)
+        setPreviewStatus("error")
+        return
+      }
+      if (!isWorkflowCsvPreview(data)) {
+        setPreviewError(previewLabels.analysisInvalidResponse)
+        setPreviewStatus("error")
+        return
+      }
+
+      setPreview(data)
+      setAnalyzedCsvContent(csvContent)
+      setPreviewStatus("ready")
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
+      ) {
+        setPreviewStatus("idle")
+      } else {
+        setPreviewError(strings.common.networkError)
+        setPreviewStatus("error")
+      }
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null
+    }
+  }
+
   async function runSubmit() {
-    if (!canSubmit || !activeEnvironment || !csvFile) return
+    if (
+      !canSubmit ||
+      !activeEnvironment ||
+      !csvFile ||
+      analyzedCsvContent === null
+    ) {
+      return
+    }
 
     reset()
     setStatus("running")
@@ -131,6 +282,14 @@ export function CreateWorkflowForm() {
     try {
       csvContent = await csvFile.text()
       controller.signal.throwIfAborted()
+      if (csvContent !== analyzedCsvContent) {
+        invalidatePreview()
+        setPreviewError(previewLabels.analysisInvalidated)
+        setPreviewStatus("error")
+        setStatus("idle")
+        if (abortRef.current === controller) abortRef.current = null
+        return
+      }
     } catch (error) {
       if (
         controller.signal.aborted ||
@@ -265,10 +424,11 @@ export function CreateWorkflowForm() {
             value={workspaceSid}
             onChange={(v) => {
               setWorkspaceSid(v)
+              invalidatePreview()
               if (wsSidError) setWsSidError(null)
             }}
             placeholder={strings.common.placeholders.workspaceSid}
-            disabled={status === "running"}
+            disabled={busy}
           />
           {wsSidError && (
             <p id="create-workspace-error" className="text-xs text-destructive">
@@ -289,7 +449,7 @@ export function CreateWorkflowForm() {
             value={workflowName}
             onChange={setWorkflowName}
             placeholder={strings.common.placeholders.workflow}
-            disabled={status === "running"}
+            disabled={busy}
             className="font-sans text-sm placeholder:font-sans"
           />
         </div>
@@ -306,12 +466,34 @@ export function CreateWorkflowForm() {
                 aria-describedby={csvFile ? "workflow-csv-selected" : undefined}
                 type="file"
                 accept=".csv"
-                onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
-                disabled={status === "running"}
+                onChange={(e) => {
+                  setCsvFile(e.target.files?.[0] ?? null)
+                  invalidatePreview()
+                }}
+                disabled={busy}
                 className="cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted/80"
               />
             </div>
             <ActionBar>
+              <ActionButton
+                action="search"
+                type="button"
+                onClick={() => void runPreview()}
+                disabled={!canAnalyze}
+                aria-busy={previewStatus === "loading"}
+              >
+                {previewStatus === "loading" ? (
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <FileSearch2 className="size-3.5" aria-hidden="true" />
+                )}
+                {previewStatus === "loading"
+                  ? previewLabels.analyzing
+                  : previewLabels.analyze}
+              </ActionButton>
               <ActionButton
                 action="primary"
                 aria-busy={status === "running"}
@@ -328,20 +510,20 @@ export function CreateWorkflowForm() {
                   </>
                 ) : (
                   <>
-                    <Play className="size-3.5" />
+                    <Play className="size-3.5" aria-hidden="true" />
                     {strings.taskrouter.createWorkflow.submit}
                   </>
                 )}
               </ActionButton>
 
-              {status === "running" && (
+              {busy && (
                 <ActionButton action="stop" type="button" onClick={handleAbort}>
                   {strings.common.cancel}
                 </ActionButton>
               )}
 
               {(logs.length > 0 || status !== "idle") &&
-                status !== "running" && (
+                !busy && (
                   <ActionButton action="clear" type="button" onClick={reset}>
                     {strings.common.clear}
                   </ActionButton>
@@ -358,6 +540,19 @@ export function CreateWorkflowForm() {
           )}
         </div>
       </form>
+
+      {previewError && (
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          {previewError}
+        </div>
+      )}
+
+      {preview && previewStatus === "ready" && (
+        <WorkflowCsvPreviewPanel preview={preview} />
+      )}
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>

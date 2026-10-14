@@ -129,3 +129,13 @@ test("create-workflow: cancelamento durante leitura do arquivo impede o request"
   assert.equal(result.state.logs.at(-1).level, "warning")
   assert.equal(result.abortRef.current, null)
 })
+
+test("create-workflow: arquivo diferente da prévia invalida a criação", async () => {
+  const result = clientHarness("create-workflow", {
+    csvFile: { text: async () => "csv alterado" },
+  })
+  await result.run({})
+  assert.equal(result.trace.some(([type]) => type === "fetch"), false)
+  assert.equal(result.state.status, "idle")
+  assert.equal(result.abortRef.current, null)
+})

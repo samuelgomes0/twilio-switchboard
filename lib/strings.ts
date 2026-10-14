@@ -835,6 +835,49 @@ export const strings = {
       csvLabel: "Arquivo CSV",
       csvSelected: (name: string) => `Arquivo selecionado: ${name}`,
       csvReadError: "Não foi possível ler o arquivo CSV.",
+      analyze: "Analisar CSV",
+      analyzing: "Analisando CSV...",
+      analysisTitle: "Prévia da importação",
+      analysisReady:
+        "O CSV está validado para este Workspace. Revise as linhas antes de criar.",
+      analysisBlocked:
+        "Corrija os erros indicados e analise o arquivo novamente antes de criar.",
+      analysisNoRows:
+        "O arquivo não contém linhas úteis para criar filtros.",
+      analysisInvalidResponse:
+        "A resposta da análise do CSV não possui o formato esperado.",
+      analysisInvalidated:
+        "O Workspace ou o arquivo mudou. Analise o CSV novamente.",
+      defaultQueueMissing:
+        'A fila padrão "EVERYONE" não foi encontrada. O Workflow será criado sem filtro padrão.',
+      previewSummary: {
+        valid: (count: number) =>
+          `${count} ${count === 1 ? "linha válida" : "linhas válidas"}`,
+        ignored: (count: number) =>
+          `${count} ${count === 1 ? "linha ignorada" : "linhas ignoradas"}`,
+        errors: (count: number) =>
+          `${count} ${count === 1 ? "erro" : "erros"}`,
+      },
+      previewTable: {
+        caption: "Diagnóstico das linhas do CSV",
+        line: "Linha",
+        rule: "Regra de negócio",
+        queue: "Fila Twilio",
+        result: "Diagnóstico",
+      },
+      previewStatus: {
+        valid: "Válida",
+        ignored: "Ignorada",
+        error: "Erro",
+      },
+      previewReason: {
+        ready: "Fila encontrada; filtro pronto para criação.",
+        incompleteRow: "Regra ou fila não informada.",
+        excludedRow: "Linha marcada para não gerar filtro.",
+        duplicateRow: "Regra e fila já aparecem em uma linha anterior.",
+        invalidRule: "A regra contém caracteres não permitidos.",
+        queueNotFound: "Fila não encontrada neste Workspace.",
+      },
       submit: "Criar Workflow",
       confirmTitle: "Criar workflow?",
       confirmDescription: (

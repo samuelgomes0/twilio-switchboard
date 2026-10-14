@@ -48,6 +48,11 @@ await context.route("**/api/**", async route => {
     "/api/taskrouter/get-task-by-sid": { task },
     "/api/taskrouter/search-tasks-by-number": { tasks: empty ? [] : [task], phone: body.phoneNumber },
     "/api/taskrouter/get-worker-details": { worker },
+    "/api/taskrouter/workflows/preview-import": {
+      diagnostics: [{ lineNumber: 2, rule: "Suporte", queueName: "Suporte", queueSid: sid("WQ"), status: "valid", reason: "ready" }],
+      totalRows: 1, validRows: 1, ignoredRows: 0, errorRows: 0,
+      defaultQueueFound: true, canCreate: true,
+    },
     "/api/numbers/list-messaging-numbers": { numbers: empty ? [] : [{ id: sid("IG"), friendlyName: "Marca com nome extenso para testar a apresentação dos resultados", phoneNumber: "+5511999999999", service: "Conversations" }, { id: "IG" + "2".repeat(32), friendlyName: "Outra marca", phoneNumber: "+5511888888888", service: "Programmable Chat" }] },
     "/api/flex/create-conversation-address": { sid: sid("IG"), address: body.address, type: body.type, friendlyName: body.friendlyName, autoCreation: { enabled: true, type: body.autoCreationType }, dateCreated: date, dateUpdated: date, country: null },
   }[url]
@@ -157,9 +162,11 @@ try {
     else {
       await page.locator("#workspaceSid").fill(WS)
       if (route.endsWith("cancel-queue-tasks")) await page.locator("#taskQueueName").fill("Suporte")
-      if (route.endsWith("create-workflow")) {
+      if (route.includes("create-workflow")) {
         await page.locator("#workflowName").fill("Workflow de teste")
         await page.locator("#csvFile").setInputFiles({ name: "regras.csv", mimeType: "text/csv", buffer: Buffer.from("Regra de Negócio;Fila Twilio\nSuporte;Suporte") })
+        await page.getByRole("button", { name: strings.taskrouter.createWorkflow.analyze }).click()
+        await page.getByText(strings.taskrouter.createWorkflow.analysisReady).waitFor()
       }
       if (route.endsWith("add-particular-filter")) {
         await page.locator("#filterName").fill("Suporte")
