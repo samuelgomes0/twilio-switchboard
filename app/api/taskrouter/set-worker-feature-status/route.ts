@@ -27,7 +27,7 @@ export async function POST(req: Request) {
           /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier))
     ) ||
     typeof feature !== "string" ||
-    !/^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(feature) ||
+    !/^[a-zA-Z][a-zA-Z0-9_-]{0,99}$/.test(feature) ||
     ["constructor", "prototype", "__proto__"].includes(feature) ||
     typeof enabled !== "boolean" ||
     !credentials

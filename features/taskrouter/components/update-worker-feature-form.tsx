@@ -62,7 +62,7 @@ export function UpdateWorkerFeatureForm() {
         /^WK[0-9a-f]{32}$/i.test(identifier) ||
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)
     ) &&
-    /^[a-zA-Z][a-zA-Z0-9_]{0,99}$/.test(feature.trim()) &&
+    /^[a-zA-Z][a-zA-Z0-9_-]{0,99}$/.test(feature.trim()) &&
     !["constructor", "prototype", "__proto__"].includes(feature.trim())
 
   return (

@@ -201,6 +201,33 @@ test("route rejects invalid bodies before creating a client", async () => {
   assert.equal(created, 0)
 })
 
+test("route accepts plugin names with hyphens, underscores or only letters", async () => {
+  const receivedFeatures = []
+  const { POST } = load("app/api/taskrouter/update-worker-feature/route.ts", {
+    ...overrides,
+    "@/lib/twilio-client": { getTwilioClient: () => ({}) },
+    "@/features/taskrouter/lib/update-worker-feature": {
+      updateWorkerFeature: async ({ feature }) => {
+        receivedFeatures.push(feature)
+        return { totalUpdated: 1, totalErrors: 0 }
+      },
+    },
+  })
+
+  for (const feature of ["teste-nome", "teste_nome", "testenome"]) {
+    const response = await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({ ...input, ...credentials, feature }),
+      })
+    )
+    assert.equal(response.status, 200)
+    await response.text()
+  }
+
+  assert.deepEqual(receivedFeatures, ["teste-nome", "teste_nome", "testenome"])
+})
+
 test("route streams completion, deduplicates workers, and accepts false", async () => {
   let updated = 0
   const client = mockClient(

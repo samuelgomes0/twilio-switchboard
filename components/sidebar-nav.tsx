@@ -13,7 +13,6 @@ import {
   MapPin,
   MessageSquare,
   MessageSquareOff,
-  Phone,
   Search,
   Settings2,
   SlidersHorizontal,
@@ -181,9 +180,6 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="navigation-panel">
       <Link href="/" className="nav-brand" onClick={onNavigate}>
-        <span className="nav-brand-mark">
-          <Phone aria-hidden="true" className="size-3.5" />
-        </span>
         {strings.sidebar.title}
       </Link>
       <nav

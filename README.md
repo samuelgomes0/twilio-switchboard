@@ -200,6 +200,7 @@ O botão de cancelar interrompe a conexão e impede novos passos quando o sinal 
 - histórico de mensagens: até 1.000 mensagens carregadas, com aviso de truncamento;
 - listagens de Tasks e senders: até 1.000 resultados, com detecção de item adicional quando aplicável;
 - operações remotas em lote são sequenciais para respeitar limite de API e manter feedback determinístico;
+- nomes de plugins do Flex começam com uma letra e aceitam letras, números, hífen e sublinhado, com até 100 caracteres;
 - o CSV de Workflow usa `;`, aceita BOM, campos entre aspas, `""` escapado e finais LF/CRLF; cabeçalhos obrigatórios: `Regra de Negócio` e `Fila Twilio`.
 
 ### Escritas destrutivas

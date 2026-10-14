@@ -8,6 +8,7 @@ function tokens(selector) {
   return Object.fromEntries([...block.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value]))
 }
 const light = tokens(":root")
+
 function color(theme, name) {
   const value = theme[name]
   const reference = value.match(/^var\(--([\w-]+)\)$/)
@@ -26,10 +27,22 @@ function contrast(first, second) {
 }
 
 for (const [name, theme] of [["light", light], ["dark", { ...light, ...tokens(".dark") }]]) {
+  test(`${name}: page canvas and sidebar use the same tone`, () => {
+    assert.equal(color(theme, "canvas"), color(theme, "sidebar"))
+  })
+
+  test(`${name}: page canvas and content surface use distinct tones`, () => {
+    assert.notEqual(color(theme, "canvas"), color(theme, "background"))
+  })
+
   test(`${name}: interaction text meets WCAG AA contrast in default, hover and selected states`, () => {
     for (const [foreground, background] of [
+      ["foreground", "background"], ["foreground", "card"],
+      ["muted-foreground", "muted"], ["sidebar-foreground", "sidebar"],
       ["primary-foreground", "primary"], ["primary-foreground", "primary-hover"],
       ["destructive-foreground", "destructive"], ["destructive-foreground", "destructive-hover"],
+      ["success", "success-soft"], ["warning", "warning-soft"],
+      ["info", "info-soft"],
       ["primary", "primary-soft"], ["primary", "card"], ["primary", "muted"],
       ["primary", "sidebar"],
     ]) {
@@ -37,8 +50,7 @@ for (const [name, theme] of [["light", light], ["dark", { ...light, ...tokens(".
       assert.ok(ratio >= 4.5, `${foreground} on ${background}: ${ratio.toFixed(2)}:1`)
     }
   })
-  test(`${name}: primary controls, destructive controls and brand share the red palette`, () => {
-    assert.equal(color(theme, "brand"), color(theme, "primary"))
+  test(`${name}: primary and destructive controls share the original red palette`, () => {
     assert.equal(color(theme, "destructive"), color(theme, "primary"))
     assert.equal(color(theme, "destructive-hover"), color(theme, "primary-hover"))
   })

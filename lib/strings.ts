@@ -627,7 +627,7 @@ export const strings = {
       featureLabel: "Nome do plugin",
       featurePlaceholder: "dasa_cdc_integration",
       featureHint:
-        "Comece com uma letra e use apenas letras, números e sublinhado (até 100 caracteres).",
+        "Comece com uma letra e use apenas letras, números, hífen ou sublinhado (até 100 caracteres).",
       enabledLabel: "Estado do plugin",
       enabled: "Habilitado (true)",
       disabled: "Desabilitado (false)",
