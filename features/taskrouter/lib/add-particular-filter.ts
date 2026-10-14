@@ -1,29 +1,13 @@
 import { strings } from "@/lib/strings"
 import { AppError, sanitizeExternalError } from "@/lib/errors"
 import { sseEvent } from "@/lib/sse-event"
-import type { AddParticularFilterInput } from "@/features/taskrouter/types"
+import type {
+  AddParticularFilterInput,
+  WorkflowFilter,
+} from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
-
-interface RoutingTarget {
-  queue: string
-  expression?: string
-  skip_if?: string
-}
-
-interface WorkflowFilter {
-  filter_friendly_name?: string
-  friendly_name?: string
-  expression?: string
-  targets?: RoutingTarget[]
-}
-
-interface WorkflowConfiguration {
-  task_routing: {
-    filters: WorkflowFilter[]
-    default_filter?: { queue: string }
-  }
-}
+import { parseWorkflowConfiguration } from "@/features/taskrouter/lib/workflow-configuration"
 
 function buildFilter(filterName: string, taskQueueSid: string): WorkflowFilter {
   return {
@@ -87,11 +71,11 @@ export async function addParticularFilter(
         .fetch()
       signal?.throwIfAborted()
 
-      const configuration = JSON.parse(
+      const parsedConfiguration = parseWorkflowConfiguration(
         workflow.configuration
-      ) as WorkflowConfiguration
+      )
 
-      if (!configuration.task_routing) {
+      if (!parsedConfiguration.ok) {
         emit(
           sseEvent(
             "error",
@@ -103,6 +87,8 @@ export async function addParticularFilter(
         totalErrors++
         continue
       }
+
+      const configuration = parsedConfiguration.configuration
 
       const filters: WorkflowFilter[] = configuration.task_routing.filters ?? []
 

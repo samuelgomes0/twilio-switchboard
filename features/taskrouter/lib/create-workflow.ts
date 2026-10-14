@@ -1,32 +1,25 @@
 import { strings } from "@/lib/strings"
 import { AppError } from "@/lib/errors"
 import { sseEvent } from "@/lib/sse-event"
-import type { CreateWorkflowInput } from "@/features/taskrouter/types"
+import type {
+  CreateWorkflowInput,
+  WorkflowConfiguration,
+  WorkflowFilter,
+  WorkflowTarget,
+} from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
 
 const DEFAULT_QUEUE_NAME = "EVERYONE"
 
-interface RoutingTarget {
-  queue: string
-  expression?: string
-  skip_if?: string
-}
-
-interface WorkflowFilter {
-  filter_friendly_name: string
-  expression: string
-  targets: RoutingTarget[]
-}
-
-function buildRoutingTargets(taskQueueSid: string): RoutingTarget[] {
+function buildRoutingTargets(taskQueueSid: string): WorkflowTarget[] {
   const expressions = [
     "worker.channel.chat.assigned_tasks==0",
     "worker.channel.chat.assigned_tasks<=1",
     "worker.channel.chat.assigned_tasks<=2",
     "worker.channel.chat.assigned_tasks<=3",
   ]
-  const targets: RoutingTarget[] = expressions.map((expr) => ({
+  const targets: WorkflowTarget[] = expressions.map((expr) => ({
     queue: taskQueueSid,
     expression: expr,
     skip_if: "1==1",
@@ -225,16 +218,13 @@ export async function createWorkflow(
     )
   )
 
-  const taskRouting: {
-    filters: WorkflowFilter[]
-    default_filter?: { queue: string }
-  } = { filters }
+  const taskRouting: WorkflowConfiguration["task_routing"] = { filters }
 
   if (defaultQueueSid) {
     taskRouting.default_filter = { queue: defaultQueueSid }
   }
 
-  const configuration = { task_routing: taskRouting }
+  const configuration: WorkflowConfiguration = { task_routing: taskRouting }
 
   signal?.throwIfAborted()
   const workflow = await client.taskrouter.v1
