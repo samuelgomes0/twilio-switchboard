@@ -1,8 +1,11 @@
-import { sleep, sseEvent, withRetry } from "@/features/conversations/lib/close"
+import { strings } from "@/lib/strings"
+import { sseEvent } from "@/lib/sse-event"
+import { sleep, withRetry } from "@/lib/retry"
 import type { AssignWorkersInput } from "@/features/taskrouter/types"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
 import { resolveWorker } from "@/features/taskrouter/lib/resolve-worker"
+import { sanitizeExternalError } from "@/lib/errors"
 
 interface WorkerAttributes {
   routing?: {
@@ -40,7 +43,8 @@ async function addSkillToWorker(
 export async function assignWorkersToQueue(
   input: AssignWorkersInput,
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  signal?: AbortSignal
 ): Promise<{
   totalUpdated: number
   totalSkipped: number
@@ -51,19 +55,25 @@ export async function assignWorkersToQueue(
   let totalErrors = 0
 
   for (let idx = 0; idx < input.emails.length; idx++) {
+    signal?.throwIfAborted()
     const identifier = input.emails[idx]
     emit(
-      sseEvent("info", `Buscando worker: ${identifier}...`, {
-        progress: { current: idx + 1, total: input.emails.length },
-      })
+      sseEvent(
+        "info",
+        strings.taskrouter.assignWorkers.log.searching(identifier),
+        {
+          progress: { current: idx + 1, total: input.emails.length },
+        }
+      )
     )
 
     const worker = await withRetry(
       () => resolveWorker(client, input.workspaceSid, identifier),
       RETRY_ATTEMPTS,
       RETRY_DELAY_MS,
-      `Busca de worker (${identifier})`,
-      emit
+      strings.taskrouter.assignWorkers.log.searchLabel(identifier),
+      emit,
+      signal
     )
 
     if (worker === null) {
@@ -72,7 +82,12 @@ export async function assignWorkersToQueue(
     }
 
     if (worker === undefined) {
-      emit(sseEvent("warning", `Worker não encontrado: ${identifier}`))
+      emit(
+        sseEvent(
+          "warning",
+          strings.taskrouter.assignWorkers.log.notFound(identifier)
+        )
+      )
       totalSkipped++
       continue
     }
@@ -80,36 +95,47 @@ export async function assignWorkersToQueue(
     emit(
       sseEvent(
         "info",
-        `Worker encontrado: ${worker.sid}. Adicionando skill "${input.skill}"...`
+        strings.taskrouter.assignWorkers.log.addingSkill(
+          worker.sid,
+          input.skill
+        )
       )
     )
 
-    const result = await withRetry(
-      () =>
-        addSkillToWorker(
+    try {
+      signal?.throwIfAborted()
+      await addSkillToWorker(
           client,
           input.workspaceSid,
           worker.sid,
           worker.attributes,
           input.skill,
           input.level
-        ),
-      RETRY_ATTEMPTS,
-      RETRY_DELAY_MS,
-      `Atualizar worker ${worker.sid}`,
-      emit
-    )
-
-    if (result !== null) {
+        )
       totalUpdated++
       emit(
         sseEvent(
           "success",
-          `Skill "${input.skill}" adicionada ao worker ${identifier} (${worker.sid})`
+          strings.taskrouter.assignWorkers.log.updated(
+            input.skill,
+            identifier,
+            worker.sid
+          )
         )
       )
-    } else {
+    } catch (error) {
+      if (signal?.aborted) throw error
       totalErrors++
+      emit(
+        sseEvent(
+          "error",
+          strings.common.retry.failed(
+            strings.taskrouter.assignWorkers.log.updateLabel(worker.sid),
+            1,
+            sanitizeExternalError(error)
+          )
+        )
+      )
     }
 
     await sleep(100)

@@ -1,10 +1,6 @@
 import type { ConversationMessage } from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
-function escapeCsvCell(value: string | number): string {
-  const raw = String(value)
-  const safeValue = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
-  return `"${safeValue.replaceAll('"', '""')}"`
-}
+import { escapeCsvCell } from "@/lib/spreadsheet"
 
 export function exportMessages(sid: string, messages: ConversationMessage[]) {
   const columns = strings.conversations.history.export.columns
@@ -27,7 +23,7 @@ export function exportMessages(sid: string, messages: ConversationMessage[]) {
   )
   const downloadLink = document.createElement("a")
   downloadLink.href = url
-  downloadLink.download = `conversation-${sid}.csv`
+  downloadLink.download = strings.conversations.history.export.filename(sid)
   downloadLink.click()
   URL.revokeObjectURL(url)
 }

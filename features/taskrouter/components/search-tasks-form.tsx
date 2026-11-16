@@ -1,37 +1,31 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
+import { TaskCard } from "./task-result-card"
 
+import { PageHeader } from "@/components/page-header"
+
+import { OperationForm } from "@/components/operation-form"
+
+import { ActionButton } from "@/components/action-button"
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { inferChannel } from "@/features/taskrouter/lib/infer-channel"
+
+import { Loader2, Search } from "lucide-react"
 import * as React from "react"
-import Link from "next/link"
-import {
-  AlertTriangle,
-  Check,
-  ChevronRight,
-  Copy,
-  Loader2,
-  Search,
-} from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { StoredInput } from "@/components/stored-input"
+import { SearchInput } from "@/components/search-input"
+import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { SearchTaskResult, TaskData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
@@ -65,28 +59,6 @@ const HISTORY_KEY = "switchboard:search-tasks-history"
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 const TASK_SID_RE = /^WT[a-fA-F0-9]{32}$/i
 
-// ─── localStorage helpers ────────────────────────────────────────────────────
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
-
 // ─── Formatting ──────────────────────────────────────────────────────────────
 
 function fmtTs(ts: number) {
@@ -98,43 +70,7 @@ function fmtTs(ts: number) {
   })
 }
 
-function formatDate(d: Date | null | string): string {
-  if (!d) return strings.common.notAvailable
-  const date = typeof d === "string" ? new Date(d) : d
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })
-}
-
-function formatAge(sec: number): string {
-  if (sec < 60) return `${sec}s`
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  if (m < 60) return `${m}m ${s}s`
-  const h = Math.floor(m / 60)
-  return `${h}h ${m % 60}m`
-}
-
 // ─── Channel inference ───────────────────────────────────────────────────────
-
-function inferChannel(
-  attributes: string,
-  taskChannel: string | null
-): "whatsapp" | "voice" | "unknown" {
-  try {
-    const attrs = JSON.parse(attributes) as Record<string, unknown>
-    const from = typeof attrs.from === "string" ? attrs.from : ""
-    if (from.startsWith("whatsapp:")) return "whatsapp"
-    if (from.startsWith("+") || /^\d+$/.test(from)) return "voice"
-  } catch {}
-  if (taskChannel === "voice") return "voice"
-  return "unknown"
-}
 
 function taskDataToResult(task: TaskData): SearchTaskResult {
   return {
@@ -143,196 +79,48 @@ function taskDataToResult(task: TaskData): SearchTaskResult {
   }
 }
 
-// ─── JSON block ──────────────────────────────────────────────────────────────
-
-function tryParseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function JsonBlock({ value }: { value: string }) {
-  const parsed = tryParseJson(value)
-  const isEmpty =
-    parsed === null ||
-    parsed === "" ||
-    (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
-  if (isEmpty)
-    return (
-      <span className="text-xs text-muted-foreground italic">
-        {strings.common.empty}
-      </span>
-    )
-  return (
-    <pre className="max-h-64 overflow-x-auto overflow-y-auto rounded-md bg-muted/60 px-3 py-2 font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">
-      {JSON.stringify(parsed, null, 2)}
-    </pre>
-  )
-}
-
 // ─── Badge variants ──────────────────────────────────────────────────────────
-
-type BadgeVariant =
-  "success" | "warning" | "destructive" | "secondary" | "info" | "outline"
-
-function statusVariant(s: string): BadgeVariant {
-  if (s === "assigned") return "success"
-  if (s === "reserved") return "info"
-  if (s === "pending") return "warning"
-  if (s === "wrapping") return "warning"
-  if (s === "canceled") return "destructive"
-  if (s === "completed") return "secondary"
-  return "outline"
-}
-
-function channelLabel(channel: "whatsapp" | "voice" | "unknown"): string {
-  if (channel === "whatsapp")
-    return strings.taskrouter.searchTasks.result.channelWhatsapp
-  if (channel === "voice")
-    return strings.taskrouter.searchTasks.result.channelVoice
-  return strings.taskrouter.searchTasks.result.channelUnknown
-}
-
-function channelVariant(
-  channel: "whatsapp" | "voice" | "unknown"
-): BadgeVariant {
-  if (channel === "whatsapp") return "success"
-  if (channel === "voice") return "info"
-  return "outline"
-}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function CopySid({ sid }: { sid: string }) {
-  const [copied, setCopied] = React.useState(false)
-
-  function handleCopy() {
-    navigator.clipboard.writeText(sid).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleCopy}
-      className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      title={strings.taskrouter.searchTasks.result.copySid}
-    >
-      {copied ? (
-        <Check className="size-3 text-emerald-500" />
-      ) : (
-        <Copy className="size-3" />
-      )}
-      {copied
-        ? strings.taskrouter.searchTasks.result.sidCopied
-        : strings.taskrouter.searchTasks.result.copySid}
-    </button>
-  )
-}
-
-function TaskCard({ task }: { task: SearchTaskResult }) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-col gap-1">
-            <CardTitle className="font-mono text-sm leading-relaxed break-all">
-              {task.sid}
-            </CardTitle>
-            <CopySid sid={task.sid} />
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-1.5">
-            {task.channel !== "unknown" && (
-              <Badge variant={channelVariant(task.channel)}>
-                {channelLabel(task.channel)}
-              </Badge>
-            )}
-            <Badge variant={statusVariant(task.assignmentStatus)}>
-              {task.assignmentStatus}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
-          <div>
-            <p className="mb-0.5 text-muted-foreground">
-              {strings.taskrouter.searchTasks.result.priority}
-            </p>
-            <p className="font-medium">{task.priority}</p>
-          </div>
-          <div>
-            <p className="mb-0.5 text-muted-foreground">
-              {strings.taskrouter.searchTasks.result.age}
-            </p>
-            <p className="font-medium">{formatAge(task.age)}</p>
-          </div>
-          {task.workflowFriendlyName && (
-            <div>
-              <p className="mb-0.5 text-muted-foreground">
-                {strings.taskrouter.searchTasks.result.workflow}
-              </p>
-              <p className="font-medium">{task.workflowFriendlyName}</p>
-            </div>
-          )}
-          {task.taskQueueFriendlyName && (
-            <div>
-              <p className="mb-0.5 text-muted-foreground">
-                {strings.taskrouter.searchTasks.result.queue}
-              </p>
-              <p className="font-medium">{task.taskQueueFriendlyName}</p>
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
-          <div>
-            <p className="mb-0.5 text-muted-foreground">
-              {strings.taskrouter.searchTasks.result.dateCreated}
-            </p>
-            <p className="font-medium">{formatDate(task.dateCreated)}</p>
-          </div>
-        </div>
-
-        <Separator />
-
-        <div>
-          <p className="mb-1.5 text-xs text-muted-foreground">
-            {strings.taskrouter.searchTasks.result.attributes}
-          </p>
-          <JsonBlock value={task.attributes} />
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
 // ─── Main form ───────────────────────────────────────────────────────────────
 
-export function SearchTasksForm() {
+export function SearchTasksForm({
+  initialPhone = "",
+  initialEnvironmentId,
+}: {
+  initialPhone?: string
+  initialEnvironmentId?: string
+}) {
   const { activeEnvironment } = useEnvironment()
-  const [mode, setMode] = React.useState<SearchMode>("sid")
+  const contextMismatch =
+    !!initialEnvironmentId && initialEnvironmentId !== activeEnvironment?.id
+  const phoneFromLink =
+    !contextMismatch && /^(?:whatsapp:)?\+?\d{10,15}$/.test(initialPhone)
+      ? initialPhone
+      : ""
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
+  const [mode, setMode] = React.useState<SearchMode>(
+    phoneFromLink ? "phone" : "sid"
+  )
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [taskSid, setTaskSid] = React.useState("")
-  const [phone, setPhone] = React.useState("")
+  const [phone, setPhone] = React.useState(phoneFromLink)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
     {}
   )
   const [tasks, setTasks] = React.useState<SearchTaskResult[] | null>(null)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   function handleModeChange(newMode: SearchMode) {
     if (newMode === mode) return
@@ -361,6 +149,7 @@ export function SearchTasksForm() {
     if (
       !activeEnvironment ||
       loading ||
+      abortRef.current ||
       !requestedWorkspaceSid ||
       !requestedValue
     )
@@ -368,10 +157,12 @@ export function SearchTasksForm() {
     setLoading(true)
     setError(null)
     setTasks(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     try {
       if (requestedMode === "sid") {
-        const res = await fetch("/api/taskrouter/fetch-task", {
+        const res = await fetch("/api/taskrouter/get-task-by-sid", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -380,8 +171,10 @@ export function SearchTasksForm() {
             accountSid: activeEnvironment.accountSid,
             authToken: activeEnvironment.authToken,
           }),
+          signal: controller.signal,
         })
         const json = (await res.json()) as { task: TaskData; error?: string }
+        if (controller.signal.aborted) return
         if (!res.ok || json.error) {
           setError(json.error ?? strings.common.unknown)
           return
@@ -396,10 +189,10 @@ export function SearchTasksForm() {
           assignmentStatus: result.assignmentStatus,
           taskQueueFriendlyName: result.taskQueueFriendlyName,
         }
-        pushHistory(entry)
+        pushHistory(historyKey, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       } else {
-        const res = await fetch("/api/taskrouter/search-tasks", {
+        const res = await fetch("/api/taskrouter/search-tasks-by-number", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -408,12 +201,14 @@ export function SearchTasksForm() {
             accountSid: activeEnvironment.accountSid,
             authToken: activeEnvironment.authToken,
           }),
+          signal: controller.signal,
         })
         const json = (await res.json()) as {
           tasks: SearchTaskResult[]
           phone: string
           error?: string
         }
+        if (controller.signal.aborted) return
         if (!res.ok || json.error) {
           setError(json.error ?? strings.common.unknown)
           return
@@ -426,13 +221,16 @@ export function SearchTasksForm() {
           phone: json.phone,
           count: json.tasks.length,
         }
-        pushHistory(entry)
+        pushHistory(historyKey, entry)
         setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -449,105 +247,77 @@ export function SearchTasksForm() {
       return
     }
     setFieldErrors({})
-    setConfirmOpen(true)
+    void runSearch()
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
-  const confirmTitle =
-    mode === "sid"
-      ? strings.taskrouter.searchTasks.confirmSidTitle
-      : strings.taskrouter.searchTasks.confirmPhoneTitle
-
-  const confirmDescription =
-    mode === "sid"
-      ? strings.taskrouter.searchTasks.confirmSidDescription(
-          taskSid.trim(),
-          activeEnvironment?.name ?? ""
-        )
-      : strings.taskrouter.searchTasks.confirmPhoneDescription(
-          phone.trim(),
-          activeEnvironment?.name ?? ""
-        )
+  const searchAction = (
+    <>
+      <ActionButton
+        action="search"
+        aria-busy={loading}
+        type="submit"
+        disabled={!canSubmit}
+      >
+        {loading ? (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        ) : (
+          <Search className="size-3.5" />
+        )}
+        {strings.taskrouter.searchTasks.submit}
+      </ActionButton>
+    </>
+  )
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.searchTasks.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <Search className="size-4 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.taskrouter.searchTasks.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.searchTasks.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.taskrouter.searchTasks.title}
+        description={strings.taskrouter.searchTasks.subtitle}
+        parent={{
+          href: "/?area=taskrouter",
+          label: strings.sidebar.sections.taskrouter,
+        }}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+      {!activeEnvironment && <NoEnvironmentSelected />}
+      {contextMismatch && activeEnvironment && (
+        <p role="status" className="mb-5 text-sm text-muted-foreground">
+          {strings.common.contextEnvironmentMismatch}
+        </p>
       )}
 
       {/* Mode toggle */}
       <div className="mb-4 flex rounded-lg border border-border bg-muted/40 p-0.5">
         <button
+          aria-pressed={mode === "sid"}
           type="button"
           onClick={() => handleModeChange("sid")}
           className={cn(
+            "focus-visible:outline-2 focus-visible:outline-ring",
             "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             mode === "sid"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
           {strings.taskrouter.searchTasks.modeSid}
         </button>
         <button
+          aria-pressed={mode === "phone"}
           type="button"
           onClick={() => handleModeChange("phone")}
           className={cn(
+            "focus-visible:outline-2 focus-visible:outline-ring",
             "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-all",
             mode === "phone"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-background text-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -556,13 +326,24 @@ export function SearchTasksForm() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="space-y-6"
+        actions={searchAction}
+      >
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.searchTasks.workspaceSidLabel}
           </Label>
           <StoredInput
             id="workspaceSid"
+            className="search-control"
+            aria-describedby={
+              fieldErrors.workspaceSid
+                ? "task-workspace-error task-workspace-hint"
+                : "task-workspace-hint"
+            }
+            aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -575,11 +356,14 @@ export function SearchTasksForm() {
                   return n
                 })
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={loading}
           />
+          <p id="task-workspace-hint" className="text-xs text-muted-foreground">
+            {strings.common.workspaceSidHint}
+          </p>
           {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">
+            <p id="task-workspace-error" className="text-xs text-destructive">
               {fieldErrors.workspaceSid}
             </p>
           )}
@@ -590,41 +374,35 @@ export function SearchTasksForm() {
             <Label htmlFor="taskSid">
               {strings.taskrouter.searchTasks.taskSidLabel}
             </Label>
-            <div className="flex gap-2">
-              <Input
-                id="taskSid"
-                value={taskSid}
-                onChange={(e) => {
-                  setTaskSid(e.target.value)
-                  if (fieldErrors.taskSid)
-                    setFieldErrors((p) => {
-                      const n = { ...p }
-                      delete n.taskSid
-                      return n
-                    })
-                }}
-                placeholder="WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                disabled={loading}
-                className="flex-1 font-mono text-sm"
-                aria-invalid={!!fieldErrors.taskSid}
-              />
-              <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="shrink-0 gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Search className="size-3.5" />
-                )}
-                {strings.taskrouter.searchTasks.submit}
-              </Button>
-            </div>
+
+            <SearchInput
+              id="taskSid"
+              aria-describedby="task-sid-feedback"
+              value={taskSid}
+              onChange={(e) => {
+                setTaskSid(e.target.value)
+                if (fieldErrors.taskSid)
+                  setFieldErrors((p) => {
+                    const n = { ...p }
+                    delete n.taskSid
+                    return n
+                  })
+              }}
+              placeholder={strings.common.placeholders.taskSid}
+              disabled={loading}
+              className="min-w-0 flex-1 font-mono"
+              aria-invalid={!!fieldErrors.taskSid}
+            />
+
             {fieldErrors.taskSid ? (
-              <p className="text-xs text-destructive">{fieldErrors.taskSid}</p>
+              <p id="task-sid-feedback" className="text-xs text-destructive">
+                {fieldErrors.taskSid}
+              </p>
             ) : (
-              <p className="text-xs text-muted-foreground">
+              <p
+                id="task-sid-feedback"
+                className="text-xs text-muted-foreground"
+              >
                 {strings.taskrouter.searchTasks.taskSidHint}
               </p>
             )}
@@ -634,71 +412,41 @@ export function SearchTasksForm() {
             <Label htmlFor="phone">
               {strings.taskrouter.searchTasks.phoneLabel}
             </Label>
-            <div className="flex gap-2">
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+5511999999999"
-                disabled={loading}
-                className="flex-1"
-              />
-              <Button
-                type="submit"
-                disabled={!canSubmit}
-                className="shrink-0 gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Search className="size-3.5" />
-                )}
-                {strings.taskrouter.searchTasks.submit}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
+
+            <SearchInput
+              id="phone"
+              aria-describedby="task-phone-hint"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={strings.common.placeholders.phone}
+              disabled={loading}
+              className="min-w-0 flex-1"
+            />
+
+            <p id="task-phone-hint" className="text-xs text-muted-foreground">
               {strings.taskrouter.searchTasks.phoneLabelHint}
             </p>
           </div>
         )}
-      </form>
-
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              className="gap-2"
-              onClick={() => {
-                setConfirmOpen(false)
-                void runSearch()
-              }}
-            >
-              <Search aria-hidden="true" className="size-3.5" />
-              {strings.common.search}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
+      </OperationForm>
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading && (
-        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
+        <div
+          role="status"
+          className="mt-6 flex items-center gap-2 text-sm text-muted-foreground"
+        >
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
           {strings.common.processing}
         </div>
       )}

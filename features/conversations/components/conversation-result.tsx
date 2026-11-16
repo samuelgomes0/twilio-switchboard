@@ -1,18 +1,18 @@
 "use client"
 
-import * as React from "react"
-import dynamic from "next/dynamic"
-import { Tabs } from "radix-ui"
 import { Button } from "@/components/ui/button"
-import { ConversationDetails } from "./conversation-details"
-import { ConversationParticipants } from "./conversation-participants"
-import { useConversationQuery } from "./use-conversation-query"
 import type { TwilioEnvironment } from "@/features/environments/storage"
 import { strings } from "@/lib/strings"
+import dynamic from "next/dynamic"
+import { Tabs } from "radix-ui"
+import * as React from "react"
+import { ConversationDetails } from "./conversation-details"
+import { ConversationParticipants } from "./conversation-participants"
 import {
   ConversationDetailsSkeleton,
   ConversationMessagesSkeleton,
 } from "./conversation-skeletons"
+import { useConversationQuery } from "./use-conversation-query"
 
 const ConversationMessages = dynamic(
   () =>
@@ -36,7 +36,7 @@ function QueryFeedback({
   return error ? (
     <div
       role="alert"
-      className="space-y-3 rounded-lg border border-destructive/30 p-4"
+      className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
     >
       <p>{error}</p>
       <Button variant="outline" onClick={retry}>
@@ -70,6 +70,7 @@ export function ConversationResult({
     messagesError,
     retryDetails,
     retryMessages,
+    updateConversation,
   } = useConversationQuery(sid, environment, messagesRequested)
   const labels = strings.conversations.consult
 
@@ -83,16 +84,9 @@ export function ConversationResult({
           if (next === "messages") setMessagesRequested(true)
         }}
       >
-        <Tabs.List
-          aria-label={labels.tabs}
-          className="mb-4 flex gap-1 rounded-lg bg-muted p-1"
-        >
+        <Tabs.List aria-label={labels.tabs} className="tab-list">
           {(["details", "messages"] as const).map((value) => (
-            <Tabs.Trigger
-              key={value}
-              value={value}
-              className="flex-1 cursor-pointer rounded-md px-4 py-2 text-sm transition-colors hover:bg-background/60 focus-visible:outline-2 focus-visible:outline-ring data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:hover:bg-background/80"
-            >
+            <Tabs.Trigger key={value} value={value} className="tab-trigger">
               {labels[value]}
             </Tabs.Trigger>
           ))}
@@ -100,15 +94,19 @@ export function ConversationResult({
         <Tabs.Content
           value="details"
           forceMount
-          className="space-y-4 data-[state=inactive]:hidden"
+          className="conversation-details-grid data-[state=inactive]:hidden"
         >
           {details ? (
             <>
               <ConversationDetails
                 conversation={details.conversation}
                 onRefresh={() => refresh("details")}
+                onUpdated={updateConversation}
               />
-              <ConversationParticipants participants={details.participants} />
+              <ConversationParticipants
+                participants={details.participants}
+                environmentId={environment.id}
+              />
             </>
           ) : (
             <QueryFeedback

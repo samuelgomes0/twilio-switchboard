@@ -7,6 +7,8 @@ export interface NumberRecord {
   service: PhoneNumberService
 }
 
-export interface ListNumbersResponse {
+export interface NumberListResult {
   numbers: NumberRecord[]
+  partial: boolean
+  hasMore: boolean
 }

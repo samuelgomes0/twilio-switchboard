@@ -1,5 +1,5 @@
-import * as React from "react"
 import { Tooltip } from "radix-ui"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -8,7 +8,11 @@ function TooltipProvider(props: React.ComponentProps<typeof Tooltip.Provider>) {
 }
 
 function TooltipRoot(props: React.ComponentProps<typeof Tooltip.Root>) {
-  return <Tooltip.Root {...props} />
+  return (
+    <Tooltip.Provider delayDuration={300}>
+      <Tooltip.Root {...props} />
+    </Tooltip.Provider>
+  )
 }
 
 function TooltipTrigger(props: React.ComponentProps<typeof Tooltip.Trigger>) {
@@ -37,4 +41,4 @@ function TooltipContent({
   )
 }
 
-export { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent }
+export { TooltipContent, TooltipProvider, TooltipRoot, TooltipTrigger }

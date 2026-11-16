@@ -1,6 +1,6 @@
 import type { getTwilioClient } from "@/lib/twilio-client"
 
-export const WORKER_SID_RE = /^WK[a-f0-9]{32}$/i
+const WORKER_SID_RE = /^WK[a-f0-9]{32}$/i
 
 export async function resolveWorker(
   client: ReturnType<typeof getTwilioClient>,

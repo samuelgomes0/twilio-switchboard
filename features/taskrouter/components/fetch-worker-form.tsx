@@ -1,35 +1,32 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
+import { useBrowserState } from "@/components/use-browser-state"
 
+import { PageHeader } from "@/components/page-header"
+
+import { ActionButton } from "@/components/action-button"
+import { JsonBlock } from "@/components/json-block"
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+
+import { Loader2, Search } from "lucide-react"
 import * as React from "react"
-import Link from "next/link"
-import {
-  ChevronRight,
-  Loader2,
-  AlertTriangle,
-  Search,
-  User,
-} from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { StoredInput } from "@/components/stored-input"
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
@@ -47,26 +44,6 @@ const HISTORY_KEY = "switchboard:fetch-worker-history"
 const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const WORKER_IDS_KEY = STORED_KEYS.workerIdentifiers
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -88,33 +65,6 @@ function formatDate(d: Date | null | string): string {
     minute: "2-digit",
     second: "2-digit",
   })
-}
-
-function tryParseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function JsonBlock({ value }: { value: string }) {
-  const parsed = tryParseJson(value)
-  const isEmpty =
-    parsed === null ||
-    parsed === "" ||
-    (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
-  if (isEmpty)
-    return (
-      <span className="text-xs text-muted-foreground italic">
-        {strings.common.empty}
-      </span>
-    )
-  return (
-    <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
-      {JSON.stringify(parsed, null, 2)}
-    </pre>
-  )
 }
 
 type ActivityVariant = "success" | "secondary" | "outline"
@@ -142,6 +92,9 @@ function parseRouting(attributes: string): WorkerRouting | null {
 export function FetchWorkerForm() {
   const management = useWorkerManagement()
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [localWorkspaceSid, setLocalWorkspaceSid] = React.useState("")
   const workspaceSid = management?.workspaceSid ?? localWorkspaceSid
   const setWorkspaceSid = management?.setWorkspaceSid ?? setLocalWorkspaceSid
@@ -150,12 +103,13 @@ export function FetchWorkerForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const [data, setData] = React.useState<{ worker: WorkerData } | null>(null)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -169,6 +123,7 @@ export function FetchWorkerForm() {
   ) {
     if (
       loading ||
+      abortRef.current ||
       !activeEnvironment ||
       !WS_SID_RE.test(requestedWorkspaceSid) ||
       !requestedIdentifier
@@ -177,9 +132,11 @@ export function FetchWorkerForm() {
     setLoading(true)
     setError(null)
     setData(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/fetch-worker", {
+      const res = await fetch("/api/taskrouter/get-worker-details", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -188,8 +145,10 @@ export function FetchWorkerForm() {
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
+        signal: controller.signal,
       })
       const json = (await res.json()) as { worker: WorkerData; error?: string }
+      if (controller.signal.aborted) return
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)
         return
@@ -203,12 +162,15 @@ export function FetchWorkerForm() {
         friendlyName: json.worker.friendlyName,
         activityName: json.worker.activityName,
       }
-      pushHistory(entry)
+      pushHistory(historyKey, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -220,164 +182,122 @@ export function FetchWorkerForm() {
       return
     }
     setWsSidError(null)
-    setConfirmOpen(true)
+    void runSearch()
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
   const routing = data ? parseRouting(data.worker.attributes) : null
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav
-        data-worker-page-header
-        className="mb-5 flex items-center gap-1 text-sm"
-      >
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.fetchWorker.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <User className="size-4 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.taskrouter.fetchWorker.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.fetchWorker.subtitle}
-          </p>
-        </div>
-      </div>
-
-      {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+      {!management && (
+        <PageHeader
+          title={strings.taskrouter.fetchWorker.title}
+          description={strings.taskrouter.fetchWorker.subtitle}
+          parent={{
+            href: "/?area=taskrouter",
+            label: strings.sidebar.sections.taskrouter,
+          }}
+          embedded
+        />
       )}
 
+      {/* No environment warning */}
+      {!activeEnvironment && <NoEnvironmentSelected />}
+
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div data-worker-workspace-field className="space-y-2">
-          <Label htmlFor="workspaceSid">
-            {strings.taskrouter.fetchWorker.workspaceSidLabel}
-          </Label>
-          <StoredInput
-            id="workspaceSid"
-            storageKey={WS_SIDS_KEY}
-            environmentId={activeEnvironment?.id}
-            value={workspaceSid}
-            onChange={(v) => {
-              setWorkspaceSid(v)
-              if (wsSidError) setWsSidError(null)
-            }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            disabled={loading}
-          />
-          {wsSidError && (
-            <p className="text-xs text-destructive">{wsSidError}</p>
-          )}
-        </div>
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="search"
+              aria-busy={loading}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              {strings.common.search}
+            </ActionButton>
+          </>
+        }
+      >
+        {!management && (
+          <div data-worker-workspace-field className="space-y-2">
+            <Label htmlFor="fetch-worker-workspace">
+              {strings.taskrouter.fetchWorker.workspaceSidLabel}
+            </Label>
+            <StoredInput
+              id="fetch-worker-workspace"
+              className="search-control"
+              aria-describedby={
+                wsSidError ? "fetch-workspace-error" : undefined
+              }
+              aria-invalid={!!wsSidError}
+              storageKey={WS_SIDS_KEY}
+              environmentId={activeEnvironment?.id}
+              value={workspaceSid}
+              onChange={(v) => {
+                setWorkspaceSid(v)
+                if (wsSidError) setWsSidError(null)
+              }}
+              placeholder={strings.common.placeholders.workspaceSid}
+              disabled={loading}
+            />
+            {wsSidError && (
+              <p
+                id="fetch-workspace-error"
+                className="text-xs text-destructive"
+              >
+                {wsSidError}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="identifier">
             {strings.taskrouter.fetchWorker.identifierLabel}
           </Label>
-          <div className="flex gap-2">
-            <StoredInput
-              id="identifier"
-              storageKey={WORKER_IDS_KEY}
-              environmentId={activeEnvironment?.id}
-              value={identifier}
-              onChange={setIdentifier}
-              placeholder="WKxxxxx... ou agente@empresa.com"
-              disabled={loading}
-              containerClassName="flex-1"
-              className="font-sans text-sm placeholder:font-sans"
-            />
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              className="shrink-0 gap-2"
-            >
-              {loading ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Search className="size-3.5" />
-              )}
-              {strings.common.search}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">
+
+          <StoredInput
+            id="identifier"
+            aria-describedby="worker-identifier-hint"
+            storageKey={WORKER_IDS_KEY}
+            environmentId={activeEnvironment?.id}
+            value={identifier}
+            onChange={setIdentifier}
+            placeholder={strings.common.placeholders.worker}
+            disabled={loading}
+            containerClassName="w-full min-w-0 flex-1"
+            className="search-control font-sans placeholder:font-sans"
+          />
+
+          <p
+            id="worker-identifier-hint"
+            className="text-xs text-muted-foreground"
+          >
             {strings.taskrouter.fetchWorker.identifierHint}
           </p>
         </div>
-      </form>
-
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {strings.taskrouter.fetchWorker.confirmTitle}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {strings.taskrouter.fetchWorker.confirmDescription(
-                identifier.trim(),
-                activeEnvironment?.name ?? ""
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              className="gap-2"
-              onClick={() => {
-                setConfirmOpen(false)
-                void runSearch()
-              }}
-            >
-              <Search aria-hidden="true" className="size-3.5" />
-              {strings.common.search}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
+      </OperationForm>
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
@@ -389,7 +309,7 @@ export function FetchWorkerForm() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-sm text-muted-foreground">
+                  <p className="font-mono text-sm break-all text-muted-foreground">
                     {data.worker.sid}
                   </p>
                   <CardTitle className="mt-1 text-base">
@@ -407,6 +327,7 @@ export function FetchWorkerForm() {
               {management && (
                 <div className="flex flex-wrap gap-2">
                   <Button
+                    size="sm"
                     type="button"
                     variant="outline"
                     onClick={() =>
@@ -416,6 +337,7 @@ export function FetchWorkerForm() {
                     {strings.taskrouter.workerManagement.actions.addSkill}
                   </Button>
                   <Button
+                    size="sm"
                     type="button"
                     variant="outline"
                     onClick={() =>
@@ -459,7 +381,7 @@ export function FetchWorkerForm() {
               )}
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
                 <div>
                   <p className="mb-0.5 text-muted-foreground">
                     {strings.taskrouter.fetchWorker.result.dateCreated}
@@ -476,7 +398,7 @@ export function FetchWorkerForm() {
                     {formatDate(data.worker.dateUpdated)}
                   </p>
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                   <p className="mb-0.5 text-muted-foreground">
                     {strings.taskrouter.fetchWorker.result.dateStatusChanged}
                   </p>

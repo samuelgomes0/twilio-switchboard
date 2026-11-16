@@ -1,11 +1,16 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
-import * as React from "react"
-import { ChevronRight, FileSearch2, Search } from "lucide-react"
-import Link from "next/link"
-import { StoredInput } from "@/components/stored-input"
+import { PageHeader } from "@/components/page-header"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import { Button } from "@/components/ui/button"
+import { StoredInput } from "@/components/stored-input"
+import { Search } from "lucide-react"
+import * as React from "react"
+
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { TwilioEnvironment } from "@/features/environments/storage"
@@ -17,6 +22,7 @@ import { useConversationHistory } from "./use-conversation-history"
 interface ConversationFormProps {
   initialSid?: string
   initialTab?: "details" | "messages"
+  initialEnvironmentId?: string
 }
 
 function EnvironmentConversationForm({
@@ -64,37 +70,50 @@ function EnvironmentConversationForm({
 
   return (
     <>
-      <form onSubmit={searchConversation} className="space-y-2">
-        <Label htmlFor="conversation-sid">
-          {strings.conversations.history.sidLabel}
-        </Label>
-        <div className="flex gap-2">
+      <OperationForm
+        onSubmit={searchConversation}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton action="search" type="submit" disabled={!valid}>
+              <Search aria-hidden="true" className="size-3.5" />
+              {strings.common.search}
+            </ActionButton>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <Label htmlFor="conversation-sid">
+            {strings.conversations.history.sidLabel}
+          </Label>
+
           <StoredInput
             id="conversation-sid"
+            className="search-control"
+            aria-describedby="conversation-sid-feedback"
+            aria-invalid={!!sid.trim() && !valid}
             storageKey={STORED_KEYS.conversationSids}
             environmentId={environment.id}
             value={sid}
             onChange={setSid}
             placeholder={strings.conversations.history.sidPlaceholder}
-            containerClassName="flex-1"
+            containerClassName="w-full min-w-0 flex-1"
           />
-          <Button type="submit" disabled={!valid} className="gap-2">
-            <Search aria-hidden="true" className="size-3.5" />
-            {strings.common.search}
-          </Button>
+
+          <p
+            id="conversation-sid-feedback"
+            className={
+              sid.trim() && !valid
+                ? "text-xs text-destructive"
+                : "text-xs text-muted-foreground"
+            }
+          >
+            {sid.trim() && !valid
+              ? strings.conversations.history.sidInvalid
+              : strings.conversations.history.sidHint}
+          </p>
         </div>
-        <p
-          className={
-            sid.trim() && !valid
-              ? "text-xs text-destructive"
-              : "text-xs text-muted-foreground"
-          }
-        >
-          {sid.trim() && !valid
-            ? strings.conversations.history.sidInvalid
-            : strings.conversations.history.sidHint}
-        </p>
-      </form>
+      </OperationForm>
       {query && (
         <ConversationResult
           key={`${query.sid}:${query.revision}`}
@@ -131,54 +150,34 @@ function EnvironmentConversationForm({
 
 export function ConversationForm(props: ConversationFormProps) {
   const { activeEnvironment } = useEnvironment()
+  const contextMismatch =
+    !!props.initialEnvironmentId &&
+    props.initialEnvironmentId !== activeEnvironment?.id
   const labels = strings.conversations.consult
   return (
-    <div className="mx-auto max-w-3xl">
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          className="text-muted-foreground transition-colors hover:text-foreground"
-          href="/conversations"
-        >
-          {strings.sidebar.sections.conversations}
-        </Link>
-        <ChevronRight
-          aria-hidden="true"
-          className="size-3.5 text-muted-foreground"
-        />
-        <span aria-current="page" className="font-medium text-foreground">
-          {labels.title}
-        </span>
-      </nav>
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <FileSearch2 aria-hidden="true" className="size-4 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {labels.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">{labels.subtitle}</p>
-        </div>
-      </div>
+    <div className="workspace-page">
+      <PageHeader
+        title={labels.title}
+        description={labels.subtitle}
+        parent={{
+          href: "/?area=conversations",
+          label: strings.sidebar.sections.conversations,
+        }}
+      />
+      {contextMismatch && activeEnvironment && (
+        <p role="status" className="mb-5 text-sm text-muted-foreground">
+          {strings.common.contextEnvironmentMismatch}
+        </p>
+      )}
       {activeEnvironment ? (
         <EnvironmentConversationForm
           key={activeEnvironment.id}
           {...props}
+          initialSid={contextMismatch ? "" : props.initialSid}
           environment={activeEnvironment}
         />
       ) : (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive/30 p-4 text-sm"
-        >
-          <p>{strings.common.noEnvironmentSelected.title}</p>
-          <p>
-            {strings.common.noEnvironmentSelected.message}{" "}
-            <Link className="underline" href="/settings/environments">
-              {strings.common.noEnvironmentSelected.link}
-            </Link>
-          </p>
-        </div>
+        <NoEnvironmentSelected className="mb-0" />
       )}
     </div>
   )

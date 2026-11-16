@@ -1,5 +1,6 @@
+import { ActionButton } from "@/components/action-button"
 import type { ReactNode } from "react"
-import { Button } from "@/components/ui/button"
+
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
@@ -12,16 +13,16 @@ export function RecentHistory({
 }) {
   return (
     <section
-      className="mt-8 space-y-2"
+      className="history-section space-y-2"
       aria-label={strings.common.recentHistory.title}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-medium">
           {strings.common.recentHistory.title}
         </h2>
-        <Button type="button" variant="ghost" size="sm" onClick={onClear}>
+        <ActionButton action="clear" type="button" onClick={onClear}>
           {strings.common.clear}
-        </Button>
+        </ActionButton>
       </div>
       <ul className="space-y-1">{children}</ul>
     </section>
@@ -39,8 +40,7 @@ export function RecentHistoryItem({
   onSelect?: () => void
   ariaLabel?: string
 }) {
-  const contentClassName =
-    "min-h-8 w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+  const contentClassName = "history-item rounded-md"
 
   return (
     <li className={cn(!onSelect && contentClassName, className)}>

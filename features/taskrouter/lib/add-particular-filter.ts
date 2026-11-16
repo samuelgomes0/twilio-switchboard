@@ -1,26 +1,13 @@
-import { sseEvent } from "@/features/conversations/lib/close"
-import type { AddParticularFilterInput } from "@/features/taskrouter/types"
+import { strings } from "@/lib/strings"
+import { AppError, sanitizeExternalError } from "@/lib/errors"
+import { sseEvent } from "@/lib/sse-event"
+import type {
+  AddParticularFilterInput,
+  WorkflowFilter,
+} from "@/features/taskrouter/types"
 import { getTwilioClient } from "@/lib/twilio-client"
-
-interface RoutingTarget {
-  queue: string
-  expression?: string
-  skip_if?: string
-}
-
-interface WorkflowFilter {
-  filter_friendly_name?: string
-  friendly_name?: string
-  expression?: string
-  targets?: RoutingTarget[]
-}
-
-interface WorkflowConfiguration {
-  task_routing: {
-    filters: WorkflowFilter[]
-    default_filter?: { queue: string }
-  }
-}
+import { isSafeTaskRouterLiteral } from "@/features/taskrouter/lib/taskrouter-expression"
+import { parseWorkflowConfiguration } from "@/features/taskrouter/lib/workflow-configuration"
 
 function buildFilter(filterName: string, taskQueueSid: string): WorkflowFilter {
   return {
@@ -55,38 +42,55 @@ function buildFilter(filterName: string, taskQueueSid: string): WorkflowFilter {
 export async function addParticularFilter(
   input: AddParticularFilterInput,
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  signal?: AbortSignal
 ): Promise<{ totalAdded: number; totalSkipped: number; totalErrors: number }> {
+  if (!isSafeTaskRouterLiteral(input.filterName)) {
+    throw new AppError(
+      "validation",
+      strings.common.validation.invalidFilterName
+    )
+  }
   let totalAdded = 0
   let totalSkipped = 0
   let totalErrors = 0
 
   for (const { workflowSid, taskQueueSid } of input.entries) {
-    emit(sseEvent("info", `Processando workflow ${workflowSid}...`))
+    signal?.throwIfAborted()
+    emit(
+      sseEvent(
+        "info",
+        strings.taskrouter.addParticularFilter.log.processing(workflowSid)
+      )
+    )
 
     try {
       const workflow = await client.taskrouter.v1
         .workspaces(input.workspaceSid)
         .workflows(workflowSid)
         .fetch()
+      signal?.throwIfAborted()
 
-      const configuration = JSON.parse(
+      const parsedConfiguration = parseWorkflowConfiguration(
         workflow.configuration
-      ) as WorkflowConfiguration
+      )
 
-      if (!configuration.task_routing) {
+      if (!parsedConfiguration.ok) {
         emit(
           sseEvent(
             "error",
-            `Workflow ${workflowSid} não possui configuração de roteamento válida.`
+            strings.taskrouter.addParticularFilter.log.invalidRouting(
+              workflowSid
+            )
           )
         )
         totalErrors++
         continue
       }
 
-      const filters: WorkflowFilter[] =
-        configuration.task_routing.filters ?? []
+      const configuration = parsedConfiguration.configuration
+
+      const filters: WorkflowFilter[] = configuration.task_routing.filters ?? []
 
       const alreadyExists = filters.some(
         (f) =>
@@ -98,7 +102,10 @@ export async function addParticularFilter(
         emit(
           sseEvent(
             "warning",
-            `Filtro "${input.filterName}" já existe no workflow ${workflowSid}. Ignorado.`
+            strings.taskrouter.addParticularFilter.log.alreadyExists(
+              input.filterName,
+              workflowSid
+            )
           )
         )
         totalSkipped++
@@ -108,6 +115,7 @@ export async function addParticularFilter(
       filters.push(buildFilter(input.filterName, taskQueueSid))
       configuration.task_routing.filters = filters
 
+      signal?.throwIfAborted()
       await client.taskrouter.v1
         .workspaces(input.workspaceSid)
         .workflows(workflowSid)
@@ -116,17 +124,23 @@ export async function addParticularFilter(
       emit(
         sseEvent(
           "success",
-          `Filtro "${input.filterName}" adicionado ao workflow ${workflowSid}.`
+          strings.taskrouter.addParticularFilter.log.added(
+            input.filterName,
+            workflowSid
+          )
         )
       )
       totalAdded++
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Erro desconhecido"
+      if (signal?.aborted) throw err
+      const message = sanitizeExternalError(err)
       emit(
         sseEvent(
           "error",
-          `Erro ao processar workflow ${workflowSid}: ${message}`
+          strings.taskrouter.addParticularFilter.log.failed(
+            workflowSid,
+            message
+          )
         )
       )
       totalErrors++

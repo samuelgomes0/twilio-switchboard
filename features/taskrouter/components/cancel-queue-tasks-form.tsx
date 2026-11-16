@@ -1,14 +1,15 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
-import {
-  AlertTriangle,
-  ChevronRight,
-  ListX,
-  Play,
-  RotateCcw,
-  Square,
-} from "lucide-react"
-import Link from "next/link"
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -16,7 +17,7 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
-import { WarningBadge } from "@/components/warning-badge"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { StoredInput } from "@/components/stored-input"
 import { StoredTextarea } from "@/components/stored-textarea"
 import {
@@ -29,12 +30,18 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
+import { buttonVariants } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { WarningBadge } from "@/components/warning-badge"
 import { useEnvironment } from "@/features/environments/context"
-import { DEFAULT_CLOSE_MESSAGE } from "@/features/taskrouter/lib/cancel-queue-tasks"
 import { MAX_HISTORY } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
+import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -44,6 +51,7 @@ interface Summary {
   totalSuccess: number
   totalSkipped: number
   totalErrors: number
+  partial: boolean
 }
 
 interface HistoryEntry {
@@ -66,26 +74,6 @@ const QUEUE_NAMES_KEY = STORED_KEYS.queueNames
 const CLOSE_MESSAGES_KEY = STORED_KEYS.closeMessages
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
-
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -97,23 +85,29 @@ function fmtTs(ts: number) {
 
 export function CancelQueueTasksForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [taskQueueName, setTaskQueueName] = React.useState("")
-  const [closeMessage, setCloseMessage] = React.useState(DEFAULT_CLOSE_MESSAGE)
+  const [closeMessage, setCloseMessage] = React.useState<string>(
+    strings.taskrouter.cancelQueueTasks.defaultCloseMessage
+  )
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
     {}
   )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const canSubmit =
     workspaceSid.trim().length > 0 &&
@@ -135,9 +129,7 @@ export function CancelQueueTasksForm() {
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
@@ -155,18 +147,21 @@ export function CancelQueueTasksForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/cancel-queue-tasks", {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceSid: workspaceSid.trim(),
-          taskQueueName: taskQueueName.trim(),
-          closeMessage: closeMessage.trim(),
-          accountSid: activeEnvironment.accountSid,
-          authToken: activeEnvironment.authToken,
-        }),
-      })
+      const res = await fetch(
+        "/api/taskrouter/cancel-queue-tasks-and-close-conversations",
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspaceSid: workspaceSid.trim(),
+            taskQueueName: taskQueueName.trim(),
+            closeMessage: closeMessage.trim(),
+            accountSid: activeEnvironment.accountSid,
+            authToken: activeEnvironment.authToken,
+          }),
+        }
+      )
 
       if (!res.ok || !res.body) {
         const text = await res.text()
@@ -183,71 +178,57 @@ export function CancelQueueTasksForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalSuccess?: number
-              totalSkipped?: number
-              totalErrors?: number
-              progress?: Progress
-            }
-
-            if (payload.progress) setProgress(payload.progress)
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const success = payload.totalSuccess ?? 0
-              const skipped = payload.totalSkipped ?? 0
-              const errors = payload.totalErrors ?? 0
-              setSummary({
-                totalSuccess: success,
-                totalSkipped: skipped,
-                totalErrors: errors,
-              })
-              setStatus("done")
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                workspaceSid: workspaceSid.trim(),
-                taskQueueName: taskQueueName.trim(),
-                success,
-                skipped,
-                errors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
-          }
+      await consumeSseStream(reader, (payload) => {
+        if (
+          typeof payload.progress === "object" &&
+          payload.progress !== null &&
+          "current" in payload.progress &&
+          "total" in payload.progress &&
+          typeof payload.progress.current === "number" &&
+          typeof payload.progress.total === "number"
+        ) {
+          setProgress(payload.progress as Progress)
         }
-      }
+        addLog(payload.level, payload.message)
 
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
+        if (payload.done === true) {
+          if (payload.level === "error") {
+            setStatus("error")
+            return
+          }
+          const success =
+            typeof payload.totalSuccess === "number" ? payload.totalSuccess : 0
+          const skipped =
+            typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+          const errors =
+            typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+          const partial = payload.partial === true
+          setSummary({
+            totalSuccess: success,
+            totalSkipped: skipped,
+            totalErrors: errors,
+            partial,
+          })
+          setStatus("done")
+          const entry: HistoryEntry = {
+            ts: Date.now(),
+            workspaceSid: workspaceSid.trim(),
+            taskQueueName: taskQueueName.trim(),
+            success,
+            skipped,
+            errors,
+          }
+          pushHistory(historyKey, entry)
+          setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        }
+      })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -272,61 +253,62 @@ export function CancelQueueTasksForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.cancelQueueTasks.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <ListX className="size-4 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.cancelQueueTasks.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.cancelQueueTasks.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.taskrouter.cancelQueueTasks.title}
+        description={strings.taskrouter.cancelQueueTasks.subtitle}
+        parent={{
+          href: "/?area=taskrouter",
+          label: strings.sidebar.sections.taskrouter,
+        }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="form-grid"
+        actions={
+          <>
+            <ActionButton
+              action="destructive"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" />
+                  {strings.taskrouter.cancelQueueTasks.submit}
+                </>
+              )}
+            </ActionButton>
+
+            {status === "running" && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+
+            {(logs.length > 0 || status !== "idle") && status !== "running" && (
+              <ActionButton action="clear" type="button" onClick={reset}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
         {/* Workspace SID */}
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
@@ -334,6 +316,10 @@ export function CancelQueueTasksForm() {
           </Label>
           <StoredInput
             id="workspaceSid"
+            aria-describedby={
+              fieldErrors.workspaceSid ? "cancel-workspace-error" : undefined
+            }
+            aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={WS_SIDS_KEY}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
@@ -346,11 +332,11 @@ export function CancelQueueTasksForm() {
                   return next
                 })
             }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            placeholder={strings.common.placeholders.workspaceSid}
             disabled={status === "running"}
           />
           {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">
+            <p id="cancel-workspace-error" className="text-xs text-destructive">
               {fieldErrors.workspaceSid}
             </p>
           )}
@@ -367,7 +353,7 @@ export function CancelQueueTasksForm() {
             environmentId={activeEnvironment?.id}
             value={taskQueueName}
             onChange={setTaskQueueName}
-            placeholder="ex: SANTA_LUZIA_WHATSAPP"
+            placeholder={strings.common.placeholders.queue}
             disabled={status === "running"}
             className="font-mono"
           />
@@ -378,62 +364,19 @@ export function CancelQueueTasksForm() {
           <Label htmlFor="closeMessage">
             {strings.taskrouter.cancelQueueTasks.closeMessageLabel}
           </Label>
-          <StoredTextarea
-            id="closeMessage"
-            storageKey={CLOSE_MESSAGES_KEY}
-            value={closeMessage}
-            onChange={setCloseMessage}
-            rows={3}
-            disabled={status === "running"}
-          />
+
+          <div className="min-w-0 flex-1">
+            <StoredTextarea
+              id="closeMessage"
+              storageKey={CLOSE_MESSAGES_KEY}
+              value={closeMessage}
+              onChange={setCloseMessage}
+              rows={3}
+              disabled={status === "running"}
+            />
+          </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            variant="destructive"
-            className="gap-2"
-          >
-            {status === "running" ? (
-              <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.taskrouter.cancelQueueTasks.submit}
-              </>
-            )}
-          </Button>
-
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reset}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
-          )}
-        </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -449,9 +392,20 @@ export function CancelQueueTasksForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
+          <div className="mt-3 space-y-2 text-sm">
+            <p className="font-medium">
+              {strings.taskrouter.cancelQueueTasks.closeMessageLabel}
+            </p>
+            <p className="max-h-40 overflow-y-auto rounded-md bg-muted p-3 break-words whitespace-pre-wrap">
+              {closeMessage.trim() ||
+                strings.taskrouter.cancelQueueTasks.defaultCloseMessage}
+            </p>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
+              className={buttonVariants({ variant: "destructive" })}
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()
@@ -474,7 +428,14 @@ export function CancelQueueTasksForm() {
               {Math.round((progress.current / progress.total) * 100)}%
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            role="progressbar"
+            aria-label={strings.common.operationProgress}
+            aria-valuemin={0}
+            aria-valuenow={progress.current}
+            aria-valuemax={progress.total}
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          >
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{
@@ -488,7 +449,7 @@ export function CancelQueueTasksForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.taskrouter.cancelQueueTasks.summary.success(
               summary.totalSuccess
             )}
@@ -503,12 +464,17 @@ export function CancelQueueTasksForm() {
             <>
               {" "}
               &middot;{" "}
-              <span className="font-medium text-red-600 dark:text-red-400">
+              <span className="font-medium text-destructive">
                 {strings.taskrouter.cancelQueueTasks.summary.errors(
                   summary.totalErrors
                 )}
               </span>
             </>
+          )}
+          {summary.partial && (
+            <p className="text-warning-foreground mt-2 font-medium">
+              {strings.taskrouter.cancelQueueTasks.summary.partial}
+            </p>
           )}
         </div>
       )}
@@ -516,7 +482,7 @@ export function CancelQueueTasksForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />
@@ -547,7 +513,7 @@ export function CancelQueueTasksForm() {
                 </span>
               )}
               {h.errors > 0 && (
-                <span className="text-red-500 dark:text-red-400">
+                <span className="text-destructive">
                   {strings.taskrouter.cancelQueueTasks.history.itemErrors(
                     h.errors
                   )}

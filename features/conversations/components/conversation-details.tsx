@@ -1,47 +1,26 @@
+import { ActionButton } from "@/components/action-button"
+import { ActionBar } from "@/components/action-bar"
+import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
+import { JsonBlock } from "@/components/json-block"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import type { ConversationData } from "@/features/conversations/types"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
+import type {
+  ConversationData,
+  CloseConversationResult,
+} from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
-
-function tryParseJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function JsonBlock({ value }: { value: string }) {
-  const parsed = tryParseJson(value)
-  const isEmpty =
-    parsed === null ||
-    parsed === "" ||
-    (typeof parsed === "object" && Object.keys(parsed as object).length === 0)
-
-  if (isEmpty) {
-    return (
-      <span className="text-xs text-muted-foreground italic">
-        {strings.common.empty}
-      </span>
-    )
-  }
-
-  return (
-    <pre className="max-h-64 overflow-auto rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed">
-      {JSON.stringify(parsed, null, 2)}
-    </pre>
-  )
-}
 
 export function ConversationDetails({
   conversation,
   onRefresh,
+  onUpdated,
 }: {
   conversation: ConversationData
   onRefresh: () => void
+  onUpdated: (result: CloseConversationResult) => void
 }) {
   const labels = strings.conversations.consult
   const stateLabel =
@@ -60,11 +39,11 @@ export function ConversationDetails({
           <p className="mb-1 text-xs font-medium text-muted-foreground">
             {labels.sidLabel}
           </p>
-          <h2 className="rounded-md bg-muted px-3 py-2 font-mono text-sm font-semibold break-all text-foreground">
+          <h2 className="font-heading text-sm font-semibold break-all text-foreground">
             {conversation.sid}
           </h2>
           <Badge
-            className="mt-2"
+            className="mt-3"
             variant={
               conversation.state === "active"
                 ? "success"
@@ -76,12 +55,19 @@ export function ConversationDetails({
             {stateLabel}
           </Badge>
         </div>
-        <Button variant="outline" onClick={onRefresh}>
-          {labels.refresh}
-        </Button>
+        <ActionBar>
+          <ActionButton action="refresh" onClick={onRefresh}>
+            {strings.common.refresh}
+          </ActionButton>
+          <CloseConversationButton
+            sid={conversation.sid}
+            state={conversation.state}
+            onUpdated={onUpdated}
+          />
+        </ActionBar>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
           <div>
             <p className="mb-0.5 text-xs text-muted-foreground">
               {strings.conversations.fetch.result.dateCreated}
@@ -99,11 +85,11 @@ export function ConversationDetails({
             </p>
           </div>
           {conversation.messagingServiceSid && (
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <p className="mb-0.5 text-xs text-muted-foreground">
                 {strings.conversations.fetch.result.messagingServiceSid}
               </p>
-              <p className="font-mono text-xs">
+              <p className="font-mono text-xs break-all">
                 {conversation.messagingServiceSid}
               </p>
             </div>

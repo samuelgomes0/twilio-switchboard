@@ -1,6 +1,6 @@
 "use client"
-import * as React from "react"
 import type { ConversationMessage } from "@/features/conversations/types"
+import * as React from "react"
 export function useMessageFilters(messages: ConversationMessage[]) {
   const [contentQuery, setContentQuery] = React.useState("")
   const [authorFilter, setAuthorFilter] = React.useState("")

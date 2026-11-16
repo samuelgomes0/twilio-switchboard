@@ -1,15 +1,21 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import * as React from "react"
+import { Button } from "@/components/ui/button"
+import { strings } from "@/lib/strings"
+
+import { navigateSuggestions } from "@/components/suggestion-keyboard"
 import { Check, UserPlus, X } from "lucide-react"
+import * as React from "react"
 
-import { cn } from "@/lib/utils"
+import { Label } from "@/components/ui/label"
 import {
   addContact,
   deleteContact,
   readContacts,
   type Contact,
 } from "@/lib/contacts"
+import { cn } from "@/lib/utils"
 
 interface ContactInputProps {
   value: string
@@ -19,6 +25,9 @@ interface ContactInputProps {
   containerClassName?: string
   className?: string
   id?: string
+  "aria-labelledby"?: string
+  "aria-describedby"?: string
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"]
   /** Text shown as a visual prefix overlay inside the input (e.g. "whatsapp:+55") */
   prefix?: string
 }
@@ -31,18 +40,18 @@ export function ContactInput({
   containerClassName,
   className,
   id,
+  "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
   prefix,
 }: ContactInputProps) {
-  const [contacts, setContacts] = React.useState<Contact[]>([])
+  const nameInputId = React.useId()
+  const [contacts, setContacts] = useBrowserState<Contact[]>(readContacts, [])
   const [open, setOpen] = React.useState(false)
   const [showSaveForm, setShowSaveForm] = React.useState(false)
   const [savingName, setSavingName] = React.useState("")
   const containerRef = React.useRef<HTMLDivElement>(null)
   const saveInputRef = React.useRef<HTMLInputElement>(null)
-
-  React.useEffect(() => {
-    setContacts(readContacts())
-  }, [])
 
   const trimmed = value.trim()
   const filtered = trimmed
@@ -87,6 +96,13 @@ export function ContactInput({
       ref={containerRef}
       className={cn("relative", containerClassName)}
       onBlur={handleBlur}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false)
+          setShowSaveForm(false)
+          event.stopPropagation()
+        } else if (showDropdown && !showSaveForm) navigateSuggestions(event)
+      }}
     >
       {prefix && (
         <span className="pointer-events-none absolute inset-y-0 left-3 z-10 flex items-center text-sm text-muted-foreground">
@@ -95,6 +111,9 @@ export function ContactInput({
       )}
       <input
         id={id}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -104,7 +123,7 @@ export function ContactInput({
         autoComplete="off"
         spellCheck={false}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 font-mono text-sm shadow-xs transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "field-control font-mono placeholder:font-sans",
           className
         )}
       />
@@ -116,8 +135,8 @@ export function ContactInput({
                 type="button"
                 tabIndex={0}
                 className="min-w-0 flex-1 px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleSelect(c.phone)
                 }}
               >
@@ -130,11 +149,11 @@ export function ContactInput({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
-                aria-label="Remover contato"
-                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                tabIndex={0}
+                aria-label={strings.contacts.input.removeContact}
+                className="mr-1 flex size-9 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleDelete(c.id)
                 }}
               >
@@ -147,22 +166,26 @@ export function ContactInput({
               <button
                 type="button"
                 tabIndex={0}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   setShowSaveForm(true)
                   setTimeout(() => saveInputRef.current?.focus(), 0)
                 }}
               >
                 <UserPlus className="size-3 shrink-0" />
-                Salvar &ldquo;{trimmed}&rdquo; como contato
+                {strings.contacts.input.saveContact(trimmed)}
               </button>
             </li>
           )}
           {canSave && showSaveForm && (
             <li className="px-3 py-2">
+              <Label htmlFor={nameInputId} className="sr-only">
+                {strings.contacts.form.nameLabel}
+              </Label>
               <div className="flex gap-1.5">
                 <input
+                  id={nameInputId}
                   ref={saveInputRef}
                   type="text"
                   value={savingName}
@@ -177,20 +200,22 @@ export function ContactInput({
                       setSavingName("")
                     }
                   }}
-                  placeholder="Nome do contato"
+                  placeholder={strings.contacts.input.namePlaceholder}
                   className="h-7 flex-1 rounded border border-input bg-transparent px-2 text-xs focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
                 />
-                <button
+                <Button
+                  size="icon-xs"
                   type="button"
+                  aria-label={strings.common.save}
                   disabled={!savingName.trim()}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
                     handleSave()
                   }}
-                  className="flex size-7 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  className="shrink-0"
                 >
                   <Check className="size-3" />
-                </button>
+                </Button>
               </div>
             </li>
           )}

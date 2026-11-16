@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
-import { redirect } from "next/navigation"
 import { strings } from "@/lib/strings"
+import { redirect } from "next/navigation"
 
 export const metadata: Metadata = {
   title: strings.conversations.history.metadata.title,
@@ -18,5 +18,5 @@ export default async function ConversationHistoryPage({
   const { sid } = await searchParams
   const query = new URLSearchParams({ tab: "messages" })
   if (typeof sid === "string") query.set("sid", sid)
-  redirect(`/conversations/consult?${query}`)
+  redirect(`/conversations/consult-by-sid?${query}`)
 }

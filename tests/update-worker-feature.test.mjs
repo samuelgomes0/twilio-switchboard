@@ -1,28 +1,6 @@
 import assert from "node:assert/strict"
-import { readFileSync } from "node:fs"
-import { createRequire } from "node:module"
-import path from "node:path"
 import test from "node:test"
-import ts from "typescript"
-
-const require = createRequire(import.meta.url)
-function load(relative, overrides = {}) {
-  const filename = path.resolve(relative)
-  const source = ts.transpileModule(readFileSync(filename, "utf8"), {
-    compilerOptions: {
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2022,
-    },
-  }).outputText
-  const exports = {}
-  const localRequire = (id) => {
-    if (id in overrides) return overrides[id]
-    if (id.startsWith("@/")) return load(`${id.slice(2)}.ts`, overrides)
-    return require(id)
-  }
-  new Function("require", "exports", source)(localRequire, exports)
-  return exports
-}
+import { load } from "./typescript-loader.mjs"
 
 const sse = {
   sseEvent: (level, message, data = {}) =>
@@ -34,6 +12,10 @@ const { mergeWorkerFeature, updateWorkerFeature } = load(
   overrides
 )
 const workspaceSid = `WS${"0".repeat(32)}`
+const credentials = {
+  accountSid: `AC${"4".repeat(32)}`,
+  authToken: "5".repeat(32),
+}
 const workerSids = [1, 2, 3].map((value) => `WK${String(value).repeat(32)}`)
 const input = {
   workspaceSid,
@@ -219,6 +201,33 @@ test("route rejects invalid bodies before creating a client", async () => {
   assert.equal(created, 0)
 })
 
+test("route accepts plugin names with hyphens, underscores or only letters", async () => {
+  const receivedFeatures = []
+  const { POST } = load("app/api/taskrouter/update-worker-feature/route.ts", {
+    ...overrides,
+    "@/lib/twilio-client": { getTwilioClient: () => ({}) },
+    "@/features/taskrouter/lib/update-worker-feature": {
+      updateWorkerFeature: async ({ feature }) => {
+        receivedFeatures.push(feature)
+        return { totalUpdated: 1, totalErrors: 0 }
+      },
+    },
+  })
+
+  for (const feature of ["teste-nome", "teste_nome", "testenome"]) {
+    const response = await POST(
+      new Request("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({ ...input, ...credentials, feature }),
+      })
+    )
+    assert.equal(response.status, 200)
+    await response.text()
+  }
+
+  assert.deepEqual(receivedFeatures, ["teste-nome", "teste_nome", "testenome"])
+})
+
 test("route streams completion, deduplicates workers, and accepts false", async () => {
   let updated = 0
   const client = mockClient(
@@ -241,6 +250,7 @@ test("route streams completion, deduplicates workers, and accepts false", async 
       method: "POST",
       body: JSON.stringify({
         ...input,
+        ...credentials,
         workerSids: [workerSids[0], workerSids[0]],
         enabled: false,
       }),

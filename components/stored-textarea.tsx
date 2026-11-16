@@ -1,8 +1,13 @@
 "use client"
+import { navigateSuggestions } from "@/components/suggestion-keyboard"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { strings } from "@/lib/strings"
+import { addVariable, deleteVariable, readVariables } from "@/lib/variables"
 
 import { X } from "lucide-react"
-import * as React from "react"
 
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 interface StoredTextareaProps {
@@ -16,24 +21,6 @@ interface StoredTextareaProps {
   rows?: number
 }
 
-const MAX_SAVED = 10
-
-function readSaved(key: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
-
-function writeSaved(key: string, values: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(values))
-  } catch {}
-}
-
 export function StoredTextarea({
   storageKey,
   value,
@@ -44,11 +31,11 @@ export function StoredTextarea({
   id,
   rows = 4,
 }: StoredTextareaProps) {
-  const [saved, setSaved] = React.useState<string[]>([])
-
-  React.useEffect(() => {
-    setSaved(readSaved(storageKey))
-  }, [storageKey])
+  const [saved, setSaved] = useBrowserState<string[]>(
+    () => readVariables(storageKey),
+    [],
+    storageKey
+  )
 
   const trimmed = value.trim()
   const isNew = trimmed.length > 0 && !saved.includes(trimmed)
@@ -57,24 +44,16 @@ export function StoredTextarea({
   function saveValue(val: string) {
     const t = val.trim()
     if (!t) return
-    setSaved((prev) => {
-      const next = [t, ...prev.filter((s) => s !== t)].slice(0, MAX_SAVED)
-      writeSaved(storageKey, next)
-      return next
-    })
+    setSaved(addVariable(storageKey, t))
   }
 
   function deleteValue(val: string) {
-    setSaved((prev) => {
-      const next = prev.filter((s) => s !== val)
-      writeSaved(storageKey, next)
-      return next
-    })
+    setSaved(deleteVariable(storageKey, val))
   }
 
   return (
     <div className="space-y-2">
-      <textarea
+      <Textarea
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -83,25 +62,28 @@ export function StoredTextarea({
         rows={rows}
         spellCheck={false}
         className={cn(
-          "flex w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
       />
       {showList && (
-        <ul className="divide-y divide-border overflow-hidden rounded-md border border-border bg-popover">
+        <ul
+          onKeyDown={navigateSuggestions}
+          className="divide-y divide-border overflow-hidden rounded-md border border-border bg-popover"
+        >
           {saved.map((s) => (
             <li key={s} className="group flex items-start gap-2 px-3 py-2">
               <button
                 type="button"
-                className="min-w-0 flex-1 text-left text-xs leading-relaxed text-muted-foreground transition-colors hover:text-foreground"
+                className="min-w-0 flex-1 text-left text-xs leading-relaxed text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 onClick={() => onChange(s)}
               >
                 <span className="line-clamp-2">{s}</span>
               </button>
               <button
                 type="button"
-                aria-label="Remover"
-                className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                aria-label={strings.common.autocomplete.deleteValue}
+                className="flex size-9 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => deleteValue(s)}
               >
                 <X className="size-3" />
@@ -112,10 +94,10 @@ export function StoredTextarea({
             <li>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="w-full px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring"
                 onClick={() => saveValue(trimmed)}
               >
-                + Salvar mensagem atual
+                {strings.common.autocomplete.saveMessage}
               </button>
             </li>
           )}

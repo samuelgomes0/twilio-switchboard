@@ -1,20 +1,146 @@
 export const strings = {
+  interface: {
+    collapseSidebar: "Recolher navegação",
+    expandSidebar: "Expandir navegação",
+    toolDirectory: "Ferramentas",
+    toolSearch: "Buscar por nome ou finalidade…",
+    allAreas: "Todas as áreas",
+    filterArea: "Filtrar por área",
+    toolColumn: "Ferramenta",
+    openTool: "Abrir ferramenta",
+    configureEnvironment: "Configurar ambiente",
+    catalogCount: (count: number) =>
+      `${count} ferramenta${count === 1 ? "" : "s"}`,
+    emptyCatalog: "Nenhuma ferramenta corresponde à busca.",
+    searchTools: "Buscar ferramenta",
+    searchShortcut: "Ctrl K",
+    searchPlaceholder: "Digite uma ferramenta ou operação…",
+    noToolsFound: "Nenhuma ferramenta encontrada. Tente outro termo.",
+    expandNavigation: (section: string) => `Expandir ou recolher ${section}`,
+    areaColumn: "Área",
+    purposeColumn: "O que você pode fazer",
+    savedEnvironments: "Ambientes salvos",
+    storageLabel: "Armazenamento",
+    environmentSelectedHint:
+      "As próximas operações usam este ambiente. Revise o destino antes de confirmar alterações.",
+    copyFailed:
+      "Não foi possível copiar. Selecione o identificador e tente novamente.",
+    breadcrumb: "Caminho de navegação",
+    skip: "Ir para o conteúdo",
+    home: "Visão geral",
+    closeNavigation: "Fechar navegação",
+    theme: "Alternar tema",
+    light: "Tema claro",
+    dark: "Tema escuro",
+    system: "Tema do sistema",
+    quickAccess: "Consultas rápidas",
+    areas: "Ferramentas",
+    homeTitle: "Visão geral",
+    homeDescription:
+      "Acesse as ferramentas de consulta, roteamento e configuração da sua operação Twilio.",
+    environmentHint:
+      "Selecione um ambiente antes de consultar ou alterar recursos.",
+    execution: "Acompanhamento da operação",
+    clientCancel:
+      "Interromper o acompanhamento não interrompe operações já enviadas à Twilio.",
+    exportScope:
+      "A exportação inclui todos os resultados carregados, mesmo com filtros ativos.",
+  },
   app: {
     title: "Switchboard",
     description: "Interface visual para operações Twilio",
   },
   common: {
+    storageError:
+      "Não foi possível acessar o armazenamento do navegador. Algumas alterações podem não ter sido salvas.",
+    dismiss: "Fechar aviso",
+    errors: {
+      auth: "Credenciais inválidas ou sem permissão.",
+      notFound: "Recurso não encontrado.",
+      conflict: "Recurso já existe.",
+      validation: "Parâmetros inválidos.",
+      external: "Erro na API do Twilio. Tente novamente.",
+      internal: "Erro interno do servidor.",
+      retryAuth: "credenciais inválidas ou sem permissão",
+      retryNotFound: "recurso não encontrado",
+      rateLimit: "limite de requisições excedido",
+      http: (status: number) => `erro HTTP ${status}`,
+      retryExternal: "erro na API do Twilio",
+      missingCredentials:
+        "Credenciais não configuradas. Selecione um ambiente.",
+    },
+    validation: {
+      invalidBody: "Corpo da requisição inválido",
+      workspaceRequired: "O campo 'workspaceSid' é obrigatório",
+      skillRequired: "O campo 'skill' é obrigatório",
+      invalidSkillLevel: "O nível da skill deve ser um número entre 0 e 5",
+      addressRequired: "O campo 'address' é obrigatório",
+      invalidPageToken: "Token de página inválido",
+      invalidCredentials: "Credenciais em formato inválido",
+      phoneRequired: "O campo 'phoneNumber' é obrigatório",
+      invalidPhone: "Número de telefone inválido",
+      invalidFilterName: "Nome de filtro inválido",
+      invalidCloseMessage: "Mensagem de encerramento inválida",
+      csvTooLarge: "O arquivo CSV excede o limite de 1 MB",
+      invalidWorkspaceSid:
+        "Workspace SID inválido. Formato esperado: WS + 32 caracteres hex",
+      queueRequired: "O campo 'taskQueueName' é obrigatório",
+      workflowRequired: "O campo 'workflowName' é obrigatório",
+      workflowSidRequired: "O campo 'workflowSid' é obrigatório",
+      invalidWorkflowSid:
+        "Workflow SID inválido. Formato esperado: WW + 32 caracteres hex",
+      csvRequired: "O campo 'csvContent' é obrigatório",
+      typeRequired: "O campo 'type' é obrigatório",
+      filterRequired: "O campo 'filterName' é obrigatório",
+      entriesRequired: "O campo 'entries' deve ser um array não-vazio",
+      invalidEntries:
+        "Cada entrada deve conter 'workflowSid' e 'taskQueueSid' como strings",
+      identifierRequired: "O campo 'identifier' é obrigatório",
+      taskRequired: "O campo 'taskSid' é obrigatório",
+      invalidTaskSid:
+        "Task SID inválido. Formato esperado: WT + 32 caracteres hex",
+      participantsRequired:
+        "O campo 'participants' deve ser um array não vazio",
+      noValidParticipants: "Nenhum participante válido informado",
+    },
+    retry: {
+      attemptFailed: (label: string, attempt: number, safeMessage: string) =>
+        `${label}: tentativa ${attempt} falhou: ${safeMessage}. Tentando novamente...`,
+      failed: (label: string, attempts: number, safeMessage: string) =>
+        `${label}: falhou após ${attempts} tentativas: ${safeMessage}`,
+    },
+    placeholders: {
+      workspaceSid: "WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      accountSid: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      workflowSid: "WWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      taskQueueSid: "WQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      taskSid: "WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      phone: "+5511999999999",
+      localPhone: "11999999999",
+      worker: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou nome amigável",
+      queue: "SUPORTE_WHATSAPP",
+      skill: "suporte-tecnico",
+      level: "5",
+      workflow: "Roteamento principal",
+      webhook: "https://exemplo.com/webhook",
+    },
+    autocomplete: {
+      deleteValue: "Excluir valor salvo",
+      saveValue: (value: string) => `+ Salvar “${value}”`,
+      saveMessage: "+ Salvar mensagem atual",
+    },
     cancel: "Cancelar",
     search: "Buscar",
     clear: "Limpar",
+    refresh: "Atualizar",
     processing: "Processando...",
+    loadingPage: "Carregando página...",
+    operationProgress: "Progresso da operação",
     save: "Salvar",
     comingSoon: "Em breve",
-    logOfOperations: "Log de Operações",
-    lastQueries: "Últimas consultas",
-    lastOperations: "Últimas operações",
+    logOfOperations: "Log de operações",
     recentHistory: {
-      title: "Últimas consultas neste ambiente",
+      title: "Atividade recente neste navegador",
       reuse: "Executar novamente esta consulta",
     },
     noEnvironmentSelected: {
@@ -31,6 +157,10 @@ export const strings = {
     aborted: "Operação cancelada",
     remove: "Remover",
     workspaceSidInvalid: "Deve começar com WS e ter 34 caracteres",
+    workspaceSidHint:
+      "Identifica o espaço de roteamento da conta (WS + 32 caracteres). Se não souber qual usar, peça o Workspace SID à equipe técnica. Não é o Account SID.",
+    contextEnvironmentMismatch:
+      "Este link foi aberto a partir de outro ambiente. Os campos não foram reaproveitados. Volte ao ambiente de origem ou informe os identificadores do ambiente atual.",
     phoneDigitsOnly: "Deve conter apenas dígitos",
     waitingForOperations: "Aguardando operações...",
     warningBadge: {
@@ -40,12 +170,13 @@ export const strings = {
     },
   },
   sidebar: {
+    navigationAriaLabel: "Navegação principal",
     title: "Switchboard",
-    toggleLabel: "Toggle sidebar",
+    toggleLabel: "Alternar navegação lateral",
     environment: "Ambiente",
     noEnvironment: "Nenhum ambiente",
     noEnvironmentRegistered: "Nenhum ambiente cadastrado",
-    configureEnvironments: "Configurar ambientes",
+    configureEnvironments: "Configurações",
     footer: {
       toggleThemePress: "Pressione",
       toggleThemeKey: "d",
@@ -62,75 +193,47 @@ export const strings = {
       numbers: {
         listNumbers: {
           label: "Classificar Senders",
-          description: "Identifica o serviço usado por cada número WhatsApp",
         },
       },
       conversations: {
-        fetch: {
-          label: "Detalhes por SID",
-          description: "Consulta dados e participantes de uma Conversation",
-        },
         fetchByParticipant: {
           label: "Conversations por Número",
-          description: "Localiza Conversations vinculadas a um número",
-        },
-        history: {
-          label: "Mensagens por SID",
-          description: "Pesquisa e exporta mensagens de uma Conversation",
         },
         close: {
           label: "Encerrar por Número",
-          description: "Encerra Conversations ativas vinculadas a números",
         },
       },
       flex: {
         createAddressConfig: {
           label: "Configurar Endereço",
-          description: "Cria um canal com integração Flex e Studio ou webhook",
         },
       },
       taskrouter: {
-        assignWorkers: {
-          label: "Adicionar Skill a Workers",
-          description: "Atualiza os atributos de vários workers",
+        workflows: {
+          label: "Gerenciar Workflows",
         },
         createWorkflow: {
           label: "Criar Workflow por CSV",
-          description: "Importa filtros e filas de um arquivo CSV",
-        },
-        fetchTask: {
-          label: "Buscar Task",
-          description: "Retorna detalhes de uma task por SID",
-        },
-        fetchWorker: {
-          label: "Detalhes do Worker",
-          description: "Consulta um worker por SID, e-mail ou nome",
         },
         cancelQueueTasks: {
           label: "Encerrar Tasks por Fila",
-          description: "Encerra tasks abertas e suas Conversations",
         },
         searchTasks: {
-          label: "Tasks por SID ou Número",
-          description: "Consulta uma Task ou localiza atendimentos do contato",
+          label: "Consultar Task",
         },
         addParticularFilter: {
           label: "Adicionar Filtro a Workflows",
-          description: "Direciona uma regra de negócio para Task Queues",
         },
       },
       config: {
         manageEnvironments: {
           label: "Ambientes Twilio",
-          description: "Cadastre credenciais separadas por ambiente",
         },
         manageContacts: {
           label: "Contatos Salvos",
-          description: "Associe nomes a números usados nos formulários",
         },
         manageVariables: {
           label: "Valores de Autocomplete",
-          description: "Gerencie valores reutilizáveis nos formulários",
         },
       },
     },
@@ -166,7 +269,7 @@ export const strings = {
       numbers: {
         label: "Números",
         description:
-          "Liste números WhatsApp e identifique se usam Conversations ou Programmable Chat.",
+          "Liste números WhatsApp e confira configurações de Conversations e classificações estimadas de serviço.",
       },
     },
   },
@@ -191,6 +294,7 @@ export const strings = {
       },
     },
     consult: {
+      searchTasksForNumber: "Buscar Tasks deste número",
       title: "Consultar Conversation",
       subtitle:
         "Consulte detalhes, participantes e mensagens usando o Conversation SID.",
@@ -198,7 +302,6 @@ export const strings = {
       messages: "Mensagens",
       tabs: "Informações da Conversation",
       result: "Resultado da consulta",
-      refresh: "Atualizar",
       retry: "Tentar novamente",
       sidLabel: "Conversation SID",
       active: "Ativa",
@@ -218,22 +321,12 @@ export const strings = {
         "Não foi possível consultar a Conversation. Verifique o SID e as credenciais e tente novamente.",
     },
     fetch: {
-      breadcrumb: "Detalhes por SID",
-      title: "Consultar Conversation por SID",
-      subtitle: "Consulte os detalhes e participantes de uma Conversation.",
       metadata: {
         title: "Detalhes da Conversation por SID",
         description:
           "Consulte dados gerais, atributos e participantes de uma Conversation pelo SID.",
       },
-      sidLabel: "Conversation SID",
-      sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
-      sidInvalid: "Deve começar com CH e ter 34 caracteres",
-      confirmTitle: "Buscar conversa?",
-      confirmDescription: (sid: string, env: string) =>
-        `Buscar dados da conversa ${sid} no ambiente ${env}?`,
       result: {
-        noFriendlyName: "Sem nome amigável",
         dateCreated: "Criada em",
         dateUpdated: "Atualizada em",
         attributes: "Atributos",
@@ -245,17 +338,9 @@ export const strings = {
         added: "Adicionado:",
         updated: "Atualizado:",
         messagingServiceSid: "Messaging Service SID",
-        viewHistory: "Ver histórico",
-      },
-      history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
       },
     },
     history: {
-      breadcrumb: "Mensagens por SID",
-      title: "Consultar Mensagens por SID",
-      subtitle: "Pesquise, filtre e exporte mensagens de uma Conversation.",
       sidLabel: "Conversation SID",
       sidPlaceholder: "CHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       sidHint: "Formato: CH seguido de 32 caracteres hexadecimais",
@@ -267,7 +352,7 @@ export const strings = {
       },
       filters: {
         contentLabel: "Buscar no conteúdo",
-        contentPlaceholder: "Digite um trecho da mensagem",
+        contentPlaceholder: "Busque por conteúdo da mensagem",
         authorLabel: "Autor",
         allAuthors: "Todos os autores",
         startDateLabel: "Data inicial",
@@ -275,6 +360,7 @@ export const strings = {
         clear: "Limpar filtros",
       },
       export: {
+        filename: (sid: string) => `conversation-${sid}.csv`,
         button: "Exportar CSV",
         columns: [
           "Índice",
@@ -285,17 +371,8 @@ export const strings = {
           "Anexos",
         ],
       },
-      recent: {
-        title: "Últimas consultas",
-        clear: "Limpar",
-        messages: (count: number) => `${count} mensagem(ns)`,
-        reuse: (sid: string) => `Usar novamente o Conversation SID ${sid}`,
-      },
       result: {
-        noFriendlyName: "Sem nome amigável",
-        viewDetails: "Ver detalhes",
         messagesHeading: "Mensagens",
-        messageCount: (count: number) => `${count} mensagem(ns)`,
         filteredMessageCount: (filtered: number, total: number) =>
           `${filtered} de ${total} mensagem(ns)`,
         empty: "Nenhuma mensagem encontrada nesta Conversation.",
@@ -313,9 +390,37 @@ export const strings = {
         attachment: "Anexo",
       },
     },
+    closeSingle: {
+      button: "Encerrar Conversation",
+      closing: "Encerrando…",
+      ariaLabel: (sid: string) => `Encerrar a Conversation ativa ${sid}`,
+      confirmTitle: "Encerrar esta Conversation?",
+      confirmDescription: (sid: string) =>
+        `A Conversation ${sid} será encerrada. Esta ação não pode ser desfeita e afeta apenas esta conversa.`,
+      confirmAction: "Encerrar Conversation",
+      success: "Conversation encerrada com sucesso.",
+      notActive:
+        "A Conversation não está mais ativa. Seu estado foi atualizado; nenhum encerramento foi realizado.",
+      error:
+        "Não foi possível confirmar o encerramento. Atualize a consulta para verificar o estado antes de tentar novamente.",
+    },
     close: {
+      log: {
+        searching: (address: string) => `Buscando conversas para ${address}...`,
+        searchLabel: (address: string) => `Busca de conversas (${address})`,
+        noActive: (address: string) =>
+          `Nenhuma conversa ativa encontrada para ${address}`,
+        closeLabel: (sid: string) => `Fechar conversa ${sid}`,
+        closed: (sid: string) => `Conversa ${sid} fechada com sucesso`,
+        start: (count: number) =>
+          `Iniciando processamento de ${count} número(s)...`,
+        done: (totalClosed: number, totalErrors: number) =>
+          `Concluído. ${totalClosed} conversa(s) fechada(s), ${totalErrors} erro(s).`,
+        found: (count: number, address: string) =>
+          `${count} conversa(s) ativa(s) encontrada(s) para ${address}`,
+      },
       breadcrumb: "Encerrar por Número",
-      title: "Encerrar Conversations por Número",
+      title: "Encerrar Conversations por número",
       subtitle:
         "Encerre Conversations ativas vinculadas aos números informados.",
       metadata: {
@@ -323,25 +428,25 @@ export const strings = {
         description:
           "Localize e encerre Conversations ativas vinculadas a números de telefone.",
       },
-      phoneLabel: "Números de telefone",
-      phoneLabelHint: "(DDD + número, sem dígito 9)",
-      detected: (n: number) => `${n} número(s) detectado(s)`,
+      phoneLabel: "Número de telefone",
+      phoneLabelHint: "(DDD + número, apenas dígitos, sem +55)",
+      invalidPhone:
+        "Informe um número brasileiro com DDD, com ou sem +55 ou whatsapp:+55",
       maxExceeded: (max: number) => `; máximo de ${max} por vez`,
       addPhone: "Adicionar número",
       removePhone: "Remover número",
       submit: "Encerrar Conversations",
       confirmTitle: "Encerrar conversations?",
-      confirmDescription: (n: number) =>
-        `Você está prestes a encerrar ${n} conversation(s) ativa(s) para ${n} número(s). Esta ação não pode ser desfeita.`,
-      confirmAction: "Sim, encerrar",
+      confirmDescription: (n: number, environment: string) =>
+        `No ambiente ${environment}, serão encerradas todas as Conversations ativas vinculadas aos ${n} número(s) abaixo. Cada número pode ter várias conversas; a quantidade será conhecida durante a execução. Esta ação não pode ser desfeita.`,
+      confirmTargets: "Números que serão consultados",
+      confirmAction: "Encerrar todas as conversas ativas",
       summary: {
         prefix: "Concluído:",
         closed: (n: number) => `${n} conversation(s) encerrada(s)`,
         errors: (n: number) => `${n} erro(s)`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (total: number, closed: number) =>
           `${total} número(s) · ${closed} encerrada(s)`,
         itemErrors: (n: number) => ` — ${n} erro(s)`,
@@ -350,8 +455,15 @@ export const strings = {
     fetchByParticipant: {
       loadingPage: "Carregando Conversations por Número…",
       loadingResults: "Buscando Conversations vinculadas ao número…",
+      progress: (pages: number, count: number) =>
+        `Buscando todas as conversas… ${pages} página(s) consultada(s), ${count} conversa(s) encontrada(s). As ativas aparecem primeiro.`,
+      cancelled:
+        "Busca cancelada. Os resultados exibidos são parciais e podem não incluir todas as conversas ativas.",
+      searchFailed:
+        "Não foi possível concluir a busca. Os resultados exibidos são parciais. Faça uma nova busca para tentar novamente.",
+      invalidPhone: "Informe o DDD e o número com 10 ou 11 dígitos, sem +55.",
       breadcrumb: "Conversations por Número",
-      title: "Conversations por Número",
+      title: "Conversations por número",
       subtitle: "Localize Conversations vinculadas a um número do WhatsApp.",
       metadata: {
         title: "Conversations por Número",
@@ -359,7 +471,7 @@ export const strings = {
           "Localize Conversations associadas a um número de WhatsApp e consulte seus detalhes ou mensagens.",
       },
       phoneLabel: "Número de telefone",
-      phoneLabelHint: "(DDD + número, sem dígito 9)",
+      phoneLabelHint: "(DDD + número, apenas dígitos, sem +55)",
       filterLabel: "Filtrar por estado",
       stateOptions: {
         all: "Todos",
@@ -367,9 +479,6 @@ export const strings = {
         inactive: "Inativas",
         closed: "Fechadas",
       },
-      confirmTitle: "Buscar conversas?",
-      confirmDescription: (address: string, env: string, state?: string) =>
-        `Buscar conversas do participante ${address}${state ? ` com estado ${state}` : ""} no ambiente ${env}?`,
       results: {
         none: "Nenhuma conversa encontrada para esse número.",
         noneFiltered: (state: string) =>
@@ -379,13 +488,10 @@ export const strings = {
         dateCreated: "Criada:",
         dateUpdated: "Atualizada:",
         identity: "Identidade:",
-        loadMore: "Carregar mais",
-        loadingMore: "Carregando...",
+        loadMore: "Exibir mais",
         consultConversation: "Consultar Conversation",
       },
       history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
         item: (n: number) => `${n} conversa(s)`,
       },
     },
@@ -410,8 +516,13 @@ export const strings = {
       },
     },
     createAddressConfig: {
+      log: {
+        alreadyConfigured: (address: string) =>
+          `Endereço já configurado: ${address}`,
+      },
+      httpMethods: { post: "POST", get: "GET" },
       breadcrumb: "Configurar Endereço",
-      title: "Configurar Endereço de Canal",
+      title: "Configurar endereço de canal",
       subtitle: "Crie um endereço e configure a entrada de mensagens no Flex.",
       metadata: {
         title: "Configurar Endereço de Canal no Flex",
@@ -464,7 +575,7 @@ export const strings = {
         default: "Padrão",
       },
       studioFlowLabel: "Studio Flow",
-      studioFlowPlaceholder: "Selecionar um Flow",
+      studioFlowPlaceholder: "FWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       studioFlowHint: "FW seguido de 32 caracteres hexadecimais",
       webhookUrlLabel: "Webhook URL",
       webhookMethodLabel: "Método HTTP",
@@ -475,10 +586,7 @@ export const strings = {
         `Criar configuração para o endereço ${address} no ambiente ${env}?`,
       confirmAction: "Sim, criar",
       result: {
-        sid: "SID da configuração",
         address: "Endereço",
-        type: "Tipo",
-        friendlyName: "Nome amigável",
         noFriendlyName: "Sem nome amigável",
         addressCountry: "País",
         noCountry: "Não informado",
@@ -488,19 +596,145 @@ export const strings = {
         autoCreationEnabled: "Habilitada",
         autoCreationDisabled: "Desabilitada",
       },
-      history: {
-        title: "Últimas criações",
-        clear: "Limpar",
-      },
     },
   },
   taskrouter: {
+    workflows: {
+      title: "Gerenciar Workflows",
+      subtitle:
+        "Liste, consulte e edite as configurações de roteamento de um Workspace.",
+      metadata: {
+        title: "Gerenciar Workflows do TaskRouter",
+        description:
+          "Liste, consulte e edite Workflows e suas configurações de roteamento no TaskRouter.",
+      },
+      workspaceLabel: "Workspace SID",
+      workflowSidLabel: "Workflow SID",
+      load: "Carregar Workflows",
+      loadMore: "Carregar mais",
+      loadingMore: "Carregando mais Workflows...",
+      searchLabel: "Pesquisar Workflows carregados",
+      searchPlaceholder: "Nome ou SID do Workflow",
+      count: (count: number) => `${count} Workflow(s) carregado(s)`,
+      countFiltered: (shown: number, total: number) =>
+        `${shown} de ${total} Workflow(s) carregado(s)`,
+      pageAvailable:
+        "Há mais Workflows disponíveis. Carregue a próxima página para ampliar a pesquisa.",
+      empty: "Nenhum Workflow encontrado neste Workspace.",
+      emptyFiltered: "Nenhum Workflow carregado corresponde à pesquisa.",
+      open: "Abrir Workflow",
+      openSid: "Consultar o SID informado",
+      table: {
+        caption: "Workflows carregados",
+        name: "Workflow",
+        updated: "Última atualização",
+        timeout: "Tempo de reserva",
+        actions: "Ações",
+      },
+      timeoutSeconds: (seconds: number) => `${seconds} s`,
+      details: {
+        title: "Detalhes do Workflow",
+        subtitle:
+          "Consulte e edite os dados e a configuração completa de um Workflow.",
+        submit: "Consultar Workflow",
+        notFound: "Workflow não encontrado neste Workspace.",
+        general: "Dados gerais",
+        routing: "Configuração de roteamento",
+        rawConfiguration: "JSON original",
+        malformedConfiguration:
+          "A configuração retornada pela Twilio não possui uma estrutura reconhecida. O JSON original permanece disponível para consulta.",
+        invalidJson:
+          "A configuração retornada pela Twilio não contém JSON válido.",
+        friendlyName: "Nome",
+        workspaceSid: "Workspace SID",
+        workflowSid: "Workflow SID",
+        createdAt: "Criado em",
+        updatedAt: "Atualizado em",
+        assignmentCallback: "Callback de atribuição",
+        fallbackCallback: "Callback de fallback",
+        reservationTimeout: "Tempo de reserva",
+        defaultQueue: "Fila padrão",
+        noDefaultQueue: "Não configurada",
+        filters: (count: number) => `${count} filtro(s)`,
+        targets: (count: number) => `${count} target(s)`,
+        filter: "Filtro",
+        expression: "Expressão",
+        queues: "Filas dos targets",
+        unnamedFilter: (position: number) => `Filtro ${position}`,
+        noFilters: "Este Workflow não possui filtros configurados.",
+      },
+      edit: {
+        open: "Editar Workflow",
+        title: "Editar Workflow",
+        description:
+          "Altere os dados e o roteamento. O JSON preserva campos adicionais aceitos pela Twilio.",
+        friendlyName: "Nome",
+        assignmentCallback: "Callback de atribuição",
+        fallbackCallback: "Callback de fallback",
+        optionalCallback: "Deixe vazio para remover o callback.",
+        callbackPlaceholder: "https://exemplo.com/callback",
+        reservationTimeout: "Tempo de reserva (segundos)",
+        reservationTimeoutHint: "Use um valor entre 1 e 86.400.",
+        configuration: "Configuração de roteamento (JSON)",
+        configurationHint:
+          "A ordem dos filtros e targets é significativa. Filas devem usar um SID WQ válido deste Workspace.",
+        reEvaluateTasks: "Reavaliar Tasks existentes após salvar",
+        reEvaluateTasksWarning:
+          "Tasks pendentes deste Workflow poderão passar novamente pelo ciclo de atribuição.",
+        review: "Revisar alterações",
+        reviewTitle: "Alterações pendentes",
+        reviewDescription:
+          "Confira o antes e depois. Nenhuma alteração foi enviada à Twilio ainda.",
+        field: "Campo",
+        before: "Antes",
+        after: "Depois",
+        unchangedConfiguration: "Configuração sem alteração",
+        changedConfiguration: "Configuração de roteamento alterada",
+        notConfigured: "Não configurado",
+        enabled: "Sim",
+        disabled: "Não",
+        cancel: "Descartar edição",
+        confirmTitle: "Salvar alterações no Workflow?",
+        confirmDescription: (name: string, workspaceSid: string) =>
+          `O Workflow "${name}" será atualizado no Workspace ${workspaceSid}.`,
+        confirmReEvaluate:
+          "As Tasks existentes serão reavaliadas após a atualização.",
+        confirmAction: "Salvar alterações",
+        saving: "Salvando...",
+        success: "Workflow atualizado com sucesso.",
+        invalidInput:
+          "Dados inválidos. Revise nome, callbacks, timeout, JSON e data da versão carregada.",
+        invalidName: "Informe um nome com até 256 caracteres.",
+        invalidCallback:
+          "Informe uma URL HTTP ou HTTPS válida, ou deixe vazio.",
+        invalidTimeout: "Informe um número inteiro entre 1 e 86.400.",
+        invalidConfiguration:
+          "A configuração precisa ser um JSON válido com uma seção task_routing reconhecida.",
+        invalidRouting:
+          "Cada filtro deve ter expressão e ao menos um target com um Queue SID WQ válido; a fila padrão também deve usar um SID WQ válido.",
+        queueNotFound: (queueSid: string) =>
+          `A fila ${queueSid} não foi encontrada neste Workspace.`,
+        noChanges: "Nenhuma alteração foi informada.",
+        concurrentChange:
+          "O Workflow foi alterado desde a última consulta. Recarregue os dados e revise as mudanças antes de salvar.",
+        missingVersion:
+          "A Twilio não retornou uma data de atualização. Recarregue o Workflow antes de editar.",
+        fields: {
+          friendlyName: "Nome",
+          assignmentCallback: "Callback de atribuição",
+          fallbackCallback: "Callback de fallback",
+          reservationTimeout: "Tempo de reserva",
+          configuration: "Configuração de roteamento",
+          reEvaluateTasks: "Reavaliar Tasks",
+        },
+      },
+    },
     workerManagement: {
       title: "Gerenciar Workers",
       subtitle: "Consulte Workers e gerencie suas skills e plugins do Flex.",
       loading: "Carregando gerenciamento de Workers…",
       workspaceLabel: "Workspace SID",
-      workspacePlaceholder: "WS seguido de 32 caracteres hexadecimais",
+      workspacePlaceholder: "WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       tabsLabel: "Operações de Workers",
       tabs: {
         details: "Detalhes",
@@ -513,20 +747,23 @@ export const strings = {
       },
     },
     updateWorkerFeature: {
-      title: "Configurar Plugins do Flex",
+      title: "Configurar plugins do Flex",
       subtitle:
         "Habilite ou desabilite um plugin do Flex para um ou vários Workers.",
-      workspaceLabel: "SID do Workspace",
-      workspacePlaceholder: "WS seguido de 32 caracteres hexadecimais",
+      workspaceLabel: "Workspace SID",
+      workspacePlaceholder: "WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       workersLabel: "Workers",
       workerLabel: (position: number) => `Worker ${position}`,
       addWorker: "Adicionar Worker",
       removeWorker: (position: number) => `Remover Worker ${position}`,
-      workersPlaceholder: "WK seguido de 32 caracteres ou e-mail do Worker",
+      workersPlaceholder:
+        "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
+      workersHint:
+        "Use o SID do agente ou um e-mail que seja exatamente o nome amigável (friendlyName) dele. A busca não consulta o atributo email. Para nomes repetidos, use o SID.",
       featureLabel: "Nome do plugin",
       featurePlaceholder: "dasa_cdc_integration",
       featureHint:
-        "Comece com uma letra e use apenas letras, números e sublinhado (até 100 caracteres).",
+        "Comece com uma letra e use apenas letras, números, hífen ou sublinhado (até 100 caracteres).",
       enabledLabel: "Estado do plugin",
       enabled: "Habilitado (true)",
       disabled: "Desabilitado (false)",
@@ -576,21 +813,38 @@ export const strings = {
       },
     },
     assignWorkers: {
-      breadcrumb: "Adicionar Skill a Workers",
-      title: "Adicionar Skill a Workers",
-      subtitle: "Adicione uma skill a vários Workers por e-mail ou SID.",
-      metadata: {
-        title: "Adicionar Skill a Workers",
-        description:
-          "Adicione uma skill aos atributos de vários Workers do TaskRouter por e-mail ou SID.",
+      log: {
+        invalidWorkers: (maxItems: number) =>
+          `Informe entre 1 e ${maxItems} Workers válidos`,
+        start: (count: number) =>
+          `Iniciando processamento de ${count} worker(s)...`,
+        done: (
+          totalUpdated: number,
+          totalSkipped: number,
+          totalErrors: number
+        ) =>
+          `Concluído. ${totalUpdated} worker(s) atualizado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+        searching: (identifier: string) => `Buscando worker: ${identifier}...`,
+        searchLabel: (identifier: string) => `Busca de worker (${identifier})`,
+        notFound: (identifier: string) =>
+          `Worker não encontrado: ${identifier}`,
+        addingSkill: (workerSid: string, skill: string) =>
+          `Worker encontrado: ${workerSid}. Adicionando skill "${skill}"...`,
+        updateLabel: (workerSid: string) => `Atualizar worker ${workerSid}`,
+        updated: (skill: string, identifier: string, workerSid: string) =>
+          `Skill "${skill}" adicionada ao worker ${identifier} (${workerSid})`,
       },
+      breadcrumb: "Adicionar Skill a Workers",
+      title: "Adicionar skill a Workers",
+      subtitle:
+        "Adicione uma skill a vários agentes (Workers) por SID ou nome amigável.",
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
       levelOptional: "(opcional)",
       workersLabel: "Workers",
       workerLabel: (position: number) => `Worker ${position}`,
-      workerPlaceholder: "WK seguido de 32 caracteres ou e-mail do Worker",
+      workerPlaceholder: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou nome amigável",
       addWorker: "Adicionar Worker",
       removeWorker: (position: number) => `Remover Worker ${position}`,
       submit: "Atribuir Workers",
@@ -604,14 +858,34 @@ export const strings = {
         errors: (n: number) => `${n} erros`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (n: number) => `${n} atualizado(s)`,
         itemSkipped: (n: number) => ` — ${n} ignorado(s)`,
         itemErrors: (n: number) => ` — ${n} erro(s)`,
       },
     },
     createWorkflow: {
+      log: {
+        done: (workflowName: string, totalFilters: number) =>
+          `Concluído. Workflow "${workflowName}" criado com ${totalFilters} filtro(s).`,
+        unexpectedError: "Erro inesperado ao criar workflow.",
+        invalidColumns:
+          'Colunas "Regra de Negócio" e "Fila Twilio" não encontradas no CSV.',
+        invalidCsv: "O arquivo CSV possui aspas ou colunas malformadas.",
+        noValidRows: "O arquivo CSV não contém regras válidas para importar.",
+        invalidRule: "O CSV contém uma regra com caracteres não permitidos.",
+        loadingQueues: "Carregando filas do workspace...",
+        noDefaultQueue: (queueName: string) =>
+          `Fila "${queueName}" não encontrada. Workflow será criado sem filtro padrão.`,
+        queueNotFound: (fila: string) =>
+          `Fila não encontrada no workspace: ${fila}`,
+        filter: (regra: string, fila: string, queueSid: string) =>
+          `Filtro: ${regra} → ${fila} (${queueSid})`,
+        creating: (workflowName: string) =>
+          `Criando workflow '${workflowName}'...`,
+        created: (workflowName: string, workflowSid: string) =>
+          `Workflow criado: ${workflowName} | SID: ${workflowSid}`,
+        queuesLoaded: (count: number) => `${count} fila(s) carregada(s).`,
+      },
       breadcrumb: "Criar Workflow por CSV",
       title: "Criar Workflow por CSV",
       subtitle: "Crie um Workflow importando regras e filas de um arquivo CSV.",
@@ -625,6 +899,47 @@ export const strings = {
       csvLabel: "Arquivo CSV",
       csvSelected: (name: string) => `Arquivo selecionado: ${name}`,
       csvReadError: "Não foi possível ler o arquivo CSV.",
+      analyze: "Analisar CSV",
+      analyzing: "Analisando CSV...",
+      analysisTitle: "Prévia da importação",
+      analysisReady:
+        "O CSV está validado para este Workspace. Revise as linhas antes de criar.",
+      analysisBlocked:
+        "Corrija os erros indicados e analise o arquivo novamente antes de criar.",
+      analysisNoRows: "O arquivo não contém linhas úteis para criar filtros.",
+      analysisInvalidResponse:
+        "A resposta da análise do CSV não possui o formato esperado.",
+      analysisInvalidated:
+        "O Workspace ou o arquivo mudou. Analise o CSV novamente.",
+      defaultQueueMissing:
+        'A fila padrão "EVERYONE" não foi encontrada. O Workflow será criado sem filtro padrão.',
+      previewSummary: {
+        valid: (count: number) =>
+          `${count} ${count === 1 ? "linha válida" : "linhas válidas"}`,
+        ignored: (count: number) =>
+          `${count} ${count === 1 ? "linha ignorada" : "linhas ignoradas"}`,
+        errors: (count: number) => `${count} ${count === 1 ? "erro" : "erros"}`,
+      },
+      previewTable: {
+        caption: "Diagnóstico das linhas do CSV",
+        line: "Linha",
+        rule: "Regra de negócio",
+        queue: "Fila Twilio",
+        result: "Diagnóstico",
+      },
+      previewStatus: {
+        valid: "Válida",
+        ignored: "Ignorada",
+        error: "Erro",
+      },
+      previewReason: {
+        ready: "Fila encontrada; filtro pronto para criação.",
+        incompleteRow: "Regra ou fila não informada.",
+        excludedRow: "Linha marcada para não gerar filtro.",
+        duplicateRow: "Regra e fila já aparecem em uma linha anterior.",
+        invalidRule: "A regra contém caracteres não permitidos.",
+        queueNotFound: "Fila não encontrada neste Workspace.",
+      },
       submit: "Criar Workflow",
       confirmTitle: "Criar workflow?",
       confirmDescription: (
@@ -639,54 +954,18 @@ export const strings = {
         filters: (n: number) => `${n} filtro(s)`,
       },
       history: {
-        title: "Últimas criações",
-        clear: "Limpar",
         itemFilters: (n: number) => `${n} filtro(s)`,
-      },
-    },
-    fetchTask: {
-      breadcrumb: "Buscar Task",
-      title: "Consultar Task por SID",
-      subtitle: "Consulte os detalhes e o estado atual de uma Task.",
-      workspaceSidLabel: "Workspace SID",
-      taskSidLabel: "Task SID",
-      taskSidHint: "Formato: WT seguido de 32 caracteres hexadecimais",
-      taskSidInvalid: "Deve começar com WT e ter 34 caracteres",
-      confirmTitle: "Buscar task?",
-      confirmDescription: (taskSid: string, env: string) =>
-        `Buscar dados da task ${taskSid} no ambiente ${env}?`,
-      result: {
-        priority: "Prioridade",
-        age: "Idade",
-        channel: "Canal",
-        workflow: "Workflow",
-        queue: "Fila",
-        reason: "Motivo",
-        dateCreated: "Criada em",
-        dateUpdated: "Atualizada em",
-        attributes: "Atributos",
-      },
-      history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
       },
     },
     fetchWorker: {
       breadcrumb: "Detalhes do Worker",
       title: "Detalhes do Worker",
       subtitle:
-        "Consulte atividade, skills e atributos por SID, e-mail ou nome.",
-      metadata: {
-        title: "Detalhes do Worker",
-        description:
-          "Consulte atividade, skills e atributos de um Worker do TaskRouter por SID, e-mail ou nome.",
-      },
+        "Consulte atividade, skills e atributos de um agente (Worker) por SID ou nome amigável.",
       workspaceSidLabel: "Workspace SID",
-      identifierLabel: "Worker SID ou e-mail",
-      identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
-      confirmTitle: "Buscar worker?",
-      confirmDescription: (identifier: string, env: string) =>
-        `Buscar dados do worker ${identifier} no ambiente ${env}?`,
+      identifierLabel: "Worker SID ou nome amigável",
+      identifierHint:
+        "Use o SID (WK + 32 caracteres hexadecimais) ou o nome amigável exato (friendlyName). E-mail só funciona quando é o nome amigável do Worker. Se houver nomes repetidos, use o SID para escolher o agente correto.",
       result: {
         skills: "Skills",
         level: (n: number) => `nível ${n}`,
@@ -695,18 +974,28 @@ export const strings = {
         dateStatusChanged: "Atividade alterada em",
         fullAttributes: "Atributos completos",
       },
-      history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
-      },
     },
     searchTasks: {
-      breadcrumb: "Tasks por SID ou Número",
-      title: "Tasks por SID ou Número",
+      openConversation: "Consultar Conversation vinculada",
+      openWorkflow: "Consultar Workflow de roteamento",
+      relatedResources: "Continuar investigação",
+      log: {
+        workspaceNotFound: (workspaceSid: string) =>
+          `Workspace não encontrado: ${workspaceSid}`,
+        taskNotFound: (taskSid: string) => `Task não encontrada: ${taskSid}`,
+      },
+      duration: {
+        seconds: (seconds: number) => `${seconds}s`,
+        minutes: (minutes: number, seconds: number) =>
+          `${minutes}m ${seconds}s`,
+        hours: (hours: number, minutes: number) => `${hours}h ${minutes}m`,
+      },
+      breadcrumb: "Consultar Task",
+      title: "Consultar Task",
       subtitle:
-        "Consulte uma Task por SID ou localize atendimentos por telefone.",
+        "Consulte detalhes de uma Task por SID ou por número de telefone.",
       metadata: {
-        title: "Tasks por SID ou Número",
+        title: "Consultar Task",
         description:
           "Consulte uma Task por SID ou localize Tasks de voz e WhatsApp pelo número do contato.",
       },
@@ -720,19 +1009,11 @@ export const strings = {
       phoneLabelHint:
         "Aceita +5511999999999, 5511999999999 ou whatsapp:+5511999999999",
       submit: "Buscar",
-      confirmSidTitle: "Buscar task?",
-      confirmSidDescription: (sid: string, env: string) =>
-        `Buscar dados da task ${sid} no ambiente ${env}?`,
-      confirmPhoneTitle: "Buscar tasks?",
-      confirmPhoneDescription: (phone: string, env: string) =>
-        `Buscar tasks do número ${phone} no ambiente ${env}?`,
       result: {
         count: (n: number) => `${n} task(s) encontrada(s)`,
         none: "Nenhuma task encontrada para esse número.",
-        channel: "Canal",
         workflow: "Workflow",
         queue: "Fila",
-        status: "Status",
         priority: "Prioridade",
         age: "Idade",
         dateCreated: "Criada em",
@@ -744,14 +1025,54 @@ export const strings = {
         sidCopied: "Copiado!",
       },
       history: {
-        title: "Últimas consultas",
-        clear: "Limpar",
         itemPhone: (n: number) => `${n} task(s)`,
       },
     },
     cancelQueueTasks: {
+      log: {
+        done: (
+          totalSuccess: number,
+          totalSkipped: number,
+          totalErrors: number
+        ) =>
+          `Concluído. ${totalSuccess} cancelada(s), ${totalSkipped} ignorada(s), ${totalErrors} erro(s).`,
+        reason: (taskQueueName: string) =>
+          `Limpeza em massa da fila ${taskQueueName}`,
+        cancelLabel: (taskSid: string) => `Cancelar task ${taskSid}`,
+        noConversation: (taskSid: string) =>
+          `Task ${taskSid}: cancelada (sem conversa associada)`,
+        messageLabel: (conversationSid: string) =>
+          `Enviar mensagem para conversa ${conversationSid}`,
+        messageFailed: (taskSid: string, conversationSid: string) =>
+          `Task ${taskSid}: cancelada, mas falha ao enviar mensagem para ${conversationSid}`,
+        closeFailed: (taskSid: string, conversationSid: string) =>
+          `Task ${taskSid}: cancelada, mas falha ao fechar conversa ${conversationSid}`,
+        conversationAlreadyProcessed: (
+          taskSid: string,
+          conversationSid: string
+        ) =>
+          `Task ${taskSid}: cancelada; a conversa ${conversationSid} já foi processada neste lote.`,
+        truncated: (limit: number) =>
+          `A fila possui mais de ${limit} tasks. Somente as primeiras ${limit} foram processadas; execute novamente para continuar.`,
+        closed: (taskSid: string, status: string) =>
+          `Task ${taskSid}: cancelada, mensagem enviada, conversa fechada (${status} → canceled)`,
+        searching: (taskQueueName: string) =>
+          `Buscando tasks da fila "${taskQueueName}"...`,
+        searchLabel: (taskQueueName: string) =>
+          `Listar tasks da fila ${taskQueueName}`,
+        found: (
+          tasksCount: number,
+          cancellableTasksCount: number,
+          ignoredCount: number
+        ) =>
+          `${tasksCount} task(s) encontrada(s). Elegíveis: ${cancellableTasksCount} · ignoradas: ${ignoredCount}`,
+        progress: (processed: number, count: number) =>
+          `Progresso: ${processed}/${count}`,
+      },
+      defaultCloseMessage:
+        "Infelizmente tivemos um problema com a nossa conversa e ela precisará ser reiniciada. Por favor, envie uma nova mensagem.",
       breadcrumb: "Encerrar Tasks por Fila",
-      title: "Encerrar Tasks por Fila",
+      title: "Encerrar Tasks por fila",
       subtitle: "Encerre Tasks abertas e suas Conversations associadas.",
       metadata: {
         title: "Encerrar Tasks por Fila",
@@ -764,24 +1085,39 @@ export const strings = {
       submit: "Encerrar Tasks",
       confirmTitle: "Encerrar tasks da fila?",
       confirmDescription: (queue: string, workspaceSid: string) =>
-        `Você está prestes a encerrar todas as tasks pendentes/reservadas da fila "${queue}" no workspace ${workspaceSid}. As conversas associadas receberão uma mensagem e serão fechadas. Esta ação não pode ser desfeita.`,
-      confirmAction: "Sim, encerrar",
+        `Serão canceladas as Tasks pendentes ou reservadas encontradas na fila "${queue}", no Workspace ${workspaceSid}. Após cada cancelamento, será tentado o envio da mensagem abaixo e o encerramento da Conversation associada. Esta ação não pode ser desfeita. A lista carregada tem limite de 1.000 Tasks por execução.`,
+      confirmAction: "Cancelar Tasks e encerrar conversas",
       summary: {
         success: (n: number) => `${n} encerrada(s)`,
         skipped: (n: number) => `${n} ignorada(s)`,
         errors: (n: number) => `${n} erro(s)`,
+        partial:
+          "Ainda existem tasks além do limite deste lote. Execute novamente para continuar.",
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (n: number) => `${n} encerrada(s)`,
         itemSkipped: (n: number) => ` — ${n} ignorada(s)`,
         itemErrors: (n: number) => ` — ${n} erro(s)`,
       },
     },
     addParticularFilter: {
+      log: {
+        done: (totalAdded: number, totalSkipped: number, totalErrors: number) =>
+          `Concluído. ${totalAdded} adicionado(s), ${totalSkipped} ignorado(s), ${totalErrors} erro(s).`,
+        unexpectedError: "Erro inesperado ao processar filtros.",
+        processing: (workflowSid: string) =>
+          `Processando workflow ${workflowSid}...`,
+        invalidRouting: (workflowSid: string) =>
+          `Workflow ${workflowSid} não possui configuração de roteamento válida.`,
+        alreadyExists: (filterName: string, workflowSid: string) =>
+          `Filtro "${filterName}" já existe no workflow ${workflowSid}. Ignorado.`,
+        added: (filterName: string, workflowSid: string) =>
+          `Filtro "${filterName}" adicionado ao workflow ${workflowSid}.`,
+        failed: (workflowSid: string, message: string) =>
+          `Erro ao processar workflow ${workflowSid}: ${message}`,
+      },
       breadcrumb: "Adicionar Filtro a Workflows",
-      title: "Adicionar Filtro a Workflows",
+      title: "Adicionar filtro a Workflows",
       subtitle: "Adicione uma regra de roteamento a Workflows e Task Queues.",
       metadata: {
         title: "Adicionar Filtro a Workflows",
@@ -790,7 +1126,7 @@ export const strings = {
       },
       workspaceSidLabel: "Workspace SID",
       filterNameLabel: "Nome da regra de negócio",
-      filterNamePlaceholder: "ex: PARTICULAR",
+      filterNamePlaceholder: "PARTICULAR",
       filterNameRequired: "Informe o nome da regra de negócio",
       workflowSidColLabel: "Workflow SID",
       taskQueueSidColLabel: "Task Queue SID",
@@ -814,8 +1150,6 @@ export const strings = {
         errors: (n: number) => `${n} erro(s)`,
       },
       history: {
-        title: "Últimas operações",
-        clear: "Limpar",
         item: (filterName: string, n: number) =>
           `${filterName} · ${n} adicionado(s)`,
         itemSkipped: (n: number) => ` — ${n} já existia(m)`,
@@ -824,9 +1158,15 @@ export const strings = {
     },
   },
   contacts: {
+    input: {
+      saveContact: (value: string) => `Salvar “${value}” como contato`,
+      removeContact: "Excluir contato",
+      namePlaceholder: "João Silva",
+    },
     manager: {
+      deleteAriaLabel: "Excluir contato",
       breadcrumb: "Contatos Salvos",
-      title: "Contatos Salvos",
+      title: "Contatos salvos",
       subtitle: "Associe nomes aos números usados nos formulários.",
       metadata: {
         title: "Contatos Salvos",
@@ -846,16 +1186,30 @@ export const strings = {
     },
     form: {
       nameLabel: "Nome",
-      namePlaceholder: "ex: João Silva",
+      namePlaceholder: "João Silva",
       phoneLabel: "Número (DDD + número)",
-      phonePlaceholder: "ex: 1187654321",
+      phonePlaceholder: "11999999999",
       saveButton: "Salvar",
     },
   },
   variables: {
+    groups: {
+      workspaceSids: "Workspace SIDs",
+      queueNames: "Filas (Task Queue)",
+      skillNames: "Skills",
+      workflowNames: "Workflows",
+      workerIdentifiers: "Workers",
+      conversationSids: "Conversation SIDs",
+      closeMessages: "Mensagens de encerramento",
+      flexAddresses: "Endereços Flex",
+      conversationServiceSids: "Conversation Service SIDs",
+      studioFlowSids: "Studio Flow SIDs",
+    },
     manager: {
+      editAriaLabel: "Editar valor salvo",
+      deleteAriaLabel: "Excluir valor salvo",
       breadcrumb: "Valores de Autocomplete",
-      title: "Valores de Autocomplete",
+      title: "Valores de autocomplete",
       subtitle: "Gerencie valores reutilizáveis por campo e ambiente.",
       metadata: {
         title: "Valores de Autocomplete",
@@ -864,7 +1218,7 @@ export const strings = {
       },
       addButton: "Adicionar",
       valueLabel: "Valor",
-      valuePlaceholder: "Digite o valor...",
+      valuePlaceholder: "Digite um valor",
       saveButton: "Salvar",
       emptyHint: "Nenhum valor salvo",
       environmentLabel: "Ambiente ativo:",
@@ -922,9 +1276,15 @@ export const strings = {
       addTitle: "Novo ambiente",
       editTitle: "Editar ambiente",
       emptyTitle: "Nenhum ambiente cadastrado",
-      emptyHint: "Clique em",
-      emptyHintLink: "Novo ambiente",
-      emptyHintSuffix: "para começar",
+      emptyHint:
+        "Cadastre a conta Twilio que deseja consultar. Um ambiente reúne um nome, o Account SID e o Auth Token fornecidos pela sua equipe técnica.",
+      setupSteps: [
+        "Peça à equipe técnica as credenciais da conta Twilio e confirme se ela é de homologação ou produção.",
+        "Crie um ambiente com um nome que identifique claramente a conta.",
+        "Teste a conexão, salve e selecione o ambiente. Confira o destino antes de consultar ou alterar dados.",
+      ],
+      localCredentials:
+        "As credenciais ficam salvas em texto simples neste navegador. Use um perfil confiável e não compartilhe o Auth Token.",
       deleteConfirm: (name: string) =>
         `Excluir "${name}"? Esta ação não pode ser desfeita.`,
       deleteButton: "Confirmar exclusão",
@@ -939,16 +1299,17 @@ export const strings = {
     },
     form: {
       nameLabel: "Nome do ambiente",
-      namePlaceholder: "ex: Produção, Homologação",
+      namePlaceholder: "Homologação",
       nameRequired: "Nome obrigatório",
       accountSidLabel: "Account SID",
       accountSidHint:
-        "Começa com AC, seguido de 32 caracteres hexadecimais. Total: 34 caracteres",
+        "Identifica a conta Twilio. Use o Account SID fornecido pela equipe técnica: AC seguido de 32 caracteres hexadecimais.",
       accountSidRequired: "Account SID obrigatório",
       accountSidInvalid: "Deve começar com AC e ter 34 caracteres",
       authTokenLabel: "Auth Token",
       authTokenPlaceholder: "32 caracteres",
-      authTokenHint: "Exatamente 32 caracteres",
+      authTokenHint:
+        "Credencial secreta da conta, com 32 caracteres. Solicite à equipe técnica e não compartilhe em mensagens ou capturas de tela.",
       authTokenRequired: "Auth Token obrigatório",
       authTokenInvalid: "Deve ter exatamente 32 caracteres",
       showTokenAriaLabel: "Revelar token",
@@ -964,11 +1325,12 @@ export const strings = {
   numbers: {
     page: {
       title: "Números",
-      subtitle: "Identifique o serviço associado a cada número do WhatsApp.",
+      subtitle:
+        "Confira as configurações de mensageria dos números de WhatsApp.",
       metadata: {
         title: "Números WhatsApp da Conta",
         description:
-          "Liste os números WhatsApp da conta e identifique o serviço associado a cada um.",
+          "Liste os números WhatsApp da conta e confira configurações e classificações estimadas de mensageria.",
       },
       intro: {
         badge: "Numbers API",
@@ -984,24 +1346,30 @@ export const strings = {
       breadcrumb: "Classificar Senders",
       title: "Classificar WhatsApp Senders",
       subtitle:
-        "Liste os Senders e identifique o serviço de mensageria de cada número.",
+        "Liste os remetentes de WhatsApp (Senders) e confira as configurações de mensageria encontradas.",
+      classificationHint:
+        "Conversations indica uma configuração de endereço encontrada. Programmable Chat é uma classificação estimada para os demais números e não comprova a origem do serviço.",
       metadata: {
         title: "Classificar WhatsApp Senders",
         description:
-          "Liste, filtre e exporte WhatsApp Senders classificados por Conversations ou Programmable Chat.",
+          "Liste, filtre e exporte WhatsApp Senders com configurações de Conversations ou classificação estimada de Programmable Chat.",
       },
       submit: "Listar Senders",
-      confirmTitle: "Listar senders?",
-      confirmDescription: (env: string) =>
-        `Listar todos os WhatsApp senders da conta no ambiente ${env}?`,
+      partialWarning:
+        "Uma das fontes da Twilio não respondeu. Os resultados exibidos são parciais.",
+      truncatedWarning:
+        "A conta possui mais resultados do que o limite carregado. A lista está incompleta.",
       table: {
+        colSid: "SID",
+        sheetName: "Senders",
         colMark: "Marca / Identificação",
         colNumber: "Número",
         colService: "Serviço",
         filterAll: "Todos",
         filterConversations: "Conversations",
-        filterPchat: "Programmable Chat",
-        searchPlaceholder: "Buscar por nome ou número...",
+        filterPchat: "Programmable Chat (estimado)",
+        searchPlaceholder: "Busque por nome ou número",
+        searchLabel: "Buscar Senders por nome ou número",
         empty: "Nenhum número encontrado.",
         emptyFiltered: "Nenhum número corresponde ao filtro.",
         count: (n: number) => `${n} número(s) encontrado(s)`,

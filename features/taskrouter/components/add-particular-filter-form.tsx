@@ -1,16 +1,17 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
-import {
-  AlertTriangle,
-  ChevronRight,
-  Filter,
-  Play,
-  Plus,
-  RotateCcw,
-  Square,
-  Trash2,
-} from "lucide-react"
-import Link from "next/link"
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -19,7 +20,6 @@ import {
   type LogEntry,
 } from "@/components/log-output"
 import { StoredInput } from "@/components/stored-input"
-import { WarningBadge } from "@/components/warning-badge"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,13 +30,21 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { WarningBadge } from "@/components/warning-badge"
+
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
+import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
@@ -77,26 +85,6 @@ const WQ_SID_RE = /^WQ[a-fA-F0-9]{32}$/i
 const EMPTY_ROW: EntryRow = { workflowSid: "", taskQueueSid: "" }
 const EMPTY_ERROR: EntryError = { workflowSid: null, taskQueueSid: null }
 
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
-
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -108,6 +96,9 @@ function fmtTs(ts: number) {
 
 export function AddParticularFilterForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [filterName, setFilterName] = React.useState("")
   const [rows, setRows] = React.useState<EntryRow[]>([{ ...EMPTY_ROW }])
@@ -121,16 +112,17 @@ export function AddParticularFilterForm() {
   const [pendingEntries, setPendingEntries] = React.useState<
     AddParticularFilterEntry[]
   >([])
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
   const [wsSidError, setWsSidError] = React.useState<string | null>(null)
   const [filterNameError, setFilterNameError] = React.useState<string | null>(
     null
   )
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const filledRows = rows.filter(
     (r) => r.workflowSid.trim() && r.taskQueueSid.trim()
@@ -160,9 +152,7 @@ export function AddParticularFilterForm() {
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
@@ -252,7 +242,7 @@ export function AddParticularFilterForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/add-particular-filter", {
+      const res = await fetch("/api/taskrouter/add-business-rule-filter", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -280,68 +270,38 @@ export function AddParticularFilterForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
+      await consumeSseStream(reader, (payload) => {
+        addLog(payload.level, payload.message)
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalAdded?: number
-              totalSkipped?: number
-              totalErrors?: number
-            }
-
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const totalAdded = payload.totalAdded ?? 0
-              const totalSkipped = payload.totalSkipped ?? 0
-              const totalErrors = payload.totalErrors ?? 0
-              setSummary({ totalAdded, totalSkipped, totalErrors })
-              setStatus(
-                totalAdded === 0 && totalSkipped === 0 ? "error" : "done"
-              )
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                workspaceSid: workspaceSid.trim(),
-                filterName: filterName.trim(),
-                totalEntries: pendingEntries.length,
-                totalAdded,
-                totalSkipped,
-                totalErrors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
+        if (payload.done === true) {
+          const totalAdded =
+            typeof payload.totalAdded === "number" ? payload.totalAdded : 0
+          const totalSkipped =
+            typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+          const totalErrors =
+            typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+          setSummary({ totalAdded, totalSkipped, totalErrors })
+          setStatus(totalAdded === 0 && totalSkipped === 0 ? "error" : "done")
+          const entry: HistoryEntry = {
+            ts: Date.now(),
+            workspaceSid: workspaceSid.trim(),
+            filterName: filterName.trim(),
+            totalEntries: pendingEntries.length,
+            totalAdded,
+            totalSkipped,
+            totalErrors,
           }
+          pushHistory(historyKey, entry)
+          setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
         }
-      }
-
-      setStatus((prev) => (prev !== "done" && prev !== "error" ? "done" : prev))
+      })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -350,228 +310,258 @@ export function AddParticularFilterForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.addParticularFilter.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <Filter className="size-4 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.addParticularFilter.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.addParticularFilter.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.taskrouter.addParticularFilter.title}
+        description={strings.taskrouter.addParticularFilter.subtitle}
+        parent={{
+          href: "/?area=taskrouter",
+          label: strings.sidebar.sections.taskrouter,
+        }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
+      {!activeEnvironment && <NoEnvironmentSelected />}
+
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="primary"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" />
+                  {strings.taskrouter.addParticularFilter.submit}
+                </>
+              )}
+            </ActionButton>
+
+            {status === "running" && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+
+            {(logs.length > 0 || status !== "idle") && status !== "running" && (
+              <ActionButton action="clear" type="button" onClick={reset}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
+        <div className="grid gap-x-2 gap-y-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
+          {/* Workspace SID */}
+          <div className="space-y-2">
+            <Label htmlFor="workspaceSid">
+              {strings.taskrouter.addParticularFilter.workspaceSidLabel}
+            </Label>
+            <StoredInput
+              id="workspaceSid"
+              aria-describedby={
+                wsSidError ? "filter-workspace-error" : undefined
+              }
+              aria-invalid={!!wsSidError}
+              storageKey={STORED_KEYS.workspaceSids}
+              environmentId={activeEnvironment?.id}
+              value={workspaceSid}
+              onChange={(v) => {
+                setWorkspaceSid(v)
+                if (wsSidError) setWsSidError(null)
+              }}
+              placeholder={strings.common.placeholders.workspaceSid}
+              disabled={status === "running"}
+            />
+            {wsSidError && (
+              <p
+                id="filter-workspace-error"
+                className="text-xs text-destructive"
               >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
+                {wsSidError}
+              </p>
+            )}
           </div>
-        </div>
-      )}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
-        {/* Workspace SID */}
-        <div className="space-y-2">
-          <Label htmlFor="workspaceSid">
-            {strings.taskrouter.addParticularFilter.workspaceSidLabel}
-          </Label>
-          <StoredInput
-            id="workspaceSid"
-            storageKey={STORED_KEYS.workspaceSids}
-            environmentId={activeEnvironment?.id}
-            value={workspaceSid}
-            onChange={(v) => {
-              setWorkspaceSid(v)
-              if (wsSidError) setWsSidError(null)
-            }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            disabled={status === "running"}
-          />
-          {wsSidError && (
-            <p className="text-xs text-destructive">{wsSidError}</p>
-          )}
-        </div>
+          {/* Filter name */}
+          <div className="space-y-2">
+            <Label htmlFor="filterName">
+              {strings.taskrouter.addParticularFilter.filterNameLabel}
+            </Label>
 
-        {/* Filter name */}
-        <div className="space-y-2">
-          <Label htmlFor="filterName">
-            {strings.taskrouter.addParticularFilter.filterNameLabel}
-          </Label>
-          <Input
-            id="filterName"
-            value={filterName}
-            onChange={(e) => {
-              setFilterName(e.target.value)
-              if (filterNameError) setFilterNameError(null)
-            }}
-            placeholder={
-              strings.taskrouter.addParticularFilter.filterNamePlaceholder
-            }
-            disabled={status === "running"}
-          />
-          {filterNameError && (
-            <p className="text-xs text-destructive">{filterNameError}</p>
-          )}
+            <div className="min-w-0 flex-1">
+              <Input
+                id="filterName"
+                aria-describedby={
+                  filterNameError ? "filter-name-error" : undefined
+                }
+                aria-invalid={!!filterNameError}
+                value={filterName}
+                onChange={(e) => {
+                  setFilterName(e.target.value)
+                  if (filterNameError) setFilterNameError(null)
+                }}
+                placeholder={
+                  strings.taskrouter.addParticularFilter.filterNamePlaceholder
+                }
+                disabled={status === "running"}
+              />
+            </div>
+
+            {filterNameError && (
+              <p id="filter-name-error" className="text-xs text-destructive">
+                {filterNameError}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Workflow / Task Queue pairs */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Column headers */}
-          <div className="grid grid-cols-[1fr_1fr_2.25rem] gap-2">
-            <Label>
-              {strings.taskrouter.addParticularFilter.workflowSidColLabel}
-            </Label>
-            <Label>
-              {strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
-            </Label>
-            <div />
-          </div>
-
-          {/* Rows */}
-          <div className="space-y-2">
-            {rows.map((row, i) => (
-              <div key={i} className="space-y-1">
-                <div className="grid grid-cols-[1fr_1fr_2.25rem] items-start gap-2">
-                  <div className="space-y-1">
-                    <Input
-                      value={row.workflowSid}
-                      onChange={(e) =>
-                        updateRow(i, "workflowSid", e.target.value)
-                      }
-                      placeholder="WWxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      disabled={status === "running"}
-                      className={cn(
-                        "font-mono text-xs",
-                        rowErrors[i]?.workflowSid && "border-destructive"
-                      )}
-                    />
-                    {rowErrors[i]?.workflowSid && (
-                      <p className="text-xs text-destructive">
-                        {rowErrors[i].workflowSid}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <Input
-                      value={row.taskQueueSid}
-                      onChange={(e) =>
-                        updateRow(i, "taskQueueSid", e.target.value)
-                      }
-                      placeholder="WQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      disabled={status === "running"}
-                      className={cn(
-                        "font-mono text-xs",
-                        rowErrors[i]?.taskQueueSid && "border-destructive"
-                      )}
-                    />
-                    {rowErrors[i]?.taskQueueSid && (
-                      <p className="text-xs text-destructive">
-                        {rowErrors[i].taskQueueSid}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    disabled={status === "running" || rows.length === 1}
-                    onClick={() => removeRow(i)}
-                    className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
-                    aria-label={strings.common.remove}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </div>
+          <>
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="hidden gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
+                <p className="text-sm font-medium">
+                  {strings.taskrouter.addParticularFilter.workflowSidColLabel}
+                </p>
+                <p className="text-sm font-medium">
+                  {strings.taskrouter.addParticularFilter.taskQueueSidColLabel}
+                </p>
+                <div />
               </div>
-            ))}
-          </div>
 
-          {/* Add row */}
-          <button
-            type="button"
-            disabled={status === "running" || rows.length >= MAX_ITEMS}
-            onClick={addRow}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-          >
-            <Plus className="size-3.5" />
-            {strings.taskrouter.addParticularFilter.addEntry}
-          </button>
+              {/* Rows */}
+              <div className="space-y-2">
+                {rows.map((row, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
+                      <div className="col-start-1 space-y-2 sm:col-auto">
+                        <Label
+                          htmlFor={`filter-workflow-${i}`}
+                          className="sm:sr-only"
+                        >
+                          {
+                            strings.taskrouter.addParticularFilter
+                              .workflowSidColLabel
+                          }
+                        </Label>
+                        <Input
+                          id={`filter-workflow-${i}`}
+                          aria-describedby={
+                            rowErrors[i]?.workflowSid
+                              ? `filter-workflow-error-${i}`
+                              : undefined
+                          }
+                          aria-invalid={!!rowErrors[i]?.workflowSid}
+                          aria-label={
+                            strings.taskrouter.addParticularFilter
+                              .workflowSidColLabel
+                          }
+                          value={row.workflowSid}
+                          onChange={(e) =>
+                            updateRow(i, "workflowSid", e.target.value)
+                          }
+                          placeholder={strings.common.placeholders.workflowSid}
+                          disabled={status === "running"}
+                          className={cn(
+                            "font-mono text-xs",
+                            rowErrors[i]?.workflowSid && "border-destructive"
+                          )}
+                        />
+                        {rowErrors[i]?.workflowSid && (
+                          <p
+                            id={`filter-workflow-error-${i}`}
+                            className="text-xs text-destructive"
+                          >
+                            {rowErrors[i].workflowSid}
+                          </p>
+                        )}
+                      </div>
+                      <div className="col-start-1 space-y-2 sm:col-auto">
+                        <Label
+                          htmlFor={`filter-queue-${i}`}
+                          className="sm:sr-only"
+                        >
+                          {
+                            strings.taskrouter.addParticularFilter
+                              .taskQueueSidColLabel
+                          }
+                        </Label>
+                        <Input
+                          id={`filter-queue-${i}`}
+                          aria-describedby={
+                            rowErrors[i]?.taskQueueSid
+                              ? `filter-queue-error-${i}`
+                              : undefined
+                          }
+                          aria-invalid={!!rowErrors[i]?.taskQueueSid}
+                          aria-label={
+                            strings.taskrouter.addParticularFilter
+                              .taskQueueSidColLabel
+                          }
+                          value={row.taskQueueSid}
+                          onChange={(e) =>
+                            updateRow(i, "taskQueueSid", e.target.value)
+                          }
+                          placeholder={strings.common.placeholders.taskQueueSid}
+                          disabled={status === "running"}
+                          className={cn(
+                            "font-mono text-xs",
+                            rowErrors[i]?.taskQueueSid && "border-destructive"
+                          )}
+                        />
+                        {rowErrors[i]?.taskQueueSid && (
+                          <p
+                            id={`filter-queue-error-${i}`}
+                            className="text-xs text-destructive"
+                          >
+                            {rowErrors[i].taskQueueSid}
+                          </p>
+                        )}
+                      </div>
+                      <ActionButton
+                        action="remove"
+                        iconOnly
+                        type="button"
+                        disabled={status === "running" || rows.length === 1}
+                        onClick={() => removeRow(i)}
+                        className="col-start-2 row-start-1 mt-6 sm:col-auto sm:row-auto sm:mt-0"
+                        aria-label={strings.common.remove}
+                      ></ActionButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <ActionBar>
+              <ActionButton
+                action="add"
+                type="button"
+                disabled={status === "running" || rows.length >= MAX_ITEMS}
+                onClick={addRow}
+              >
+                {strings.taskrouter.addParticularFilter.addEntry}
+              </ActionButton>
+            </ActionBar>
+          </>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
-            {status === "running" ? (
-              <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.taskrouter.addParticularFilter.submit}
-              </>
-            )}
-          </Button>
-
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reset}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
-          )}
-        </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -588,6 +578,7 @@ export function AddParticularFilterForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
@@ -605,7 +596,7 @@ export function AddParticularFilterForm() {
       {/* Summary banner */}
       {summary && (status === "done" || status === "error") && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.taskrouter.addParticularFilter.summary.added(
               summary.totalAdded
             )}
@@ -625,7 +616,7 @@ export function AddParticularFilterForm() {
             <>
               {" "}
               &middot;{" "}
-              <span className="text-destructive">
+              <span className="font-medium text-destructive">
                 {strings.taskrouter.addParticularFilter.summary.errors(
                   summary.totalErrors
                 )}
@@ -638,7 +629,7 @@ export function AddParticularFilterForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />

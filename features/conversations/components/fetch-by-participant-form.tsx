@@ -1,39 +1,33 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import {
-  AlertTriangle,
-  AtSign,
-  ChevronRight,
-  FileSearch2,
-  Loader2,
-  Search,
-} from "lucide-react"
+import { PageHeader } from "@/components/page-header"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { FileSearch2, Loader2, Search } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { ContactInput } from "@/components/contact-input"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Label } from "@/components/ui/label"
-import { ContactInput } from "@/components/contact-input"
 import { FetchByParticipantResultsSkeleton } from "@/features/conversations/components/fetch-by-participant-skeleton"
-import type {
-  ParticipantConversation,
-  ParticipantConversationPage,
-} from "@/features/conversations/lib/fetch-by-participant"
+import { useParticipantSearch } from "@/features/conversations/components/use-participant-search"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
+import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
 
 type StateFilter = "all" | "active" | "inactive" | "closed"
 
@@ -45,27 +39,7 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "switchboard:fetch-by-participant-history"
-const PHONE_RE = /^\d+$/
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
+const PHONE_RE = /^\d{10,11}$/
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -118,119 +92,67 @@ const STATE_OPTIONS: { value: StateFilter; label: string }[] = [
 
 export function FetchByParticipantForm() {
   const { activeEnvironment } = useEnvironment()
+  return <ParticipantSearchForm key={activeEnvironment?.id ?? ""} />
+}
+
+function ParticipantSearchForm() {
+  const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [phone, setPhone] = React.useState("")
   const [phoneError, setPhoneError] = React.useState<string | null>(null)
   const [stateFilter, setStateFilter] = React.useState<StateFilter>("all")
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [results, setResults] = React.useState<
-    ParticipantConversation[] | null
-  >(null)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [nextPageToken, setNextPageToken] = React.useState<string | null>(null)
-  const [loadingMore, setLoadingMore] = React.useState(false)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  const {
+    results,
+    loading,
+    error,
+    pages,
+    cancelled,
+    search,
+    cancel,
+    updateConversation,
+  } = useParticipantSearch(activeEnvironment)
+  const [visibleCount, setVisibleCount] = React.useState(20)
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
 
   const canSubmit = phone.trim().length > 0 && !loading && !!activeEnvironment
-
-  const address = `whatsapp:+55${phone.trim()}`
 
   async function runSearch(
     requestedPhone = phone.trim(),
     requestedStateFilter = stateFilter
   ) {
     if (loading || !activeEnvironment || !PHONE_RE.test(requestedPhone)) return
-    setLoading(true)
-    setError(null)
-    setResults(null)
-    setNextPageToken(null)
-
-    try {
-      const res = await fetch("/api/conversations/fetch-by-participant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: `whatsapp:+55${requestedPhone}`,
-          accountSid: activeEnvironment.accountSid,
-          authToken: activeEnvironment.authToken,
-        }),
-      })
-      const json = (await res.json()) as ParticipantConversationPage & {
-        error?: string
-      }
-      if (!res.ok || json.error) {
-        setError(json.error ?? strings.common.unknown)
-        return
-      }
-      setResults(json.conversations)
-      setNextPageToken(json.nextPageToken)
-      const entry: HistoryEntry = {
-        ts: Date.now(),
-        phone: requestedPhone,
-        stateFilter: requestedStateFilter,
-        count: json.conversations.length,
-      }
-      pushHistory(entry)
-      setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
-    } finally {
-      setLoading(false)
+    setVisibleCount(20)
+    const conversations = await search(requestedPhone)
+    if (!conversations) return
+    const entry: HistoryEntry = {
+      ts: Date.now(),
+      phone: requestedPhone,
+      stateFilter: requestedStateFilter,
+      count: conversations.length,
     }
-  }
-
-  async function loadMoreResults() {
-    if (!activeEnvironment || !nextPageToken || loadingMore) return
-    setLoadingMore(true)
-    setError(null)
-
-    try {
-      const res = await fetch("/api/conversations/fetch-by-participant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address,
-          pageToken: nextPageToken,
-          accountSid: activeEnvironment.accountSid,
-          authToken: activeEnvironment.authToken,
-        }),
-      })
-      const json = (await res.json()) as ParticipantConversationPage & {
-        error?: string
-      }
-      if (!res.ok || json.error) {
-        setError(json.error ?? strings.common.unknown)
-        return
-      }
-
-      setResults((current) => [...(current ?? []), ...json.conversations])
-      setNextPageToken(json.nextPageToken)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
-    } finally {
-      setLoadingMore(false)
-    }
+    pushHistory(historyKey, entry)
+    setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!canSubmit) return
     if (!PHONE_RE.test(phone.trim())) {
-      setPhoneError(strings.common.phoneDigitsOnly)
+      setPhoneError(strings.conversations.fetchByParticipant.invalidPhone)
       return
     }
     setPhoneError(null)
-    setConfirmOpen(true)
+    void runSearch()
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
@@ -240,77 +162,63 @@ export function FetchByParticipantForm() {
       : stateFilter === "all"
         ? results
         : results.filter((pc) => pc.conversationState === stateFilter)
-  const loadMoreButton = nextPageToken ? (
-    <div className="flex justify-center py-3">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={loadingMore}
-        onClick={() => void loadMoreResults()}
-      >
-        {loadingMore && <Loader2 className="animate-spin" />}
-        {loadingMore
-          ? strings.conversations.fetchByParticipant.results.loadingMore
-          : strings.conversations.fetchByParticipant.results.loadMore}
-      </Button>
-    </div>
-  ) : null
+  const displayedCount = Math.max(
+    visibleCount,
+    filteredResults?.filter(
+      (conversation) => conversation.conversationState === "active"
+    ).length ?? 0
+  )
+  const loadMoreButton =
+    filteredResults && filteredResults.length > displayedCount ? (
+      <div className="flex justify-center py-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setVisibleCount(displayedCount + 20)}
+        >
+          {strings.conversations.fetchByParticipant.results.loadMore}
+        </Button>
+      </div>
+    ) : null
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          href="/conversations"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.conversations}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.conversations.fetchByParticipant.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <AtSign className="size-4 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">
-            {strings.conversations.fetchByParticipant.title}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {strings.conversations.fetchByParticipant.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.conversations.fetchByParticipant.title}
+        description={strings.conversations.fetchByParticipant.subtitle}
+        parent={{
+          href: "/?area=conversations",
+          label: strings.sidebar.sections.conversations,
+        }}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="w-full space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="search"
+              aria-busy={loading}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              {strings.common.search}
+            </ActionButton>
+          </>
+        }
+      >
         <div className="space-y-2">
           <Label htmlFor="phone">
             {strings.conversations.fetchByParticipant.phoneLabel}{" "}
@@ -318,48 +226,47 @@ export function FetchByParticipantForm() {
               {strings.conversations.fetchByParticipant.phoneLabelHint}
             </span>
           </Label>
-          <div className="flex gap-2">
-            <ContactInput
-              id="phone"
-              value={phone}
-              onChange={(v) => {
-                setPhone(v)
-                if (phoneError) setPhoneError(null)
-              }}
-              placeholder="1187654321"
-              disabled={loading}
-              prefix="whatsapp:+55"
-              containerClassName="flex-1"
-              className="pl-[7.5rem]"
-            />
-            <Button
-              type="submit"
-              disabled={!canSubmit}
-              className="shrink-0 gap-2"
-            >
-              {loading ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Search className="size-3.5" />
-              )}
-              {strings.common.search}
-            </Button>
-          </div>
+
+          <ContactInput
+            id="phone"
+            aria-describedby={
+              phoneError ? "participant-phone-error" : undefined
+            }
+            aria-invalid={!!phoneError}
+            value={phone}
+            onChange={(v) => {
+              setPhone(v)
+              if (phoneError) setPhoneError(null)
+            }}
+            placeholder={strings.common.placeholders.localPhone}
+            disabled={loading}
+            prefix="whatsapp:+55"
+            containerClassName="w-full min-w-0 flex-1"
+            className="search-control pl-[7.5rem]"
+          />
         </div>
 
-        {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+        {phoneError && (
+          <p id="participant-phone-error" className="text-xs text-destructive">
+            {phoneError}
+          </p>
+        )}
 
         {/* State filter */}
         <div className="space-y-2">
           <Label>{strings.conversations.fetchByParticipant.filterLabel}</Label>
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {STATE_OPTIONS.map((opt) => (
               <button
+                aria-pressed={stateFilter === opt.value}
                 key={opt.value}
                 type="button"
-                onClick={() => setStateFilter(opt.value)}
+                onClick={() => {
+                  setStateFilter(opt.value)
+                  setVisibleCount(20)
+                }}
                 disabled={loading}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                   stateFilter === opt.value
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
@@ -370,155 +277,155 @@ export function FetchByParticipantForm() {
             ))}
           </div>
         </div>
-      </form>
-
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {strings.conversations.fetchByParticipant.confirmTitle}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {strings.conversations.fetchByParticipant.confirmDescription(
-                address,
-                activeEnvironment?.name ?? "",
-                stateFilter !== "all" ? stateFilter : undefined
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              className="gap-2"
-              onClick={() => {
-                setConfirmOpen(false)
-                void runSearch()
-              }}
-            >
-              <Search aria-hidden="true" className="size-3.5" />
-              {strings.common.search}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
+      </OperationForm>
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
 
-      {loading && <FetchByParticipantResultsSkeleton />}
-
-      {/* Results */}
-      {filteredResults !== null && (
-        <div className="mt-6">
-          {filteredResults.length === 0 ? (
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {results?.length === 0
-                  ? strings.conversations.fetchByParticipant.results.none
-                  : strings.conversations.fetchByParticipant.results.noneFiltered(
-                      stateFilter
-                    )}
-              </p>
-              {loadMoreButton}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                {strings.conversations.fetchByParticipant.results.count(
-                  filteredResults.length
-                )}
-                {stateFilter !== "all" &&
-                  results &&
-                  results.length !== filteredResults.length && (
-                    <>
-                      {strings.conversations.fetchByParticipant.results.totalSuffix(
-                        results.length
-                      )}
-                    </>
-                  )}
-              </p>
-              <div className="max-h-[420px] overflow-y-auto pr-1">
-                <ul className="space-y-2">
-                  {filteredResults?.map((pc) => (
-                    <li
-                      key={pc.conversationSid}
-                      className="rounded-lg border border-border bg-card px-4 py-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-mono text-xs text-muted-foreground">
-                            {pc.conversationSid}
-                          </p>
-                          {pc.conversationFriendlyName && (
-                            <p className="mt-0.5 text-sm font-medium">
-                              {pc.conversationFriendlyName}
-                            </p>
-                          )}
-                        </div>
-                        <Badge variant={stateVariant(pc.conversationState)}>
-                          {pc.conversationState}
-                        </Badge>
-                      </div>
-                      <div className="mt-2 grid grid-cols-2 gap-x-4 text-xs text-muted-foreground">
-                        <span>
-                          {
-                            strings.conversations.fetchByParticipant.results
-                              .dateCreated
-                          }{" "}
-                          {formatDate(pc.conversationDateCreated)}
-                        </span>
-                        <span>
-                          {
-                            strings.conversations.fetchByParticipant.results
-                              .dateUpdated
-                          }{" "}
-                          {formatDate(pc.conversationDateUpdated)}
-                        </span>
-                      </div>
-                      {pc.participantIdentity && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {
-                            strings.conversations.fetchByParticipant.results
-                              .identity
-                          }{" "}
-                          <span className="font-mono">
-                            {pc.participantIdentity}
-                          </span>
-                        </p>
-                      )}
-                      <div className="mt-3">
-                        <Button asChild variant="outline" size="xs">
-                          <Link
-                            href={{
-                              pathname: "/conversations/consult",
-                              query: {
-                                sid: pc.conversationSid,
-                                tab: "details",
-                              },
-                            }}
-                          >
-                            <FileSearch2 />
-                            {
-                              strings.conversations.fetchByParticipant.results
-                                .consultConversation
-                            }
-                          </Link>
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                {loadMoreButton}
-              </div>
-            </div>
-          )}
+      {loading && (
+        <div className="mt-5 space-y-3">
+          <p role="status" className="text-sm text-muted-foreground">
+            {strings.conversations.fetchByParticipant.progress(
+              pages,
+              results?.length ?? 0
+            )}
+          </p>
+          <Button type="button" variant="outline" onClick={cancel}>
+            {strings.common.cancel}
+          </Button>
         </div>
       )}
+      {cancelled && (
+        <p role="status" className="mt-5 text-sm text-muted-foreground">
+          {strings.conversations.fetchByParticipant.cancelled}
+        </p>
+      )}
+      {loading && results === null && (
+        <FetchByParticipantResultsSkeleton announce={false} />
+      )}
+
+      {/* Results */}
+      {filteredResults !== null &&
+        !(loading && filteredResults.length === 0) && (
+          <div className="mt-6 w-full">
+            {filteredResults.length === 0 ? (
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  {results?.length === 0
+                    ? strings.conversations.fetchByParticipant.results.none
+                    : strings.conversations.fetchByParticipant.results.noneFiltered(
+                        stateFilter
+                      )}
+                </p>
+                {loadMoreButton}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {strings.conversations.fetchByParticipant.results.count(
+                    filteredResults.length
+                  )}
+                  {stateFilter !== "all" &&
+                    results &&
+                    results.length !== filteredResults.length && (
+                      <>
+                        {strings.conversations.fetchByParticipant.results.totalSuffix(
+                          results.length
+                        )}
+                      </>
+                    )}
+                </p>
+                <div className="max-h-[420px] overflow-y-auto pr-1">
+                  <ul className="space-y-2">
+                    {filteredResults.slice(0, displayedCount).map((pc) => (
+                      <li
+                        key={pc.conversationSid}
+                        className="rounded-lg border border-border bg-card px-4 py-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h2 className="font-heading text-sm font-semibold break-all text-foreground">
+                              {pc.conversationSid}
+                            </h2>
+                            {pc.conversationFriendlyName && (
+                              <p className="mt-0.5 text-sm font-medium">
+                                {pc.conversationFriendlyName}
+                              </p>
+                            )}
+                          </div>
+                          <Badge variant={stateVariant(pc.conversationState)}>
+                            {pc.conversationState}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span>
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .dateCreated
+                            }{" "}
+                            {formatDate(pc.conversationDateCreated)}
+                          </span>
+                          <span>
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .dateUpdated
+                            }{" "}
+                            {formatDate(pc.conversationDateUpdated)}
+                          </span>
+                        </div>
+                        {pc.participantIdentity && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {
+                              strings.conversations.fetchByParticipant.results
+                                .identity
+                            }{" "}
+                            <span className="font-mono break-all">
+                              {pc.participantIdentity}
+                            </span>
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button asChild variant="outline" size="xs">
+                            <Link
+                              href={{
+                                pathname: "/conversations/consult-by-sid",
+                                query: {
+                                  sid: pc.conversationSid,
+                                  tab: "details",
+                                  environmentId: activeEnvironment?.id,
+                                },
+                              }}
+                            >
+                              <FileSearch2 />
+                              {
+                                strings.conversations.fetchByParticipant.results
+                                  .consultConversation
+                              }
+                            </Link>
+                          </Button>
+                          <CloseConversationButton
+                            sid={pc.conversationSid}
+                            state={pc.conversationState}
+                            disabled={loading}
+                            onUpdated={updateConversation}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {loadMoreButton}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
       {/* History */}
       {history.length > 0 && (

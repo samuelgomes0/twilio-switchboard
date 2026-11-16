@@ -1,19 +1,19 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ChevronRight,
-  Info,
-  Loader2,
-  MapPin,
-} from "lucide-react"
-import Link from "next/link"
+import { PageHeader } from "@/components/page-header"
+import { Select } from "@/components/ui/select"
+
+import { OperationForm } from "@/components/operation-form"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { CheckCircle2, Info, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import * as React from "react"
 
 import { StoredInput } from "@/components/stored-input"
-import { WarningBadge } from "@/components/warning-badge"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -25,7 +25,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { WarningBadge } from "@/components/warning-badge"
+
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import {
   Card,
@@ -37,13 +38,28 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import {
+  TooltipContent,
+  TooltipRoot,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useEnvironment } from "@/features/environments/context"
 import type {
   AddressConfigData,
   AddressConfigType,
   AutoCreationType,
 } from "@/features/flex/types"
-import { useEnvironment } from "@/features/environments/context"
+import {
+  isValidStudioFlowSid,
+  isValidWebhookUrl,
+} from "@/features/flex/lib/validate-create-address-config"
 import { MAX_HISTORY } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -76,27 +92,7 @@ interface HistoryEntry {
 const HISTORY_KEY = "switchboard:create-address-config-history"
 
 const selectClass =
-  "flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
+  "flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm  transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -136,6 +132,9 @@ function CapabilitiesBox({ type }: { type: AddressConfigType }) {
 
 export function CreateAddressConfigForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const router = useRouter()
 
   const [addressType, setAddressType] =
@@ -154,13 +153,23 @@ export function CreateAddressConfigForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [result, setResult] = React.useState<AddressConfigData | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const abortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => abortRef.current?.abort(), [])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
 
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
-
-  const canSubmit = address.trim().length > 0 && !loading && !!activeEnvironment
+  const hasValidIntegration =
+    integrationType === "default" ||
+    (integrationType === "studio" && isValidStudioFlowSid(studioFlowSid)) ||
+    (integrationType === "webhook" && isValidWebhookUrl(webhookUrl))
+  const canSubmit =
+    address.trim().length > 0 &&
+    hasValidIntegration &&
+    !loading &&
+    !!activeEnvironment
 
   async function runCreate() {
     if (!canSubmit || !activeEnvironment) return
@@ -168,6 +177,8 @@ export function CreateAddressConfigForm() {
     setLoading(true)
     setError(null)
     setResult(null)
+    const controller = new AbortController()
+    abortRef.current = controller
 
     const body: Record<string, unknown> = {
       address: address.trim(),
@@ -191,13 +202,15 @@ export function CreateAddressConfigForm() {
     body.authToken = activeEnvironment.authToken
 
     try {
-      const res = await fetch("/api/flex/create-address-config", {
+      const res = await fetch("/api/flex/create-conversation-address", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: controller.signal,
       })
 
       const json = (await res.json()) as AddressConfigData & { error?: string }
+      if (controller.signal.aborted) return
 
       if (!res.ok || json.error) {
         setError(json.error ?? strings.common.unknown)
@@ -211,12 +224,15 @@ export function CreateAddressConfigForm() {
         type: json.type,
         sid: json.sid,
       }
-      pushHistory(entry)
+      pushHistory(historyKey, entry)
       setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : strings.common.networkError)
+    } catch {
+      if (!controller.signal.aborted) setError(strings.common.networkError)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
@@ -227,70 +243,60 @@ export function CreateAddressConfigForm() {
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          href="/flex"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.flex}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{s.breadcrumb}</span>
-      </nav>
+  const formActions = (
+    <>
+      <ActionButton
+        action="primary"
+        aria-busy={loading}
+        type="submit"
+        disabled={!canSubmit}
+      >
+        {loading && (
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+        )}
+        {s.submit}
+      </ActionButton>
+      <ActionButton
+        action="cancel"
+        type="button"
+        onClick={() => router.push("/?area=flex")}
+        disabled={loading}
+      >
+        {s.cancel}
+      </ActionButton>
+    </>
+  )
 
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <MapPin className="size-4 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">{s.title}</h1>
-          <p className="text-sm text-muted-foreground">{s.subtitle}</p>
-        </div>
-        <div className="ml-auto">
-          <WarningBadge />
-        </div>
-      </div>
+  return (
+    <div className="workspace-page">
+      {/* Breadcrumb */}
+      <PageHeader
+        title={s.title}
+        description={s.subtitle}
+        parent={{ href: "/?area=flex", label: strings.sidebar.sections.flex }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form onSubmit={handleFormSubmit} className="space-y-5">
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={formActions}
+      >
         {/* Address type */}
         <div className="space-y-2">
           <Label htmlFor="addressType">
             <span className="mr-0.5 text-destructive">*</span>
             {s.addressTypeLabel}
           </Label>
-          <select
+          <Select
             id="addressType"
             value={addressType}
             onChange={(e) => {
@@ -305,7 +311,7 @@ export function CreateAddressConfigForm() {
                 {t.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Capabilities info box */}
@@ -325,7 +331,7 @@ export function CreateAddressConfigForm() {
             onChange={setAddress}
             placeholder={
               addressType === "whatsapp" || addressType === "sms"
-                ? "+5511999999999"
+                ? strings.common.placeholders.phone
                 : ""
             }
             disabled={loading}
@@ -352,12 +358,20 @@ export function CreateAddressConfigForm() {
             <h2 className="text-base font-semibold">
               {s.flexIntegrationSection}
             </h2>
-            <div className="group relative">
-              <Info className="size-4 cursor-help text-muted-foreground" />
-              <div className="pointer-events-none absolute top-0 left-5 z-10 w-64 rounded-lg border bg-popover px-3 py-2 text-xs text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+            <TooltipRoot>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={s.flexIntegrationInfo}
+                  className="inline-flex size-9 items-center justify-center rounded-md text-muted-foreground"
+                >
+                  <Info aria-hidden="true" className="size-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72">
                 {s.flexIntegrationInfo}
-              </div>
-            </div>
+              </TooltipContent>
+            </TooltipRoot>
           </div>
 
           {/* Integration type */}
@@ -366,21 +380,24 @@ export function CreateAddressConfigForm() {
               <span className="mr-0.5 text-destructive">*</span>
               {s.integrationTypeLabel}
             </Label>
-            <select
-              id="integrationType"
-              value={integrationType}
-              onChange={(e) =>
-                setIntegrationType(e.target.value as AutoCreationType)
-              }
-              disabled={loading}
-              className={selectClass}
-            >
-              {INTEGRATION_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+
+            <div className="min-w-0 flex-1">
+              <Select
+                id="integrationType"
+                value={integrationType}
+                onChange={(e) =>
+                  setIntegrationType(e.target.value as AutoCreationType)
+                }
+                disabled={loading}
+                className={selectClass}
+              >
+                {INTEGRATION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           {/* Studio fields */}
@@ -390,16 +407,28 @@ export function CreateAddressConfigForm() {
                 <span className="mr-0.5 text-destructive">*</span>
                 {s.studioFlowLabel}
               </Label>
-              <StoredInput
-                id="studioFlowSid"
-                storageKey={STORED_KEYS.studioFlowSids}
-                environmentId={activeEnvironment?.id}
-                value={studioFlowSid}
-                onChange={setStudioFlowSid}
-                placeholder={s.studioFlowPlaceholder}
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">
+
+              <div className="min-w-0 flex-1">
+                <StoredInput
+                  id="studioFlowSid"
+                  storageKey={STORED_KEYS.studioFlowSids}
+                  environmentId={activeEnvironment?.id}
+                  value={studioFlowSid}
+                  onChange={setStudioFlowSid}
+                  aria-describedby="studio-flow-hint"
+                  aria-invalid={
+                    studioFlowSid.length > 0 &&
+                    !isValidStudioFlowSid(studioFlowSid)
+                  }
+                  placeholder={s.studioFlowPlaceholder}
+                  disabled={loading}
+                />
+              </div>
+
+              <p
+                id="studio-flow-hint"
+                className="text-xs text-muted-foreground"
+              >
                 {s.studioFlowHint}
               </p>
             </div>
@@ -407,7 +436,7 @@ export function CreateAddressConfigForm() {
 
           {/* Webhook fields */}
           {integrationType === "webhook" && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="webhookUrl">
                   <span className="mr-0.5 text-destructive">*</span>
@@ -418,45 +447,35 @@ export function CreateAddressConfigForm() {
                   type="url"
                   value={webhookUrl}
                   onChange={(e) => setWebhookUrl(e.target.value)}
-                  placeholder="https://example.com/webhook"
+                  aria-invalid={
+                    webhookUrl.length > 0 && !isValidWebhookUrl(webhookUrl)
+                  }
+                  placeholder={strings.common.placeholders.webhook}
                   disabled={loading}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="webhookMethod">{s.webhookMethodLabel}</Label>
-                <select
-                  id="webhookMethod"
-                  value={webhookMethod}
-                  onChange={(e) =>
-                    setWebhookMethod(e.target.value as "GET" | "POST")
-                  }
-                  disabled={loading}
-                  className={selectClass}
-                >
-                  <option value="POST">POST</option>
-                  <option value="GET">GET</option>
-                </select>
+
+                <div className="min-w-0 flex-1">
+                  <Select
+                    id="webhookMethod"
+                    value={webhookMethod}
+                    onChange={(e) =>
+                      setWebhookMethod(e.target.value as "GET" | "POST")
+                    }
+                    disabled={loading}
+                    className={selectClass}
+                  >
+                    <option value="POST">{s.httpMethods.post}</option>
+                    <option value="GET">{s.httpMethods.get}</option>
+                  </Select>
+                </div>
               </div>
             </div>
           )}
         </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-3 pt-1">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
-            {loading && <Loader2 className="size-3.5 animate-spin" />}
-            {s.submit}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/flex")}
-            disabled={loading}
-          >
-            {s.cancel}
-          </Button>
-        </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -486,7 +505,10 @@ export function CreateAddressConfigForm() {
 
       {/* Error */}
       {error && (
-        <div className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="mt-5 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {error}
         </div>
       )}
@@ -496,11 +518,11 @@ export function CreateAddressConfigForm() {
         <div className="mt-6">
           <Card>
             <CardHeader>
-              <div className="flex items-start justify-between gap-2">
-                <div>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-4 text-emerald-500" />
-                    <CardTitle className="font-mono text-sm">
+                    <CheckCircle2 className="size-4 shrink-0 text-success" />
+                    <CardTitle className="min-w-0 font-heading text-sm break-all">
                       {result.sid}
                     </CardTitle>
                   </div>
@@ -512,12 +534,12 @@ export function CreateAddressConfigForm() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-sm sm:grid-cols-2">
                 <div>
                   <p className="mb-0.5 text-xs text-muted-foreground">
                     {s.result.address}
                   </p>
-                  <p className="font-mono text-xs font-medium">
+                  <p className="font-mono text-xs font-medium break-all">
                     {result.address}
                   </p>
                 </div>
@@ -570,12 +592,12 @@ export function CreateAddressConfigForm() {
                   )}
                 </div>
                 {result.autoCreation?.webhookUrl && (
-                  <p className="mt-2 font-mono text-xs text-muted-foreground">
+                  <p className="mt-2 font-mono text-xs break-all text-muted-foreground">
                     {result.autoCreation.webhookUrl}
                   </p>
                 )}
                 {result.autoCreation?.studioFlowSid && (
-                  <p className="mt-2 font-mono text-xs text-muted-foreground">
+                  <p className="mt-2 font-mono text-xs break-all text-muted-foreground">
                     {result.autoCreation.studioFlowSid}
                   </p>
                 )}

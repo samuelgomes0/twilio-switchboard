@@ -4,7 +4,7 @@ import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import * as React from "react"
 
-export type LogLevel = "info" | "success" | "warning" | "error"
+type LogLevel = "info" | "success" | "warning" | "error"
 
 export interface LogEntry {
   id: string
@@ -20,10 +20,10 @@ interface LogOutputProps {
 }
 
 const levelStyles: Record<LogLevel, string> = {
-  info: "text-sky-400",
-  success: "text-emerald-400",
-  warning: "text-yellow-400",
-  error: "text-red-400",
+  info: "text-info",
+  success: "text-success",
+  warning: "text-warning",
+  error: "text-destructive",
 }
 
 const levelPrefixes: Record<LogLevel, string> = {
@@ -34,7 +34,7 @@ const levelPrefixes: Record<LogLevel, string> = {
 }
 
 function formatTime(date: Date) {
-  return date.toLocaleTimeString("en-US", {
+  return date.toLocaleTimeString("pt-BR", {
     hour12: false,
     hour: "2-digit",
     minute: "2-digit",
@@ -50,24 +50,26 @@ function LogOutput({
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    const region = bottomRef.current?.parentElement
+    if (region) region.scrollTop = region.scrollHeight
   }, [entries])
 
   return (
     <div
       data-slot="log-output"
-      className={cn(
-        "relative max-h-[480px] min-h-[200px] overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs",
-        className
-      )}
+      role="log"
+      aria-label={strings.common.logOfOperations}
+      aria-live="polite"
+      aria-atomic="false"
+      className={cn("execution-log", className)}
     >
       {entries.length === 0 ? (
-        <p className="text-zinc-600 select-none">{emptyMessage}</p>
+        <p className="text-muted-foreground select-none">{emptyMessage}</p>
       ) : (
         <div className="space-y-0.5">
           {entries.map((entry) => (
             <div key={entry.id} className="flex gap-2 leading-relaxed">
-              <span className="shrink-0 text-zinc-600">
+              <span className="shrink-0 text-muted-foreground">
                 {formatTime(entry.timestamp)}
               </span>
               <span
@@ -78,7 +80,12 @@ function LogOutput({
               >
                 {levelPrefixes[entry.level]}
               </span>
-              <span className={cn(levelStyles[entry.level])}>
+              <span
+                className={cn(
+                  "min-w-0 flex-1 [overflow-wrap:anywhere]",
+                  levelStyles[entry.level]
+                )}
+              >
                 {entry.message}
               </span>
             </div>

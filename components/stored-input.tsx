@@ -1,10 +1,13 @@
 "use client"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import * as React from "react"
+import { navigateSuggestions } from "@/components/suggestion-keyboard"
 import { X } from "lucide-react"
+import * as React from "react"
 
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
+import { addVariable, deleteVariable, readVariables } from "@/lib/variables"
 
 interface StoredInputProps {
   storageKey: string
@@ -19,24 +22,8 @@ interface StoredInputProps {
   /** Applied to the inner <input> element */
   className?: string
   id?: string
-}
-
-const MAX_SAVED = 10
-
-function readSaved(key: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
-
-function writeSaved(key: string, values: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(values))
-  } catch {}
+  "aria-describedby"?: string
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"]
 }
 
 export function StoredInput({
@@ -49,17 +36,19 @@ export function StoredInput({
   containerClassName,
   className,
   id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: StoredInputProps) {
   const effectiveKey = environmentId
     ? `${storageKey}:${environmentId}`
     : storageKey
-  const [saved, setSaved] = React.useState<string[]>([])
+  const [saved, setSaved] = useBrowserState<string[]>(
+    () => readVariables(effectiveKey),
+    [],
+    effectiveKey
+  )
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
-
-  React.useEffect(() => {
-    setSaved(readSaved(effectiveKey))
-  }, [effectiveKey])
 
   const trimmed = value.trim()
   const filtered = trimmed
@@ -71,19 +60,11 @@ export function StoredInput({
   function saveValue(val: string) {
     const t = val.trim()
     if (!t) return
-    setSaved((prev) => {
-      const next = [t, ...prev.filter((s) => s !== t)].slice(0, MAX_SAVED)
-      writeSaved(effectiveKey, next)
-      return next
-    })
+    setSaved(addVariable(effectiveKey, t))
   }
 
   function deleteValue(val: string) {
-    setSaved((prev) => {
-      const next = prev.filter((s) => s !== val)
-      writeSaved(effectiveKey, next)
-      return next
-    })
+    setSaved(deleteVariable(effectiveKey, val))
   }
 
   function handleBlur(e: React.FocusEvent) {
@@ -106,9 +87,17 @@ export function StoredInput({
       ref={containerRef}
       className={cn("relative", containerClassName)}
       onBlur={handleBlur}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false)
+          event.stopPropagation()
+        } else if (showDropdown) navigateSuggestions(event)
+      }}
     >
       <input
         id={id}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -118,7 +107,7 @@ export function StoredInput({
         autoComplete="off"
         spellCheck={false}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 font-mono text-xs shadow-xs transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          "field-control font-mono placeholder:font-sans",
           className
         )}
       />
@@ -129,9 +118,9 @@ export function StoredInput({
               <button
                 type="button"
                 tabIndex={0}
-                className="min-w-0 flex-1 px-3 py-1.5 text-left font-mono text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                className="min-w-0 flex-1 px-3 py-2.5 text-left font-mono text-xs hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleSelect(s)
                 }}
               >
@@ -139,11 +128,11 @@ export function StoredInput({
               </button>
               <button
                 type="button"
-                tabIndex={-1}
-                aria-label={strings.common.remove}
-                className="mr-1 flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                tabIndex={0}
+                aria-label={strings.common.autocomplete.deleteValue}
+                className="mr-1 flex size-9 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   deleteValue(s)
                 }}
               >
@@ -157,12 +146,12 @@ export function StoredInput({
                 type="button"
                 tabIndex={0}
                 className="w-full px-3 py-1.5 text-left text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:outline-none"
-                onMouseDown={(e) => {
-                  e.preventDefault()
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
                   handleSaveNew()
                 }}
               >
-                + Salvar &ldquo;{trimmed}&rdquo;
+                {strings.common.autocomplete.saveValue(trimmed)}
               </button>
             </li>
           )}

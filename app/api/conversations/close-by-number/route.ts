@@ -1,0 +1,104 @@
+import { strings } from "@/lib/strings"
+import {
+  closeConversations,
+} from "@/features/conversations/lib/close"
+import { sseEvent } from "@/lib/sse-event"
+import { toApiResponse } from "@/lib/errors"
+import { getTwilioClient } from "@/lib/twilio-client"
+import { NextRequest } from "next/server"
+import { MAX_ITEMS } from "@/lib/constants"
+import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
+import { parseTwilioCredentials } from "@/lib/request-validation"
+import { createSseResponse } from "@/lib/sse-response"
+
+export async function POST(req: NextRequest) {
+  let value: unknown
+  try {
+    value = await req.json()
+  } catch {
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
+  }
+
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return Response.json(
+      { error: strings.common.validation.invalidBody },
+      { status: 400 }
+    )
+  }
+  const body = value as Record<string, unknown>
+  const raw = body.participants
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return Response.json(
+      { error: strings.common.validation.participantsRequired },
+      { status: 400 }
+    )
+  }
+
+  if (raw.length > MAX_ITEMS) {
+    return Response.json(
+      { error: strings.conversations.close.maxExceeded(MAX_ITEMS) },
+      { status: 400 }
+    )
+  }
+  const participants: string[] = []
+  for (const phone of raw) {
+    if (typeof phone !== "string" || normalizeClosePhone(phone) === null) {
+      return Response.json(
+        { error: strings.conversations.close.invalidPhone },
+        { status: 400 }
+      )
+    }
+    participants.push(phone.trim())
+  }
+  const credentials = parseTwilioCredentials(body)
+  if (!credentials) {
+    return Response.json(
+      { error: strings.common.validation.invalidCredentials },
+      { status: 400 }
+    )
+  }
+
+  let client: ReturnType<typeof getTwilioClient>
+  try {
+    client = getTwilioClient(credentials.accountSid, credentials.authToken)
+  } catch (err) {
+    const response = toApiResponse(err)
+    return new Response(response.body, {
+      status: 500,
+      headers: response.headers,
+    })
+  }
+
+  return createSseResponse(req, strings.common.unexpectedError, async (emit, signal) => {
+      emit(
+        sseEvent(
+          "info",
+          strings.conversations.close.log.start(participants.length)
+        )
+      )
+
+      const { totalClosed, totalErrors } = await closeConversations(
+        participants,
+        client,
+        emit,
+        signal
+      )
+
+      emit(
+        sseEvent(
+          totalErrors > 0 ? "warning" : "success",
+          strings.conversations.close.log.done(totalClosed, totalErrors),
+          {
+            done: true,
+            totalClosed,
+            totalErrors,
+          }
+        )
+      )
+
+    }
+  )
+}

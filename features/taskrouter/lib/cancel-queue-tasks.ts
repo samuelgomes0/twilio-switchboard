@@ -1,11 +1,13 @@
-import { sseEvent, withRetry } from "@/features/conversations/lib/close"
+import { strings } from "@/lib/strings"
+import { sseEvent } from "@/lib/sse-event"
+import { withRetry } from "@/lib/retry"
 import {
-  CONCURRENCY_LIMIT,
   RETRY_ATTEMPTS,
   RETRY_DELAY_MS,
   TASK_LIST_LIMIT,
 } from "@/lib/constants"
 import { getTwilioClient } from "@/lib/twilio-client"
+import { sanitizeExternalError } from "@/lib/errors"
 
 const IGNORE_STATUSES = new Set([
   "assigned",
@@ -16,7 +18,7 @@ const IGNORE_STATUSES = new Set([
 const CANCEL_STATUSES = new Set(["pending", "reserved"])
 
 export const DEFAULT_CLOSE_MESSAGE =
-  "Infelizmente tivemos um problema com a nossa conversa e ela precisará ser reiniciada. Por favor, envie uma nova mensagem."
+  strings.taskrouter.cancelQueueTasks.defaultCloseMessage
 
 interface TaskAttributes {
   conversationSid?: unknown
@@ -48,108 +50,116 @@ function extractConversationSid(attributes: TaskAttributes): string | null {
   return null
 }
 
-type TaskOutcome = "success" | "skipped" | "error"
-
-async function processInBatches<T, R>(
-  items: T[],
-  batchSize: number,
-  fn: (item: T) => Promise<R>
-): Promise<PromiseSettledResult<R>[]> {
-  const results: PromiseSettledResult<R>[] = []
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize)
-    const batchResults = await Promise.allSettled(batch.map(fn))
-    results.push(...batchResults)
-  }
-  return results
-}
+type TaskOutcome = "success" | "error"
 
 async function processSingleTask(
   task: { sid: string; assignmentStatus: string | null; attributes: string },
   args: { workspaceSid: string; taskQueueName: string; message: string },
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  processedConversations: Set<string>,
+  signal?: AbortSignal
 ): Promise<TaskOutcome> {
   const { workspaceSid, taskQueueName, message } = args
   const status = task.assignmentStatus ?? ""
-
-  if (!CANCEL_STATUSES.has(status)) return "skipped"
 
   const attributes = parseTaskAttributes(task.attributes)
   const rawSid = extractConversationSid(attributes)
   const conversationSid = isValidConversationSid(rawSid) ? rawSid : null
 
   // Cancel first because a failure must prevent sending a misleading message.
-  const cancelResult = await withRetry(
-    () =>
-      client.taskrouter.v1
+  try {
+    signal?.throwIfAborted()
+    await client.taskrouter.v1
         .workspaces(workspaceSid)
         .tasks(task.sid)
         .update({
           assignmentStatus: "canceled",
-          reason: `Limpeza em massa da fila ${taskQueueName}`,
-        }),
-    RETRY_ATTEMPTS,
-    RETRY_DELAY_MS,
-    `Cancelar task ${task.sid}`,
-    emit
-  )
-
-  if (cancelResult === null) return "error"
+          reason: strings.taskrouter.cancelQueueTasks.log.reason(taskQueueName),
+        })
+  } catch (error) {
+    if (signal?.aborted) throw error
+    emit(
+      sseEvent(
+        "error",
+        strings.common.retry.failed(
+          strings.taskrouter.cancelQueueTasks.log.cancelLabel(task.sid),
+          1,
+          sanitizeExternalError(error)
+        )
+      )
+    )
+    return "error"
+  }
 
   if (!conversationSid) {
     emit(
       sseEvent(
         "success",
-        `Task ${task.sid}: cancelada (sem conversa associada)`
+        strings.taskrouter.cancelQueueTasks.log.noConversation(task.sid)
       )
     )
     return "success"
   }
 
+  if (processedConversations.has(conversationSid)) {
+    emit(
+      sseEvent(
+        "success",
+        strings.taskrouter.cancelQueueTasks.log.conversationAlreadyProcessed(
+          task.sid,
+          conversationSid
+        )
+      )
+    )
+    return "success"
+  }
+  processedConversations.add(conversationSid)
+
   // Step 2: send goodbye message while conversation is still open
-  const msgResult = await withRetry(
-    () =>
-      client.conversations.v1
+  try {
+    signal?.throwIfAborted()
+    await client.conversations.v1
         .conversations(conversationSid)
-        .messages.create({ body: message }),
-    RETRY_ATTEMPTS,
-    RETRY_DELAY_MS,
-    `Enviar mensagem para conversa ${conversationSid}`,
-    emit
-  )
-  if (msgResult === null) {
+        .messages.create({ body: message })
+  } catch (error) {
+    if (signal?.aborted) throw error
     emit(
       sseEvent(
         "warning",
-        `Task ${task.sid}: cancelada, mas falha ao enviar mensagem para ${conversationSid}`
+        strings.taskrouter.cancelQueueTasks.log.messageFailed(
+          task.sid,
+          conversationSid
+        )
       )
     )
   }
 
   // Step 3: close conversation
-  const closeResult = await withRetry(
-    () =>
-      client.conversations.v1
+  let conversationClosed = false
+  try {
+    signal?.throwIfAborted()
+    await client.conversations.v1
         .conversations(conversationSid)
-        .update({ state: "closed" }),
-    RETRY_ATTEMPTS,
-    RETRY_DELAY_MS,
-    `Fechar conversa ${conversationSid}`,
-    emit
-  )
-  if (closeResult === null) {
+        .update({ state: "closed" })
+    conversationClosed = true
+  } catch (error) {
+    if (signal?.aborted) throw error
     emit(
       sseEvent(
         "warning",
-        `Task ${task.sid}: cancelada, mas falha ao fechar conversa ${conversationSid}`
+        strings.taskrouter.cancelQueueTasks.log.closeFailed(
+          task.sid,
+          conversationSid
+        )
       )
     )
-  } else {
+  }
+  if (conversationClosed) {
     emit(
       sseEvent(
         "success",
-        `Task ${task.sid}: cancelada, mensagem enviada, conversa fechada (${status} → canceled)`
+        strings.taskrouter.cancelQueueTasks.log.closed(task.sid, status)
       )
     )
   }
@@ -168,44 +178,62 @@ export async function cancelQueueTasks(
     closeMessage?: string
   },
   client: ReturnType<typeof getTwilioClient>,
-  emit: (event: string) => void
+  emit: (event: string) => void,
+  signal?: AbortSignal
 ): Promise<{
   totalSuccess: number
   totalSkipped: number
   totalErrors: number
+  partial: boolean
 }> {
   const message = closeMessage?.trim() || DEFAULT_CLOSE_MESSAGE
 
-  emit(sseEvent("info", `Buscando tasks da fila "${taskQueueName}"...`))
+  emit(
+    sseEvent(
+      "info",
+      strings.taskrouter.cancelQueueTasks.log.searching(taskQueueName)
+    )
+  )
 
   const tasks = await withRetry(
     () =>
       client.taskrouter.v1.workspaces(workspaceSid).tasks.list({
         taskQueueName,
-        limit: TASK_LIST_LIMIT,
+        limit: TASK_LIST_LIMIT + 1,
       }),
     RETRY_ATTEMPTS,
     RETRY_DELAY_MS,
-    `Listar tasks da fila ${taskQueueName}`,
-    emit
+    strings.taskrouter.cancelQueueTasks.log.searchLabel(taskQueueName),
+    emit,
+    signal
   )
 
   if (tasks === null) {
-    return { totalSuccess: 0, totalSkipped: 0, totalErrors: 1 }
+    return { totalSuccess: 0, totalSkipped: 0, totalErrors: 1, partial: false }
   }
 
-  const cancellableTasks = tasks.filter((t) =>
+  const partial = tasks.length > TASK_LIST_LIMIT
+  const tasksToProcess = tasks.slice(0, TASK_LIST_LIMIT)
+  if (partial) {
+    emit(sseEvent("warning", strings.taskrouter.cancelQueueTasks.log.truncated(TASK_LIST_LIMIT)))
+  }
+
+  const cancellableTasks = tasksToProcess.filter((t) =>
     CANCEL_STATUSES.has(t.assignmentStatus ?? "")
   )
-  const ignoredCount = tasks.filter((t) =>
+  const ignoredCount = tasksToProcess.filter((t) =>
     IGNORE_STATUSES.has(t.assignmentStatus ?? "")
   ).length
-  const otherCount = tasks.length - cancellableTasks.length - ignoredCount
+  const otherCount = tasksToProcess.length - cancellableTasks.length - ignoredCount
 
   emit(
     sseEvent(
       "info",
-      `${tasks.length} task(s) encontrada(s). Elegíveis: ${cancellableTasks.length} · ignoradas: ${ignoredCount}`
+      strings.taskrouter.cancelQueueTasks.log.found(
+        tasksToProcess.length,
+        cancellableTasks.length,
+        ignoredCount
+      )
     )
   )
 
@@ -214,40 +242,55 @@ export async function cancelQueueTasks(
       totalSuccess: 0,
       totalSkipped: ignoredCount + otherCount,
       totalErrors: 0,
+      partial,
     }
   }
 
   let processed = 0
   const taskArgs = { workspaceSid, taskQueueName, message }
 
-  const results = await processInBatches(
-    cancellableTasks,
-    CONCURRENCY_LIMIT,
-    async (task) => {
-      const outcome = await processSingleTask(task, taskArgs, client, emit)
-      processed++
-      emit(
-        sseEvent("info", `Progresso: ${processed}/${cancellableTasks.length}`, {
-          progress: { current: processed, total: cancellableTasks.length },
-        })
+  const results: TaskOutcome[] = []
+  const processedConversations = new Set<string>()
+  for (const task of cancellableTasks) {
+    signal?.throwIfAborted()
+    try {
+      results.push(
+        await processSingleTask(
+          task,
+          taskArgs,
+          client,
+          emit,
+          processedConversations,
+          signal
+        )
       )
-      return outcome
+    } catch (error) {
+      if (signal?.aborted) throw error
+      results.push("error")
     }
-  )
+    processed++
+    emit(
+      sseEvent(
+        "info",
+        strings.taskrouter.cancelQueueTasks.log.progress(
+          processed,
+          cancellableTasks.length
+        ),
+        {
+          progress: { current: processed, total: cancellableTasks.length },
+        }
+      )
+    )
+  }
 
   let totalSuccess = 0
   let totalErrors = 0
-  let totalSkipped = ignoredCount + otherCount
+  const totalSkipped = ignoredCount + otherCount
 
   for (const result of results) {
-    if (result.status === "fulfilled") {
-      if (result.value === "success") totalSuccess++
-      else if (result.value === "skipped") totalSkipped++
-      else totalErrors++
-    } else {
-      totalErrors++
-    }
+    if (result === "success") totalSuccess++
+    else totalErrors++
   }
 
-  return { totalSuccess, totalSkipped, totalErrors }
+  return { totalSuccess, totalSkipped, totalErrors, partial }
 }

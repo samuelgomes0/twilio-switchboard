@@ -1,14 +1,18 @@
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import type { Participant } from "@/features/conversations/types"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
+import type { Participant } from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function ConversationParticipants({
   participants,
+  environmentId,
 }: {
   participants: Participant[]
+  environmentId?: string
 }) {
   return (
     <Card>
@@ -32,11 +36,11 @@ export function ConversationParticipants({
                 {idx > 0 && <Separator className="mb-3" />}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">
+                    <span className="font-mono text-xs break-all text-muted-foreground">
                       {p.sid}
                     </span>
                     {p.identity && (
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-xs">
                         {p.identity}
                       </Badge>
                     )}
@@ -57,7 +61,7 @@ export function ConversationParticipants({
                           <span className="w-16 shrink-0 text-muted-foreground">
                             {strings.conversations.fetch.result.address}
                           </span>
-                          <span className="font-mono">
+                          <span className="font-mono break-all">
                             {p.messagingBinding.address}
                           </span>
                         </div>
@@ -67,15 +71,36 @@ export function ConversationParticipants({
                           <span className="w-16 shrink-0 text-muted-foreground">
                             {strings.conversations.fetch.result.proxy}
                           </span>
-                          <span className="font-mono">
+                          <span className="font-mono break-all">
                             {p.messagingBinding.proxy_address}
                           </span>
                         </div>
                       )}
+                      {environmentId &&
+                        typeof p.messagingBinding.address === "string" &&
+                        /^(?:whatsapp:)?\+?\d{10,15}$/.test(
+                          p.messagingBinding.address
+                        ) && (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                          >
+                            <Link
+                              href={`/taskrouter/search-tasks-by-sid-or-number?${new URLSearchParams({ phone: p.messagingBinding.address, environmentId })}`}
+                            >
+                              {
+                                strings.conversations.consult
+                                  .searchTasksForNumber
+                              }
+                            </Link>
+                          </Button>
+                        )}
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-x-4 text-xs">
+                  <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
                     <div>
                       <span className="text-muted-foreground">
                         {strings.conversations.fetch.result.added}{" "}

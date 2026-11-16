@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Check, CircleHelp, Copy } from "lucide-react"
+import { ActionButton } from "@/components/action-button"
 import {
   TooltipContent,
   TooltipProvider,
@@ -9,6 +8,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { strings } from "@/lib/strings"
+import { Check, CircleHelp, Copy } from "lucide-react"
+import { useState } from "react"
 
 export function MessageSidButton({ sid }: { sid: string }) {
   const [feedback, setFeedback] = useState("")
@@ -28,18 +29,19 @@ export function MessageSidButton({ sid }: { sid: string }) {
       <TooltipProvider delayDuration={150}>
         <TooltipRoot>
           <TooltipTrigger asChild>
-            <button
+            <ActionButton
+              action="copy"
+              iconOnly
               type="button"
               onClick={copyMessageSid}
               aria-label={labels.copyMessageSid(sid)}
-              className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
               {feedback === labels.sidCopied ? (
                 <Check className="size-3.5" />
               ) : (
                 <CircleHelp className="size-3.5" />
               )}
-            </button>
+            </ActionButton>
           </TooltipTrigger>
           <TooltipContent
             side="top"

@@ -13,6 +13,7 @@ import * as React from "react"
 interface EnvironmentContextValue {
   environments: TwilioEnvironment[]
   activeEnvironment: TwilioEnvironment | null
+  activeEnvironmentRevision: number
   addEnvironment: (env: Omit<TwilioEnvironment, "id">) => void
   updateEnvironment: (
     id: string,
@@ -31,12 +32,27 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     []
   )
   const [activeId, setActiveId] = React.useState<string | null>(null)
+  const [activeEnvironmentRevision, bumpActiveEnvironmentRevision] =
+    React.useReducer((revision: number) => revision + 1, 0)
   const [hydrated, setHydrated] = React.useState(false)
 
   React.useEffect(() => {
-    setEnvironments(getEnvironments())
-    setActiveId(getActiveEnvironmentId())
-    setHydrated(true)
+    const frame = requestAnimationFrame(() => {
+      const storedEnvironments = getEnvironments()
+      const storedActiveId = getActiveEnvironmentId()
+      setEnvironments(storedEnvironments)
+      if (
+        storedActiveId &&
+        storedEnvironments.some((environment) => environment.id === storedActiveId)
+      ) {
+        setActiveId(storedActiveId)
+      } else {
+        setActiveId(null)
+        if (storedActiveId) removeActiveEnvironmentId()
+      }
+      setHydrated(true)
+    })
+    return () => cancelAnimationFrame(frame)
   }, [])
 
   const activeEnvironment = React.useMemo(
@@ -48,8 +64,8 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
   function addEnvironment(env: Omit<TwilioEnvironment, "id">) {
     const newEnv: TwilioEnvironment = { id: crypto.randomUUID(), ...env }
     const updated = [...environments, newEnv]
+    if (!saveEnvironments(updated)) return
     setEnvironments(updated)
-    saveEnvironments(updated)
   }
 
   function updateEnvironment(
@@ -59,23 +75,26 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     const updated = environments.map((e) =>
       e.id === id ? { id, ...updates } : e
     )
+    if (!saveEnvironments(updated)) return
     setEnvironments(updated)
-    saveEnvironments(updated)
+    if (activeId === id) bumpActiveEnvironmentRevision()
   }
 
   function deleteEnvironment(id: string) {
     const updated = environments.filter((e) => e.id !== id)
+    if (!saveEnvironments(updated)) return
+    if (activeId === id) removeActiveEnvironmentId()
     setEnvironments(updated)
-    saveEnvironments(updated)
     if (activeId === id) {
       setActiveId(null)
-      removeActiveEnvironmentId()
+      bumpActiveEnvironmentRevision()
     }
   }
 
   function setActive(id: string) {
+    if (!setActiveEnvironmentId(id)) return
     setActiveId(id)
-    setActiveEnvironmentId(id)
+    bumpActiveEnvironmentRevision()
   }
 
   return (
@@ -83,6 +102,7 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
       value={{
         environments,
         activeEnvironment,
+        activeEnvironmentRevision,
         addEnvironment,
         updateEnvironment,
         deleteEnvironment,

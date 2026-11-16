@@ -1,15 +1,10 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
+import { ActionButton } from "@/components/action-button"
+
+import { CheckCircle2, Eye, EyeOff, Loader2, WifiOff } from "lucide-react"
 import * as React from "react"
-import {
-  Check,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Loader2,
-  WifiOff,
-  X,
-} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,12 +53,16 @@ export function EnvironmentForm({
   const [showToken, setShowToken] = React.useState(false)
   const [testState, setTestState] = React.useState<TestState>("idle")
   const [testError, setTestError] = React.useState<string | null>(null)
+  const testAbortRef = React.useRef<AbortController | null>(null)
+  React.useEffect(() => () => testAbortRef.current?.abort(), [])
 
   const credentialsComplete =
     /^AC[a-f0-9]{32}$/i.test(form.accountSid.trim()) &&
     form.authToken.trim().length === 32
 
   function handleChange(field: keyof FormState, value: string) {
+    testAbortRef.current?.abort()
+    testAbortRef.current = null
     setForm((prev) => ({ ...prev, [field]: value }))
     setTestState("idle")
     setTestError(null)
@@ -109,54 +108,103 @@ export function EnvironmentForm({
 
     setTestState("loading")
     setTestError(null)
+    const controller = new AbortController()
+    testAbortRef.current?.abort()
+    testAbortRef.current = controller
 
     try {
-      const res = await fetch("/api/environments/verify", {
+      const res = await fetch("/api/environments/verify-twilio-credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accountSid: form.accountSid.trim(),
           authToken: form.authToken.trim(),
         }),
+        signal: controller.signal,
       })
       const json = (await res.json()) as { ok?: boolean; error?: string }
+      if (controller.signal.aborted || testAbortRef.current !== controller)
+        return
       if (res.ok && json.ok) {
         setTestState("success")
       } else {
         setTestState("error")
         setTestError(json.error ?? strings.environments.form.testError)
       }
-    } catch (err) {
-      setTestState("error")
-      setTestError(
-        err instanceof Error ? err.message : strings.common.networkError
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        (error instanceof Error && error.name === "AbortError")
       )
+        return
+      setTestState("error")
+      setTestError(strings.common.networkError)
+    } finally {
+      if (testAbortRef.current === controller) testAbortRef.current = null
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
+    <OperationForm
+      onSubmit={handleSubmit}
+      bodyClassName="space-y-4"
+      actions={
+        <>
+          <ActionButton action="save" type="submit">
+            {strings.environments.form.saveButton}
+          </ActionButton>
+          <ActionButton action="cancel" type="button" onClick={onCancel}>
+            {strings.environments.form.cancelButton}
+          </ActionButton>
+          <Button
+            aria-busy={testState === "loading"}
+            type="button"
+            variant="outline"
+
+            disabled={!credentialsComplete || testState === "loading"}
+            onClick={handleTest}
+            className="gap-1.5"
+          >
+            {testState === "loading" ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <span className="size-3.5" />
+            )}
+            {testState === "loading"
+              ? strings.environments.form.testingButton
+              : strings.environments.form.testButton}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-2">
         <Label htmlFor="env-name">{strings.environments.form.nameLabel}</Label>
         <Input
           id="env-name"
+          autoFocus
+          aria-describedby={errors.name ? "env-name-error" : undefined}
           placeholder={strings.environments.form.namePlaceholder}
           value={form.name}
           onChange={(e) => handleChange("name", e.target.value)}
           aria-invalid={!!errors.name}
         />
         {errors.name && (
-          <p className="text-xs text-destructive">{errors.name}</p>
+          <p id="env-name-error" className="text-xs text-destructive">
+            {errors.name}
+          </p>
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="env-sid">
           {strings.environments.form.accountSidLabel}
         </Label>
         <Input
           id="env-sid"
-          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          aria-describedby={
+            errors.accountSid ? "env-sid-error env-sid-hint" : "env-sid-hint"
+          }
+          placeholder={strings.common.placeholders.accountSid}
           value={form.accountSid}
           onChange={(e) => handleChange("accountSid", e.target.value)}
           className="font-mono text-sm"
@@ -166,104 +214,89 @@ export function EnvironmentForm({
           aria-invalid={!!errors.accountSid}
         />
         {errors.accountSid && (
-          <p className="text-xs text-destructive">{errors.accountSid}</p>
+          <p id="env-sid-error" className="text-xs text-destructive">
+            {errors.accountSid}
+          </p>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p id="env-sid-hint" className="text-xs text-muted-foreground">
           {strings.environments.form.accountSidHint}
         </p>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="env-token">
           {strings.environments.form.authTokenLabel}
         </Label>
-        <div className="relative flex items-center">
-          <Input
-            id="env-token"
-            type={showToken ? "text" : "password"}
-            placeholder={strings.environments.form.authTokenPlaceholder}
-            value={form.authToken}
-            onChange={(e) => handleChange("authToken", e.target.value)}
-            className="pr-10 font-mono text-sm"
-            spellCheck={false}
-            autoCorrect="off"
-            autoCapitalize="off"
-            aria-invalid={!!errors.authToken}
-          />
-          <button
-            type="button"
-            onClick={() => setShowToken((v) => !v)}
-            className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground"
-            aria-label={
-              showToken
-                ? strings.environments.form.hideTokenAriaLabel
-                : strings.environments.form.showTokenAriaLabel
-            }
-          >
-            {showToken ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
-          </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="relative flex items-center">
+            <Input
+              id="env-token"
+              aria-describedby={
+                errors.authToken
+                  ? "env-token-error env-token-hint"
+                  : "env-token-hint"
+              }
+              type={showToken ? "text" : "password"}
+              placeholder={strings.environments.form.authTokenPlaceholder}
+              value={form.authToken}
+              onChange={(e) => handleChange("authToken", e.target.value)}
+              className="pr-10 font-mono text-sm"
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="off"
+              aria-invalid={!!errors.authToken}
+            />
+            <button
+              type="button"
+              onClick={() => setShowToken((v) => !v)}
+              className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              aria-label={
+                showToken
+                  ? strings.environments.form.hideTokenAriaLabel
+                  : strings.environments.form.showTokenAriaLabel
+              }
+            >
+              {showToken ? (
+                <EyeOff className="size-4" />
+              ) : (
+                <Eye className="size-4" />
+              )}
+            </button>
+          </div>
         </div>
+
         {errors.authToken && (
-          <p className="text-xs text-destructive">{errors.authToken}</p>
+          <p id="env-token-error" className="text-xs text-destructive">
+            {errors.authToken}
+          </p>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p id="env-token-hint" className="text-xs text-muted-foreground">
           {strings.environments.form.authTokenHint}
         </p>
       </div>
 
       {/* Test credentials */}
-      <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!credentialsComplete || testState === "loading"}
-          onClick={handleTest}
-          className="gap-1.5"
-        >
-          {testState === "loading" ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <span className="size-3.5" />
-          )}
-          {testState === "loading"
-            ? strings.environments.form.testingButton
-            : strings.environments.form.testButton}
-        </Button>
+      <div className="flex flex-wrap items-center gap-3">
         {testState === "success" && (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <span
+            role="status"
+            className="flex items-center gap-1.5 text-xs font-medium text-success dark:text-success"
+          >
             <CheckCircle2 className="size-3.5" />
             {strings.environments.form.testSuccess}
           </span>
         )}
         {testState === "error" && (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+          <span
+            role="alert"
+            className="flex items-center gap-1.5 text-xs font-medium text-destructive"
+          >
             <WifiOff className="size-3.5" />
             {testError ?? strings.environments.form.testError}
           </span>
         )}
       </div>
-
-      <div className="flex gap-2 pt-1">
-        <Button type="submit" size="sm" className="gap-1.5">
-          <Check className="size-3.5" />
-          {strings.environments.form.saveButton}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onCancel}
-          className="gap-1.5"
-        >
-          <X className="size-3.5" />
-          {strings.environments.form.cancelButton}
-        </Button>
-      </div>
-    </form>
+    </OperationForm>
   )
 }

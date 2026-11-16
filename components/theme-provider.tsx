@@ -11,6 +11,7 @@ function ThemeProvider({
     <NextThemesProvider
       attribute="class"
       defaultTheme="system"
+      storageKey="switchboard:theme"
       enableSystem
       disableTransitionOnChange
       {...props}

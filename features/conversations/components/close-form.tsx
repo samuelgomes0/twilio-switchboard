@@ -1,25 +1,22 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
+import { useBrowserState } from "@/components/use-browser-state"
 
-import {
-  AlertTriangle,
-  ChevronRight,
-  MessageSquareOff,
-  Play,
-  Plus,
-  RotateCcw,
-  Square,
-  Trash2,
-} from "lucide-react"
-import Link from "next/link"
+import { PageHeader } from "@/components/page-header"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { Loader2, MessageSquareOff } from "lucide-react"
 import * as React from "react"
 
 import { ContactInput } from "@/components/contact-input"
-import { WarningBadge } from "@/components/warning-badge"
 import {
   LogOutput,
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
+import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,11 +27,19 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
+import { buttonVariants } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { WarningBadge } from "@/components/warning-badge"
+import { normalizeClosePhone } from "@/features/conversations/lib/normalize-close-phone"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
+import { consumeSseStream } from "@/lib/sse-reader"
 import { strings } from "@/lib/strings"
 
 type Status = "idle" | "running" | "done" | "error"
@@ -57,27 +62,6 @@ interface Progress {
 }
 
 const HISTORY_KEY = "switchboard:close-history"
-const PHONE_RE = /^\d+$/
-
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
@@ -90,19 +74,23 @@ function fmtTs(ts: number) {
 
 export function CloseForm() {
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [phones, setPhones] = React.useState<string[]>([""])
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
   const [fieldErrors, setFieldErrors] = React.useState<string[]>([])
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const participants = phones.map((p) => p.trim()).filter(Boolean)
   const canSubmit =
@@ -129,9 +117,7 @@ export function CloseForm() {
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
@@ -149,7 +135,7 @@ export function CloseForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/conversations/close", {
+      const res = await fetch("/api/conversations/close-by-number", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -175,63 +161,47 @@ export function CloseForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalClosed?: number
-              totalErrors?: number
-              progress?: Progress
-            }
-
-            if (payload.progress) setProgress(payload.progress)
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const closed = payload.totalClosed ?? 0
-              const errors = payload.totalErrors ?? 0
-              setSummary({ totalClosed: closed, totalErrors: errors })
-              setStatus("done")
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                total: participants.length,
-                closed,
-                errors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
-          }
+      await consumeSseStream(reader, (payload) => {
+        if (
+          typeof payload.progress === "object" &&
+          payload.progress !== null &&
+          "current" in payload.progress &&
+          "total" in payload.progress &&
+          typeof payload.progress.current === "number" &&
+          typeof payload.progress.total === "number"
+        ) {
+          setProgress(payload.progress as Progress)
         }
-      }
+        addLog(payload.level, payload.message)
 
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
+        if (payload.done === true) {
+          if (payload.level === "error") {
+            setStatus("error")
+            return
+          }
+          const closed =
+            typeof payload.totalClosed === "number" ? payload.totalClosed : 0
+          const errors =
+            typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+          setSummary({ totalClosed: closed, totalErrors: errors })
+          setStatus("done")
+          const entry: HistoryEntry = {
+            ts: Date.now(),
+            total: participants.length,
+            closed,
+            errors,
+          }
+          pushHistory(historyKey, entry)
+          setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        }
+      })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -245,7 +215,7 @@ export function CloseForm() {
 
     const errs: string[] = []
     for (const phone of participants) {
-      if (!PHONE_RE.test(phone)) {
+      if (normalizeClosePhone(phone) === null) {
         errs.push(phone)
       }
     }
@@ -258,162 +228,135 @@ export function CloseForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav className="mb-5 flex items-center gap-1 text-sm">
-        <Link
-          href="/conversations"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.conversations}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.conversations.close.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <MessageSquareOff className="size-4 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.conversations.close.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.conversations.close.subtitle}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.conversations.close.title}
+        description={strings.conversations.close.subtitle}
+        parent={{
+          href: "/?area=conversations",
+          label: strings.sidebar.sections.conversations,
+        }}
+        badge={<WarningBadge />}
+      />
 
       {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <Label>
-            {strings.conversations.close.phoneLabel}{" "}
-            <span className="font-normal text-muted-foreground">
-              {strings.conversations.close.phoneLabelHint}
-            </span>
-          </Label>
-          <div className="space-y-2">
-            {phones.map((phone, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <ContactInput
-                  value={phone}
-                  onChange={(v) => {
-                    setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
-                    if (fieldErrors.includes(v.trim())) {
-                      setFieldErrors((prev) =>
-                        prev.filter((e) => e !== v.trim())
-                      )
-                    }
-                  }}
-                  placeholder="11987654321"
-                  disabled={status === "running"}
-                  prefix="whatsapp:+55"
-                  containerClassName="flex-1"
-                  className="pl-[7.5rem]"
-                />
-                <button
-                  type="button"
-                  disabled={status === "running" || phones.length === 1}
-                  onClick={() =>
-                    setPhones((prev) => prev.filter((_, j) => j !== i))
-                  }
-                  className="flex size-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
-                  aria-label={strings.conversations.close.removePhone}
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            disabled={status === "running" || phones.length >= MAX_ITEMS}
-            onClick={() => setPhones((prev) => [...prev, ""])}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
-          >
-            <Plus className="size-3.5" />
-            {strings.conversations.close.addPhone}
-          </button>
-          {fieldErrors.length > 0 && (
-            <p className="text-xs text-destructive">
-              {strings.common.phoneDigitsOnly}: {fieldErrors.join(", ")}
-            </p>
-          )}
-          {participants.length > MAX_ITEMS && (
-            <p className="text-xs text-destructive">
-              {strings.conversations.close.maxExceeded(MAX_ITEMS)}
-            </p>
-          )}
-        </div>
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="destructive"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <MessageSquareOff aria-hidden="true" className="size-3.5" />
+                  {strings.conversations.close.submit}
+                </>
+              )}
+            </ActionButton>
 
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
-            {status === "running" ? (
-              <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.conversations.close.submit}
-              </>
+            {status === "running" && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
             )}
-          </Button>
 
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
+            {(logs.length > 0 || status !== "idle") && status !== "running" && (
+              <ActionButton action="clear" type="button" onClick={clearAll}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <Label id="close-phones-label" htmlFor="close-phone-0">
+            {strings.conversations.close.phoneLabel}
+          </Label>
+          <p id="close-phones-hint" className="text-sm text-muted-foreground">
+            {strings.conversations.close.phoneLabelHint}
+          </p>
 
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
+          <div className="min-w-0 space-y-3">
+            <div className="space-y-2">
+              {phones.map((phone, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <ContactInput
+                    id={`close-phone-${i}`}
+                    aria-labelledby="close-phones-label"
+                    aria-describedby={
+                      fieldErrors.length > 0
+                        ? "close-phones-hint close-phones-error"
+                        : "close-phones-hint"
+                    }
+                    aria-invalid={fieldErrors.includes(phone.trim())}
+                    value={phone}
+                    onChange={(v) => {
+                      setPhones((prev) => prev.map((p, j) => (j === i ? v : p)))
+                      if (fieldErrors.includes(v.trim())) {
+                        setFieldErrors((prev) =>
+                          prev.filter((e) => e !== v.trim())
+                        )
+                      }
+                    }}
+                    placeholder={strings.common.placeholders.localPhone}
+                    disabled={status === "running"}
+                    prefix="whatsapp:+55"
+                    containerClassName="min-w-0 flex-1"
+                    className="pl-[7.5rem]"
+                  />
+                  {phones.length > 1 && (
+                    <ActionButton
+                      action="remove"
+                      iconOnly
+                      type="button"
+                      disabled={status === "running"}
+                      onClick={() =>
+                        setPhones((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      aria-label={strings.conversations.close.removePhone}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <ActionButton
+              action="add"
               type="button"
-              variant="outline"
-              onClick={clearAll}
-              className="gap-2"
+              disabled={status === "running" || phones.length >= MAX_ITEMS}
+              onClick={() => setPhones((prev) => [...prev, ""])}
             >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
-          )}
+              {strings.conversations.close.addPhone}
+            </ActionButton>
+            {fieldErrors.length > 0 && (
+              <p id="close-phones-error" className="text-xs text-destructive">
+                {strings.conversations.close.invalidPhone}:{" "}
+                {fieldErrors.join(", ")}
+              </p>
+            )}
+            {participants.length > MAX_ITEMS && (
+              <p className="text-xs text-destructive">
+                {strings.conversations.close.maxExceeded(MAX_ITEMS)}
+              </p>
+            )}
+          </div>
         </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -424,14 +367,28 @@ export function CloseForm() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {strings.conversations.close.confirmDescription(
-                participants.length
+                participants.length,
+                activeEnvironment?.name ?? ""
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 text-sm">
+            <p className="font-medium">
+              {strings.conversations.close.confirmTargets}
+            </p>
+            <ul className="max-h-48 space-y-1 overflow-y-auto rounded-md bg-muted p-3 font-mono text-xs">
+              {participants.map((phone, index) => (
+                <li key={index} className="break-all">
+                  {normalizeClosePhone(phone)}
+                </li>
+              ))}
+            </ul>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40"
+              disabled={!canSubmit}
+              className={buttonVariants({ variant: "destructive" })}
               onClick={() => {
                 setConfirmOpen(false)
                 void runSubmit()
@@ -454,7 +411,14 @@ export function CloseForm() {
               {Math.round((progress.current / progress.total) * 100)}%
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            role="progressbar"
+            aria-label={strings.common.operationProgress}
+            aria-valuemin={0}
+            aria-valuenow={progress.current}
+            aria-valuemax={progress.total}
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          >
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{
@@ -471,14 +435,14 @@ export function CloseForm() {
           <span className="font-medium">
             {strings.conversations.close.summary.prefix}
           </span>{" "}
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.conversations.close.summary.closed(summary.totalClosed)}
           </span>
           {summary.totalErrors > 0 && (
             <>
               {" "}
               &middot;{" "}
-              <span className="font-medium text-red-600 dark:text-red-400">
+              <span className="font-medium text-destructive">
                 {strings.conversations.close.summary.errors(
                   summary.totalErrors
                 )}
@@ -491,7 +455,7 @@ export function CloseForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />
@@ -509,7 +473,7 @@ export function CloseForm() {
                 {strings.conversations.close.history.item(h.total, h.closed)}
               </span>
               {h.errors > 0 && (
-                <span className="text-red-500 dark:text-red-400">
+                <span className="text-destructive">
                   {strings.conversations.close.history.itemErrors(h.errors)}
                 </span>
               )}

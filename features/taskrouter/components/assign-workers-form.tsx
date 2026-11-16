@@ -1,16 +1,17 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
-import {
-  AlertTriangle,
-  ChevronRight,
-  Play,
-  Plus,
-  RotateCcw,
-  Square,
-  Trash2,
-  UserPlus,
-} from "lucide-react"
-import Link from "next/link"
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
+import { useBrowserState } from "@/components/use-browser-state"
+
+import { PageHeader } from "@/components/page-header"
+
+import { ActionBar } from "@/components/action-bar"
+
+import { ActionButton } from "@/components/action-button"
+
+import { NoEnvironmentSelected } from "@/components/no-environment-selected"
+import { Loader2, Play } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -18,7 +19,6 @@ import {
   createLogEntry,
   type LogEntry,
 } from "@/components/log-output"
-import { WarningBadge } from "@/components/warning-badge"
 import { StoredInput } from "@/components/stored-input"
 import {
   AlertDialogAction,
@@ -30,12 +30,20 @@ import {
   AlertDialogRoot,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
+import { WarningBadge } from "@/components/warning-badge"
+
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
+import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
@@ -67,26 +75,6 @@ const WS_SIDS_KEY = STORED_KEYS.workspaceSids
 const SKILLS_KEY = STORED_KEYS.skillNames
 const WS_SID_RE = /^WS[a-fA-F0-9]{32}$/i
 
-function readHistory(): HistoryEntry[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY)
-    return raw ? (JSON.parse(raw) as HistoryEntry[]) : []
-  } catch {
-    return []
-  }
-}
-
-function pushHistory(entry: HistoryEntry) {
-  try {
-    const prev = readHistory()
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...prev].slice(0, MAX_HISTORY))
-    )
-  } catch {}
-}
-
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -99,6 +87,9 @@ function fmtTs(ts: number) {
 export function AssignWorkersForm() {
   const management = useWorkerManagement()
   const { activeEnvironment } = useEnvironment()
+  const historyKey = activeEnvironment
+    ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
+    : ""
   const [localWorkspaceSid, setLocalWorkspaceSid] = React.useState("")
   const workspaceSid = management?.workspaceSid ?? localWorkspaceSid
   const setWorkspaceSid = management?.setWorkspaceSid ?? setLocalWorkspaceSid
@@ -111,16 +102,17 @@ export function AssignWorkersForm() {
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>([])
+  const [history, setHistory] = useBrowserState<HistoryEntry[]>(
+    () => (historyKey ? readHistory<HistoryEntry>(historyKey) : []),
+    [],
+    historyKey
+  )
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
     {}
   )
   const [progress, setProgress] = React.useState<Progress | null>(null)
   const abortRef = React.useRef<AbortController | null>(null)
-
-  React.useEffect(() => {
-    setHistory(readHistory())
-  }, [])
+  React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const emails = [
     ...new Set(workers.map((identifier) => identifier.trim()).filter(Boolean)),
@@ -146,9 +138,7 @@ export function AssignWorkersForm() {
   }
 
   function clearHistory() {
-    try {
-      localStorage.removeItem(HISTORY_KEY)
-    } catch {}
+    if (historyKey) clearStoredHistory(historyKey)
     setHistory([])
   }
 
@@ -169,7 +159,7 @@ export function AssignWorkersForm() {
     abortRef.current = controller
 
     try {
-      const res = await fetch("/api/taskrouter/assign-workers", {
+      const res = await fetch("/api/taskrouter/add-skill-to-workers", {
         method: "POST",
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
@@ -198,71 +188,55 @@ export function AssignWorkersForm() {
       }
 
       const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const events = buffer.split("\n\n")
-        buffer = events.pop() ?? ""
-
-        for (const event of events) {
-          const dataLine = event.split("\n").find((l) => l.startsWith("data:"))
-          if (!dataLine) continue
-
-          try {
-            const payload = JSON.parse(dataLine.slice(5).trim()) as {
-              level: LogEntry["level"]
-              message: string
-              done?: boolean
-              totalUpdated?: number
-              totalSkipped?: number
-              totalErrors?: number
-              progress?: Progress
-            }
-
-            if (payload.progress) setProgress(payload.progress)
-            addLog(payload.level, payload.message)
-
-            if (payload.done) {
-              const updated = payload.totalUpdated ?? 0
-              const skipped = payload.totalSkipped ?? 0
-              const errors = payload.totalErrors ?? 0
-              setSummary({
-                totalUpdated: updated,
-                totalSkipped: skipped,
-                totalErrors: errors,
-              })
-              setStatus("done")
-              const entry: HistoryEntry = {
-                ts: Date.now(),
-                workspaceSid: workspaceSid.trim(),
-                skill: skill.trim(),
-                updated,
-                skipped,
-                errors,
-              }
-              pushHistory(entry)
-              setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
-            }
-          } catch {
-            // Invalid events are ignored because the stream can contain partial data.
-          }
+      await consumeSseStream(reader, (payload) => {
+        if (
+          typeof payload.progress === "object" &&
+          payload.progress !== null &&
+          "current" in payload.progress &&
+          "total" in payload.progress &&
+          typeof payload.progress.current === "number" &&
+          typeof payload.progress.total === "number"
+        ) {
+          setProgress(payload.progress as Progress)
         }
-      }
+        addLog(payload.level, payload.message)
 
-      setStatus((prev) => (prev !== "done" ? "done" : prev))
+        if (payload.done === true) {
+          if (payload.level === "error") {
+            setStatus("error")
+            return
+          }
+          const updated =
+            typeof payload.totalUpdated === "number" ? payload.totalUpdated : 0
+          const skipped =
+            typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+          const errors =
+            typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+          setSummary({
+            totalUpdated: updated,
+            totalSkipped: skipped,
+            totalErrors: errors,
+          })
+          setStatus("done")
+          const entry: HistoryEntry = {
+            ts: Date.now(),
+            workspaceSid: workspaceSid.trim(),
+            skill: skill.trim(),
+            updated,
+            skipped,
+            errors,
+          }
+          pushHistory(historyKey, entry)
+          setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        }
+      })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
         setStatus("idle")
         return
       }
-      const message =
-        err instanceof Error ? err.message : strings.common.unexpectedError
+      const message = strings.common.unexpectedError
       addLog("error", message)
       setStatus("error")
     } finally {
@@ -287,141 +261,164 @@ export function AssignWorkersForm() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="workspace-page">
       {/* Breadcrumb */}
-      <nav
-        data-worker-page-header
-        className="mb-5 flex items-center gap-1 text-sm"
-      >
-        <Link
-          href="/taskrouter"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {strings.sidebar.sections.taskrouter}
-        </Link>
-        <ChevronRight className="size-3.5 text-muted-foreground" />
-        <span className="font-medium text-foreground">
-          {strings.taskrouter.assignWorkers.breadcrumb}
-        </span>
-      </nav>
-
-      {/* Header */}
-      <div data-worker-page-header className="mb-6 flex items-center gap-3">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-          <UserPlus className="size-4 text-primary" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">
-              {strings.taskrouter.assignWorkers.title}
-            </h1>
-            <WarningBadge />
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {strings.taskrouter.assignWorkers.subtitle}
-          </p>
-        </div>
-      </div>
-
-      {/* No environment warning */}
-      {!activeEnvironment && (
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3.5">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
-          <div className="text-sm">
-            <p className="font-medium text-destructive">
-              {strings.common.noEnvironmentSelected.title}
-            </p>
-            <p className="mt-0.5 text-destructive/80">
-              {strings.common.noEnvironmentSelected.message}{" "}
-              <Link
-                href="/settings/environments"
-                className="underline underline-offset-2 hover:text-destructive"
-              >
-                {strings.common.noEnvironmentSelected.link}
-              </Link>
-            </p>
-          </div>
-        </div>
+      {!management && (
+        <PageHeader
+          title={strings.taskrouter.assignWorkers.title}
+          description={strings.taskrouter.assignWorkers.subtitle}
+          parent={{
+            href: "/?area=taskrouter",
+            label: strings.sidebar.sections.taskrouter,
+          }}
+          badge={<WarningBadge />}
+          embedded
+        />
       )}
 
-      <form onSubmit={handleFormSubmit} className="space-y-5">
-        {/* Workspace SID */}
-        <div data-worker-workspace-field className="space-y-2">
-          <Label htmlFor="workspaceSid">
-            {strings.taskrouter.assignWorkers.workspaceSidLabel}
-          </Label>
-          <StoredInput
-            id="workspaceSid"
-            storageKey={WS_SIDS_KEY}
-            environmentId={activeEnvironment?.id}
-            value={workspaceSid}
-            onChange={(v) => {
-              setWorkspaceSid(v)
-              if (fieldErrors.workspaceSid)
-                setFieldErrors((prev) => {
-                  const next = { ...prev }
-                  delete next.workspaceSid
-                  return next
-                })
-            }}
-            placeholder="WSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-            disabled={status === "running"}
-          />
-          {fieldErrors.workspaceSid && (
-            <p className="text-xs text-destructive">
-              {fieldErrors.workspaceSid}
-            </p>
-          )}
-        </div>
+      {/* No environment warning */}
+      {!activeEnvironment && <NoEnvironmentSelected />}
 
-        <fieldset className="space-y-2" disabled={status === "running"}>
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="primary"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" />
+                  {strings.taskrouter.assignWorkers.submit}
+                </>
+              )}
+            </ActionButton>
+
+            {status === "running" && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+
+            {(logs.length > 0 || status !== "idle") && status !== "running" && (
+              <ActionButton action="clear" type="button" onClick={reset}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
+        {/* Workspace SID */}
+        {!management && (
+          <div data-worker-workspace-field className="space-y-2">
+            <Label htmlFor="skill-workspace">
+              {strings.taskrouter.assignWorkers.workspaceSidLabel}
+            </Label>
+            <StoredInput
+              id="skill-workspace"
+              aria-describedby={
+                fieldErrors.workspaceSid ? "skill-workspace-error" : undefined
+              }
+              aria-invalid={!!fieldErrors.workspaceSid}
+              storageKey={WS_SIDS_KEY}
+              environmentId={activeEnvironment?.id}
+              value={workspaceSid}
+              onChange={(v) => {
+                setWorkspaceSid(v)
+                if (fieldErrors.workspaceSid)
+                  setFieldErrors((prev) => {
+                    const next = { ...prev }
+                    delete next.workspaceSid
+                    return next
+                  })
+              }}
+              placeholder={strings.common.placeholders.workspaceSid}
+              disabled={status === "running"}
+            />
+            {fieldErrors.workspaceSid && (
+              <p
+                id="skill-workspace-error"
+                className="text-xs text-destructive"
+              >
+                {fieldErrors.workspaceSid}
+              </p>
+            )}
+          </div>
+        )}
+
+        <fieldset
+          className="space-y-2"
+          disabled={status === "running"}
+          aria-describedby="skill-workers-hint"
+        >
           <legend className="mb-2 text-sm font-medium">
             {strings.taskrouter.assignWorkers.workersLabel}
           </legend>
-          {workers.map((worker, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Label htmlFor={`skill-worker-${index}`} className="sr-only">
-                {strings.taskrouter.assignWorkers.workerLabel(index + 1)}
-              </Label>
-              <Input
-                id={`skill-worker-${index}`}
-                value={worker}
-                onChange={(event) =>
-                  setWorkers((previous) =>
-                    previous.map((identifier, position) =>
-                      position === index ? event.target.value : identifier
-                    )
-                  )
-                }
-                placeholder={strings.taskrouter.assignWorkers.workerPlaceholder}
-                className="flex-1"
-              />
-              <button
-                type="button"
-                disabled={workers.length === 1}
-                onClick={() =>
-                  setWorkers((previous) =>
-                    previous.filter((_, position) => position !== index)
-                  )
-                }
-                className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
-                aria-label={strings.taskrouter.assignWorkers.removeWorker(
-                  index + 1
-                )}
-              >
-                <Trash2 className="size-3.5" aria-hidden="true" />
-              </button>
+          <p id="skill-workers-hint" className="text-xs text-muted-foreground">
+            {strings.taskrouter.fetchWorker.identifierHint}
+          </p>
+          <>
+            <div className="min-w-0 flex-1 space-y-2">
+              {workers.map((worker, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Label htmlFor={`skill-worker-${index}`} className="sr-only">
+                    {strings.taskrouter.assignWorkers.workerLabel(index + 1)}
+                  </Label>
+                  <Input
+                    id={`skill-worker-${index}`}
+                    value={worker}
+                    onChange={(event) =>
+                      setWorkers((previous) =>
+                        previous.map((identifier, position) =>
+                          position === index ? event.target.value : identifier
+                        )
+                      )
+                    }
+                    placeholder={
+                      strings.taskrouter.assignWorkers.workerPlaceholder
+                    }
+                    className="min-w-0 flex-1"
+                  />
+                  <ActionButton
+                    action="remove"
+                    iconOnly
+                    type="button"
+                    disabled={workers.length === 1}
+                    onClick={() =>
+                      setWorkers((previous) =>
+                        previous.filter((_, position) => position !== index)
+                      )
+                    }
+                    aria-label={strings.taskrouter.assignWorkers.removeWorker(
+                      index + 1
+                    )}
+                  ></ActionButton>
+                </div>
+              ))}
             </div>
-          ))}
-          <button
-            type="button"
-            disabled={workers.length >= MAX_ITEMS}
-            onClick={() => setWorkers((previous) => [...previous, ""])}
-            className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            {strings.taskrouter.assignWorkers.addWorker}
-          </button>
+            <ActionBar>
+              <ActionButton
+                action="add"
+                type="button"
+                disabled={workers.length >= MAX_ITEMS}
+                onClick={() => setWorkers((previous) => [...previous, ""])}
+              >
+                {strings.taskrouter.assignWorkers.addWorker}
+              </ActionButton>
+            </ActionBar>
+          </>
         </fieldset>
 
         {/* Skill name */}
@@ -435,7 +432,7 @@ export function AssignWorkersForm() {
             environmentId={activeEnvironment?.id}
             value={skill}
             onChange={setSkill}
-            placeholder="ex: suporte-tecnico"
+            placeholder={strings.common.placeholders.skill}
             disabled={status === "running"}
             className="font-sans text-sm placeholder:font-sans"
           />
@@ -449,59 +446,21 @@ export function AssignWorkersForm() {
               {strings.taskrouter.assignWorkers.levelOptional}
             </span>
           </Label>
-          <Input
-            id="level"
-            type="number"
-            placeholder="ex: 5"
-            min={0}
-            max={5}
-            value={levelInput}
-            onChange={(e) => setLevelInput(e.target.value)}
-            disabled={status === "running"}
-          />
+
+          <div className="min-w-0 flex-1">
+            <Input
+              id="level"
+              type="number"
+              placeholder={strings.common.placeholders.level}
+              min={0}
+              max={5}
+              value={levelInput}
+              onChange={(e) => setLevelInput(e.target.value)}
+              disabled={status === "running"}
+            />
+          </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button type="submit" disabled={!canSubmit} className="gap-2">
-            {status === "running" ? (
-              <>
-                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                {strings.common.processing}
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                {strings.taskrouter.assignWorkers.submit}
-              </>
-            )}
-          </Button>
-
-          {status === "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleAbort}
-              className="gap-2"
-            >
-              <Square className="size-3.5" />
-              {strings.common.cancel}
-            </Button>
-          )}
-
-          {(logs.length > 0 || status !== "idle") && status !== "running" && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reset}
-              className="gap-2"
-            >
-              <RotateCcw className="size-3.5" />
-              {strings.common.clear}
-            </Button>
-          )}
-        </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -518,6 +477,7 @@ export function AssignWorkersForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
@@ -543,7 +503,14 @@ export function AssignWorkersForm() {
               {Math.round((progress.current / progress.total) * 100)}%
             </span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            role="progressbar"
+            aria-label={strings.common.operationProgress}
+            aria-valuemin={0}
+            aria-valuenow={progress.current}
+            aria-valuemax={progress.total}
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+          >
             <div
               className="h-full bg-primary transition-all duration-300"
               style={{
@@ -557,7 +524,7 @@ export function AssignWorkersForm() {
       {/* Summary banner */}
       {summary && status === "done" && (
         <div className="mt-5 rounded-lg border border-border bg-muted/50 px-4 py-3 text-sm">
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="font-medium text-success dark:text-success">
             {strings.taskrouter.assignWorkers.summary.updated(
               summary.totalUpdated
             )}
@@ -572,7 +539,7 @@ export function AssignWorkersForm() {
             <>
               {" "}
               &middot;{" "}
-              <span className="font-medium text-red-600 dark:text-red-400">
+              <span className="font-medium text-destructive">
                 {strings.taskrouter.assignWorkers.summary.errors(
                   summary.totalErrors
                 )}
@@ -585,7 +552,7 @@ export function AssignWorkersForm() {
       {/* Log output */}
       {logs.length > 0 && (
         <div className="mt-5 space-y-2">
-          <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+          <p className="text-xs font-medium tracking-normal text-muted-foreground">
             {strings.common.logOfOperations}
           </p>
           <LogOutput entries={logs} />
@@ -614,7 +581,7 @@ export function AssignWorkersForm() {
                 </span>
               )}
               {h.errors > 0 && (
-                <span className="text-red-500 dark:text-red-400">
+                <span className="text-destructive">
                   {strings.taskrouter.assignWorkers.history.itemErrors(
                     h.errors
                   )}

@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card"
+import { FormActions } from "@/components/form-actions"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
@@ -17,36 +17,41 @@ function ResultCardsSkeleton() {
       <Skeleton className="h-3 w-36" />
       <div className="space-y-2">
         {[0, 1, 2].map((index) => (
-          <Card key={index} className="space-y-3 px-4 py-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-3 w-64 max-w-full" />
-                <Skeleton className="h-4 w-40 max-w-full" />
-              </div>
-              <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+          <div
+            key={index}
+            className="rounded-lg border border-border bg-card px-4 py-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <Skeleton className="h-5 w-80 max-w-full" />
+              <Skeleton className="h-5 w-14 shrink-0 rounded-md" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-full" />
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+              <Skeleton className="h-4 w-40 max-w-full" />
+              <Skeleton className="h-4 w-40 max-w-full" />
             </div>
-            <Skeleton className="h-3 w-48 max-w-full" />
-            <div className="flex gap-2 pt-1">
-              <Skeleton className="h-6 w-28 rounded-full" />
-              <Skeleton className="h-6 w-28 rounded-full" />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Skeleton className="h-9 w-40 max-w-full rounded-md" />
+              <Skeleton className="h-9 w-40 max-w-full rounded-md" />
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>
   )
 }
 
-export function FetchByParticipantResultsSkeleton() {
+export function FetchByParticipantResultsSkeleton({
+  announce = true,
+}: {
+  announce?: boolean
+}) {
   return (
-    <div role="status" className="mt-6">
-      <span className="sr-only">
-        {strings.conversations.fetchByParticipant.loadingResults}
-      </span>
+    <div role={announce ? "status" : undefined} className="mt-6 w-full">
+      {announce && (
+        <span className="sr-only">
+          {strings.conversations.fetchByParticipant.loadingResults}
+        </span>
+      )}
       <ResultCardsSkeleton />
     </div>
   )
@@ -54,7 +59,7 @@ export function FetchByParticipantResultsSkeleton() {
 
 export function FetchByParticipantPageSkeleton() {
   return (
-    <div role="status" className="mx-auto max-w-3xl">
+    <div role="status" className="workspace-page">
       <span className="sr-only">
         {strings.conversations.fetchByParticipant.loadingPage}
       </span>
@@ -64,23 +69,30 @@ export function FetchByParticipantPageSkeleton() {
           <Skeleton className="size-3.5" />
           <Skeleton className="h-4 w-44" />
         </div>
-        <div className="mb-6 flex items-center gap-3">
-          <Skeleton className="size-9 shrink-0 rounded-lg" />
+        <div className="mb-6">
           <div className="min-w-0 flex-1 space-y-2">
             <Skeleton className="h-6 w-64 max-w-full" />
             <Skeleton className="h-4 w-96 max-w-full" />
           </div>
         </div>
-        <Skeleton className="mb-2 h-4 w-52" />
-        <div className="flex gap-2">
-          <Skeleton className="h-9 min-w-0 flex-1 rounded-lg" />
-          <Skeleton className="h-9 w-24 rounded-full" />
-        </div>
-        <Skeleton className="mt-5 mb-2 h-4 w-20" />
-        <div className="flex gap-2">
-          {["w-13", "w-14", "w-15", "w-16"].map((width) => (
-            <Skeleton key={width} className={cn("h-7", width)} />
-          ))}
+        <div className="operation-form w-full space-y-5 [&_[aria-hidden=true]]:bg-card">
+          <div>
+            <Skeleton className="mb-2 h-4 w-52 max-w-full" />
+            <>
+              <Skeleton className="h-9 w-full min-w-0 flex-1 rounded-md" />
+              <FormActions>
+                <Skeleton className="h-10 w-24 shrink-0 rounded-md" />
+              </FormActions>
+            </>
+          </div>
+          <div>
+            <Skeleton className="mb-2 h-4 w-20" />
+            <div className="flex flex-wrap gap-1.5">
+              {["w-13", "w-14", "w-15", "w-16"].map((width) => (
+                <Skeleton key={width} className={cn("h-7", width)} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,39 +1,29 @@
 "use client"
 
 import {
-  AlertTriangle,
   AtSign,
   BookUser,
-  Check,
-  CheckCircle2,
   ChevronDown,
   FileSearch2,
   Filter,
   GitBranch,
   Hash,
+  LayoutDashboard,
+  Network,
   ListX,
   MapPin,
-  Menu,
+  MessageSquare,
   MessageSquareOff,
-  Phone,
   Search,
   Settings2,
   SlidersHorizontal,
+  Workflow,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import * as React from "react"
 
-import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuRoot,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useEnvironment } from "@/features/environments/context"
 import { strings } from "@/lib/strings"
-import { cn } from "@/lib/utils"
 
 interface NavItem {
   label: string
@@ -44,17 +34,17 @@ interface NavItem {
 const conversationsNavItems: NavItem[] = [
   {
     label: strings.conversations.consult.title,
-    href: "/conversations/consult",
+    href: "/conversations/consult-by-sid",
     icon: FileSearch2,
   },
   {
     label: strings.sidebar.nav.conversations.fetchByParticipant.label,
-    href: "/conversations/fetch-by-participant",
+    href: "/conversations/search-by-number",
     icon: AtSign,
   },
   {
     label: strings.sidebar.nav.conversations.close.label,
-    href: "/conversations/close",
+    href: "/conversations/close-by-number",
     icon: MessageSquareOff,
   },
 ]
@@ -62,43 +52,48 @@ const conversationsNavItems: NavItem[] = [
 const flexNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.flex.createAddressConfig.label,
-    href: "/flex/create-address-config",
+    href: "/flex/create-conversation-address",
     icon: MapPin,
   },
 ]
 
 const taskrouterNavItems: NavItem[] = [
   {
-    label: strings.taskrouter.workerManagement.title,
-    href: "/taskrouter/workers",
-    icon: Settings2,
+    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
+    href: "/taskrouter/add-business-rule-filter",
+    icon: Filter,
   },
   {
     label: strings.sidebar.nav.taskrouter.searchTasks.label,
-    href: "/taskrouter/search-tasks",
+    href: "/taskrouter/search-tasks-by-sid-or-number",
     icon: Search,
   },
   {
     label: strings.sidebar.nav.taskrouter.createWorkflow.label,
-    href: "/taskrouter/create-workflow",
+    href: "/taskrouter/create-workflow-from-csv",
     icon: GitBranch,
   },
   {
     label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
-    href: "/taskrouter/cancel-queue-tasks",
+    href: "/taskrouter/cancel-queue-tasks-and-close-conversations",
     icon: ListX,
   },
   {
-    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
-    href: "/taskrouter/add-particular-filter",
-    icon: Filter,
+    label: strings.taskrouter.workerManagement.title,
+    href: "/taskrouter/manage-workers",
+    icon: Settings2,
+  },
+  {
+    label: strings.sidebar.nav.taskrouter.workflows.label,
+    href: "/taskrouter/workflows",
+    icon: Workflow,
   },
 ]
 
 const numbersNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.numbers.listNumbers.label,
-    href: "/numbers/list",
+    href: "/numbers/list-messaging-numbers",
     icon: Hash,
   },
 ]
@@ -106,292 +101,246 @@ const numbersNavItems: NavItem[] = [
 const configNavItems: NavItem[] = [
   {
     label: strings.sidebar.nav.config.manageEnvironments.label,
-    href: "/settings/environments",
+    href: "/settings/manage-environments",
     icon: Settings2,
   },
   {
     label: strings.sidebar.nav.config.manageContacts.label,
-    href: "/settings/contacts",
+    href: "/settings/manage-contacts",
     icon: BookUser,
   },
   {
     label: strings.sidebar.nav.config.manageVariables.label,
-    href: "/settings/variables",
+    href: "/settings/manage-variables",
     icon: SlidersHorizontal,
   },
 ]
 
-function isPathActive(pathname: string, href: string, exact = false) {
-  if (exact) return pathname === href
-  return pathname === href || pathname.startsWith(href + "/")
-}
-
 function NavSection({
   label,
-  href,
+  area,
   items,
+  icon: Icon,
   pathname,
   onNavigate,
+  collapsed,
 }: {
   label: string
-  href?: string
+  area: string
   items: NavItem[]
+  icon: React.ElementType
   pathname: string
-  onNavigate: () => void
+  onNavigate?: () => void
+  collapsed?: boolean
 }) {
-  const sectionActive = href ? isPathActive(pathname, href) : false
-
-  const header = href ? (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      aria-current={sectionActive ? "page" : undefined}
-      className={cn(
-        "group mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-        sectionActive
-          ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-      )}
-    >
-      <span className="flex-1 truncate text-[10px] font-semibold tracking-wider uppercase">
-        {label}
-      </span>
-    </Link>
-  ) : (
-    <div className="mt-4 px-3 py-2">
-      <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-        {label}
-      </span>
-    </div>
-  )
-
+  const [choice, setChoice] = React.useState({ path: "", expanded: false })
+  const expanded =
+    choice.path === pathname
+      ? choice.expanded
+      : pathname.startsWith(`/${area}/`) ||
+        (pathname === "/" &&
+          (area === "conversations" || area === "taskrouter"))
+  const id = React.useId()
+  if (items.length === 1) {
+    const item = items[0]
+    return (
+      <section className="nav-group">
+        <Link
+          href={item.href}
+          onClick={onNavigate}
+          className="nav-link"
+          aria-label={`${label}: ${item.label}`}
+          title={collapsed ? `${label}: ${item.label}` : undefined}
+          aria-current={pathname === item.href ? "page" : undefined}
+        >
+          <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+          <span className="nav-label">{label}</span>
+        </Link>
+      </section>
+    )
+  }
   return (
-    <>
-      {header}
-      {items.map((item) => {
-        const Icon = item.icon
-        const isActive = isPathActive(pathname, item.href, true)
-        return (
+    <section className="nav-group">
+      <div className="nav-group-row" data-active={pathname.startsWith(`/${area}/`)}>
+        {collapsed ? (
           <Link
-            key={item.href}
-            href={item.href}
+            href={`/?area=${area}`}
             onClick={onNavigate}
-            aria-current={isActive ? "page" : undefined}
-            className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
-              isActive
-                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            )}
+            className="nav-group-link"
+            aria-label={label}
+            title={label}
           >
-            <Icon
-              className={cn(
-                "size-4 shrink-0",
-                isActive
-                  ? "text-sidebar-primary"
-                  : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
-              )}
-            />
-            <span className="flex-1 truncate">{item.label}</span>
+            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+            <span className="nav-label">{label}</span>
           </Link>
-        )
-      })}
-    </>
+        ) : (
+          <button
+            type="button"
+            className="nav-group-link w-full text-left"
+            aria-label={strings.interface.expandNavigation(label)}
+            aria-expanded={expanded}
+            aria-controls={id}
+            onClick={() => setChoice({ path: pathname, expanded: !expanded })}
+          >
+            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+            <span className="nav-label">{label}</span>
+            <ChevronDown
+              aria-hidden="true"
+              className={expanded ? "ml-auto size-3 rotate-180" : "ml-auto size-3"}
+            />
+          </button>
+        )}
+      </div>
+      <div id={id} hidden={!expanded} className="nav-children">
+        {items.map(({ label, href, icon: ItemIcon }) => (
+          <Link
+            key={href}
+            href={href}
+            onClick={onNavigate}
+            className="nav-link"
+            aria-current={pathname === href ? "page" : undefined}
+          >
+            <ItemIcon aria-hidden="true" className="size-4 shrink-0" />
+            <span>{label}</span>
+          </Link>
+        ))}
+      </div>
+    </section>
   )
 }
+export function getNavigationTrail(pathname: string) {
+  const groups = [
+    {
+      href: "/?area=conversations",
+      prefix: "/conversations/",
+      label: strings.sidebar.sections.conversations,
+      items: conversationsNavItems,
+    },
+    {
+      href: "/?area=taskrouter",
+      prefix: "/taskrouter/",
+      label: strings.sidebar.sections.taskrouter,
+      items: taskrouterNavItems,
+    },
+    {
+      href: "/?area=numbers",
+      prefix: "/numbers/",
+      label: strings.sidebar.sections.numbers,
+      items: numbersNavItems,
+    },
+    {
+      href: "/?area=flex",
+      prefix: "/flex/",
+      label: strings.sidebar.sections.flex,
+      items: flexNavItems,
+    },
+    {
+      href: "/settings",
+      prefix: "/settings/",
+      label: strings.sidebar.sections.settings,
+      items: configNavItems,
+    },
+  ]
+  const group = groups.find(
+    (item) => pathname === item.href || pathname.startsWith(item.prefix)
+  )
+  if (!group) return []
+  const item = group.items.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  )
+  return item ? [group, item] : [group]
+}
 
-function SidebarNav() {
+export function SidebarNav({
+  onNavigate,
+  collapsed = false,
+}: {
+  onNavigate?: () => void
+  collapsed?: boolean
+}) {
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = React.useState(false)
-  const { environments, activeEnvironment, setActive } = useEnvironment()
-
-  function closeMenu() {
-    setMobileOpen(false)
-  }
-
   return (
-    <>
-      {/* Hidden while the sidebar is open because the backdrop handles closing. */}
-      {!mobileOpen && (
-        <button
-          type="button"
-          className="fixed top-4 left-4 z-50 flex size-9 items-center justify-center rounded-lg border border-border bg-card shadow-sm md:hidden"
-          onClick={() => setMobileOpen(true)}
-          aria-label={strings.sidebar.toggleLabel}
-          aria-expanded={false}
-        >
-          <Menu className="size-4" />
-        </button>
-      )}
-
-      {/* Backdrop */}
-      {mobileOpen && (
-        <div
-          aria-hidden="true"
-          className="fixed inset-0 z-40 bg-background/60 backdrop-blur-sm md:hidden"
-          onClick={closeMenu}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-200 md:static md:z-auto md:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+    <div className="navigation-panel">
+      <Link
+        href="/"
+        className="nav-brand"
+        aria-label={strings.sidebar.title}
+        onClick={onNavigate}
       >
-        {/* Logo */}
+        <span className="nav-brand-mark">
+          <Network aria-hidden="true" className="size-4" />
+        </span>
+        <span className="nav-brand-copy">
+          {strings.sidebar.title}
+        </span>
+      </Link>
+      <nav
+        className="nav-content"
+        aria-label={strings.sidebar.navigationAriaLabel}
+      >
         <Link
           href="/"
-          onClick={closeMenu}
-          className="flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-5 transition-opacity hover:opacity-80"
+          onClick={onNavigate}
+          className="nav-link"
+          aria-label={strings.interface.home}
+          title={collapsed ? strings.interface.home : undefined}
+          aria-current={pathname === "/" ? "page" : undefined}
         >
-          <div className="flex size-7 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-            <Phone className="size-3.5" />
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-            {strings.sidebar.title}
+          <LayoutDashboard aria-hidden="true" className="size-3.5" />
+          <span className="nav-label">{strings.interface.home}</span>
+        </Link>
+        <NavSection
+          label={strings.sidebar.sections.conversations}
+          area="conversations"
+          items={conversationsNavItems}
+          icon={MessageSquare}
+          collapsed={collapsed}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+        <NavSection
+          label={strings.sidebar.sections.taskrouter}
+          area="taskrouter"
+          items={taskrouterNavItems}
+          icon={Workflow}
+          collapsed={collapsed}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+        <NavSection
+          label={strings.sidebar.sections.numbers}
+          area="numbers"
+          items={numbersNavItems}
+          icon={Hash}
+          collapsed={collapsed}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+        <NavSection
+          label={strings.sidebar.sections.flex}
+          area="flex"
+          items={flexNavItems}
+          icon={MapPin}
+          collapsed={collapsed}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+      </nav>
+      <div className="nav-footer">
+        <Link
+          href="/settings"
+          className="nav-link"
+          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+          aria-label={strings.sidebar.configureEnvironments}
+          title={collapsed ? strings.sidebar.configureEnvironments : undefined}
+          onClick={onNavigate}
+        >
+          <Settings2 aria-hidden="true" className="size-3.5" />
+          <span className="nav-label">
+            {strings.sidebar.configureEnvironments}
           </span>
         </Link>
-
-        {/* Navigation */}
-        <nav
-          aria-label="Navegação principal"
-          className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-2"
-        >
-          <NavSection
-            label={strings.sidebar.sections.conversations}
-            href="/conversations"
-            items={conversationsNavItems}
-            pathname={pathname}
-            onNavigate={closeMenu}
-          />
-          <NavSection
-            label={strings.sidebar.sections.flex}
-            href="/flex"
-            items={flexNavItems}
-            pathname={pathname}
-            onNavigate={closeMenu}
-          />
-          <NavSection
-            label={strings.sidebar.sections.numbers}
-            href="/numbers"
-            items={numbersNavItems}
-            pathname={pathname}
-            onNavigate={closeMenu}
-          />
-          <NavSection
-            label={strings.sidebar.sections.taskrouter}
-            href="/taskrouter"
-            items={taskrouterNavItems}
-            pathname={pathname}
-            onNavigate={closeMenu}
-          />
-          <NavSection
-            label={strings.sidebar.sections.settings}
-            href="/settings"
-            items={configNavItems}
-            pathname={pathname}
-            onNavigate={closeMenu}
-          />
-        </nav>
-
-        {/* Environment selector */}
-        <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
-          <p className="px-2 pb-2 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-            {strings.sidebar.environment}
-          </p>
-          <DropdownMenuRoot>
-            <DropdownMenuTrigger asChild>
-              {activeEnvironment ? (
-                <button
-                  type="button"
-                  className="w-full rounded-lg border border-sidebar-border bg-sidebar-accent/40 px-3 py-2.5 text-left transition-colors hover:bg-sidebar-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                  <div className="mb-0.5 flex items-center gap-2">
-                    <CheckCircle2 className="size-3 shrink-0 text-emerald-500" />
-                    <span className="flex-1 truncate text-xs font-medium text-sidebar-foreground">
-                      {activeEnvironment.name}
-                    </span>
-                    <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
-                  </div>
-                  <p className="truncate pl-5 font-mono text-[10px] text-muted-foreground">
-                    {activeEnvironment.accountSid.slice(0, 8)}...
-                  </p>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="w-full rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-left transition-colors hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                >
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="size-3 shrink-0 text-destructive" />
-                    <span className="flex-1 truncate text-xs font-medium text-destructive">
-                      {strings.sidebar.noEnvironment}
-                    </span>
-                    <ChevronDown className="size-3 shrink-0 text-destructive/60" />
-                  </div>
-                </button>
-              )}
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent
-              side="top"
-              align="start"
-              className="w-[--radix-dropdown-menu-trigger-width]"
-            >
-              {environments.length === 0 ? (
-                <>
-                  <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                    {strings.sidebar.noEnvironmentRegistered}
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings/environments" onClick={closeMenu}>
-                      <Settings2 className="size-3.5 shrink-0" />
-                      {strings.sidebar.configureEnvironments}
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                environments.map((env) => {
-                  const isActive = env.id === activeEnvironment?.id
-                  return (
-                    <DropdownMenuItem
-                      key={env.id}
-                      onSelect={() => setActive(env.id)}
-                      className={cn(isActive && "font-medium")}
-                    >
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="truncate text-xs">{env.name}</span>
-                        <span className="truncate font-mono text-[10px] text-muted-foreground">
-                          {env.accountSid.slice(0, 8)}...
-                        </span>
-                      </div>
-                      {isActive && (
-                        <Check className="size-3.5 shrink-0 text-emerald-500" />
-                      )}
-                    </DropdownMenuItem>
-                  )
-                })
-              )}
-            </DropdownMenuContent>
-          </DropdownMenuRoot>
-        </div>
-
-        {/* Footer */}
-        <div className="shrink-0 border-t border-sidebar-border px-4 py-3">
-          <p className="text-[11px] text-muted-foreground">
-            {strings.sidebar.footer.toggleThemePress}{" "}
-            <kbd className="rounded border border-border px-1 py-0.5 font-mono text-[10px]">
-              {strings.sidebar.footer.toggleThemeKey}
-            </kbd>{" "}
-            {strings.sidebar.footer.toggleThemeHint}
-          </p>
-        </div>
-      </aside>
-    </>
+      </div>
+    </div>
   )
 }
-
-export { SidebarNav }

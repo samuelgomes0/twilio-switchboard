@@ -1,15 +1,16 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Outfit, Manrope, Geist_Mono } from "next/font/google"
 
-import { ProgressBar } from "@/components/progress-bar"
-import { SidebarNav } from "@/components/sidebar-nav"
+import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/theme-provider"
 import { EnvironmentProvider } from "@/features/environments/context"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" })
+
+const heading = Manrope({ subsets: ["latin"], variable: "--font-title" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -39,18 +40,17 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, geist.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        outfit.variable,
+        heading.variable
+      )}
     >
       <body>
         <ThemeProvider>
           <EnvironmentProvider>
-            <ProgressBar />
-            <div className="flex min-h-svh font-sans">
-              <SidebarNav />
-              <main className="flex-1 overflow-auto p-6 md:p-8">
-                {children}
-              </main>
-            </div>
+            <AppShell>{children}</AppShell>
           </EnvironmentProvider>
         </ThemeProvider>
       </body>

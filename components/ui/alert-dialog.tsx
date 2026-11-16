@@ -1,17 +1,12 @@
-import * as React from "react"
+import { X } from "lucide-react"
 import { AlertDialog } from "radix-ui"
+import * as React from "react"
 
-import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 function AlertDialogRoot(props: React.ComponentProps<typeof AlertDialog.Root>) {
   return <AlertDialog.Root data-slot="alert-dialog" {...props} />
-}
-
-function AlertDialogTrigger(
-  props: React.ComponentProps<typeof AlertDialog.Trigger>
-) {
-  return <AlertDialog.Trigger data-slot="alert-dialog-trigger" {...props} />
 }
 
 function AlertDialogPortal(
@@ -28,7 +23,7 @@ function AlertDialogOverlay({
     <AlertDialog.Overlay
       data-slot="alert-dialog-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-background/60 backdrop-blur-sm",
+        "fixed inset-0 z-[var(--layer-dialog)] bg-black/80 backdrop-blur-sm",
         "data-[state=closed]:animate-out data-[state=open]:animate-in",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className
@@ -49,8 +44,8 @@ function AlertDialogContent({
       <AlertDialog.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2",
-          "rounded-xl border border-border bg-background p-6 shadow-lg",
+          "fixed top-1/2 left-1/2 z-[var(--layer-dialog)] max-h-[calc(100svh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto",
+          "rounded-4xl bg-card p-6 shadow-[var(--shadow-overlay)] ring-1 ring-foreground/5",
           "data-[state=closed]:animate-out data-[state=open]:animate-in",
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -73,7 +68,7 @@ function AlertDialogHeader({
   return (
     <div
       data-slot="alert-dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-2 text-left", className)}
       {...props}
     />
   )
@@ -87,7 +82,7 @@ function AlertDialogFooter({
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        "mt-6 flex flex-wrap items-center justify-end gap-2",
         className
       )}
       {...props}
@@ -102,7 +97,10 @@ function AlertDialogTitle({
   return (
     <AlertDialog.Title
       data-slot="alert-dialog-title"
-      className={cn("text-base font-semibold", className)}
+      className={cn(
+        "font-heading text-lg font-semibold tracking-tight",
+        className
+      )}
       {...props}
     />
   )
@@ -123,14 +121,22 @@ function AlertDialogDescription({
 
 function AlertDialogCancel({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialog.Cancel>) {
   return (
     <AlertDialog.Cancel
       data-slot="alert-dialog-cancel"
-      className={cn(buttonVariants({ variant: "outline" }), className)}
+      className={cn(
+        buttonVariants({ variant: "outline" }),
+        "gap-2 [&_svg]:size-3.5",
+        className
+      )}
       {...props}
-    />
+    >
+      <X aria-hidden="true" />
+      {children}
+    </AlertDialog.Cancel>
   )
 }
 
@@ -148,15 +154,12 @@ function AlertDialogAction({
 }
 
 export {
-  AlertDialogRoot,
-  AlertDialogTrigger,
-  AlertDialogPortal,
-  AlertDialogOverlay,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogCancel,
   AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogRoot,
+  AlertDialogTitle,
 }
