@@ -221,7 +221,7 @@ export function UpdateWorkerFeatureForm() {
               id="feature-enabled"
               value={String(enabled)}
               onChange={(event) => setEnabled(event.target.value === "true")}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-md border border-input bg-surface-subtle px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="true">{messages.enabled}</option>
               <option value="false">{messages.disabled}</option>

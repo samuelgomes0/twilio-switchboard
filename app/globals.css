@@ -17,6 +17,7 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
+  --color-surface-subtle: var(--surface-subtle);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
@@ -65,6 +66,7 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
+  --surface-subtle: var(--muted);
   --muted-foreground: oklch(0.53 0.021 213.5);
   --accent: oklch(0.963 0.002 197.1);
   --accent-foreground: oklch(0.218 0.008 223.9);
@@ -497,7 +499,7 @@
   [data-slot="operation-form"] > .form-actions {
     margin: 0;
     padding: 1rem 1.5rem;
-    background: color-mix(in srgb, var(--muted) 35%, var(--card));
+    background: var(--surface-subtle);
     border-radius: 0 0 0.75rem 0.75rem;
   }
   .field-control {
@@ -508,7 +510,7 @@
     padding: 0.4375rem 0.75rem;
     border: 1px solid var(--input);
     border-radius: var(--radius-md);
-    background: color-mix(in oklch, var(--input) 30%, transparent);
+    background: var(--surface-subtle);
     font-size: 0.875rem;
     line-height: 1.25rem;
     transition:
@@ -550,7 +552,7 @@
     padding: 0.4375rem 0.75rem;
     border: 1px solid var(--input);
     border-radius: var(--radius-4xl);
-    background: color-mix(in oklch, var(--input) 30%, transparent);
+    background: var(--surface-subtle);
     color: var(--foreground);
     font-size: 0.875rem;
     line-height: 1.25rem;
@@ -728,7 +730,7 @@
     font-weight: 500;
     color: var(--muted-foreground);
     padding: 0.75rem 1rem;
-    background: color-mix(in oklch, var(--muted) 40%, var(--card));
+    background: var(--surface-subtle);
     border-bottom: 1px solid var(--border);
   }
   .directory-table th:first-child {
@@ -750,7 +752,7 @@
     display: none;
   }
   .directory-table tbody tr:nth-child(even) {
-    background: color-mix(in srgb, var(--muted) 35%, var(--background));
+    background: var(--surface-subtle);
   }
   .directory-table tbody tr:hover {
     background: var(--muted);
@@ -985,7 +987,7 @@
     min-width: 34rem;
   }
   .numbers-table th {
-    background: var(--muted);
+    background: var(--surface-subtle);
   }
   .conversation-details-grid {
     display: grid;

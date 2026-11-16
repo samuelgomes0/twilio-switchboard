@@ -92,7 +92,7 @@ interface HistoryEntry {
 const HISTORY_KEY = "switchboard:create-address-config-history"
 
 const selectClass =
-  "flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm  transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+  "flex h-9 w-full rounded-lg border border-input bg-surface-subtle px-3 py-1 text-sm  transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 
 function fmtTs(ts: number) {
   return new Date(ts).toLocaleString("pt-BR", {

@@ -74,7 +74,7 @@ export function WorkflowCsvPreviewPanel({
               <caption className="sr-only">
                 {labels.previewTable.caption}
               </caption>
-              <thead className="border-b border-border bg-muted">
+              <thead className="border-b border-border bg-surface-subtle">
                 <tr>
                   <th scope="col" className="w-16 px-4 py-3 text-left">
                     {labels.previewTable.line}

@@ -71,6 +71,8 @@ for (const [name, theme, column] of [
       ["card-foreground", "card"],
       ["muted-foreground", "background"],
       ["muted-foreground", "muted"],
+      ["muted-foreground", "surface-subtle"],
+      ["foreground", "surface-subtle"],
       ["sidebar-foreground", "sidebar"],
       ["primary-foreground", "primary"],
       ["primary-foreground", "primary-hover"],

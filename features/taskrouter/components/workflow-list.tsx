@@ -311,7 +311,7 @@ export function WorkflowList() {
               <div className="overflow-auto">
                 <table className="w-full min-w-[48rem] text-sm">
                   <caption className="sr-only">{labels.table.caption}</caption>
-                  <thead className="border-b border-border bg-muted">
+                  <thead className="border-b border-border bg-surface-subtle">
                     <tr>
                       <th scope="col" className="px-4 py-3 text-left">
                         {labels.table.name}

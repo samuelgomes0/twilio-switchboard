@@ -358,7 +358,7 @@ export function ListNumbersForm() {
               <div className="max-h-[min(60svh,36rem)] overflow-auto">
                 <table className="numbers-table w-full text-sm">
                   <caption className="sr-only">{s.title}</caption>
-                  <thead className="sticky top-0 z-10 border-b border-border bg-card">
+                  <thead className="sticky top-0 z-10 border-b border-border bg-surface-subtle">
                     <tr>
                       <th
                         scope="col"
