@@ -1,4 +1,4 @@
-import { InputActions } from "@/components/input-actions"
+import { FormActions } from "@/components/form-actions"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 
@@ -46,10 +46,7 @@ export function FetchByParticipantResultsSkeleton({
   announce?: boolean
 }) {
   return (
-    <div
-      role={announce ? "status" : undefined}
-      className="mt-6 w-full max-w-3xl"
-    >
+    <div role={announce ? "status" : undefined} className="mt-6 w-full">
       {announce && (
         <span className="sr-only">
           {strings.conversations.fetchByParticipant.loadingResults}
@@ -78,13 +75,15 @@ export function FetchByParticipantPageSkeleton() {
             <Skeleton className="h-4 w-96 max-w-full" />
           </div>
         </div>
-        <div className="operation-form w-full max-w-3xl space-y-5 [&_[aria-hidden=true]]:bg-card">
+        <div className="operation-form w-full space-y-5 [&_[aria-hidden=true]]:bg-card">
           <div>
             <Skeleton className="mb-2 h-4 w-52 max-w-full" />
-            <InputActions>
+            <>
               <Skeleton className="h-9 w-full min-w-0 flex-1 rounded-md" />
-              <Skeleton className="h-9 w-24 shrink-0 rounded-md" />
-            </InputActions>
+              <FormActions>
+                <Skeleton className="h-10 w-24 shrink-0 rounded-md" />
+              </FormActions>
+            </>
           </div>
           <div>
             <Skeleton className="mb-2 h-4 w-20" />

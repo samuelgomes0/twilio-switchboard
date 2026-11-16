@@ -1,8 +1,5 @@
 "use client"
-
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
+import { OperationForm } from "@/components/operation-form"
 
 import { ActionButton } from "@/components/action-button"
 
@@ -148,11 +145,43 @@ export function EnvironmentForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
+    <OperationForm
+      onSubmit={handleSubmit}
+      bodyClassName="space-y-4"
+      actions={
+        <>
+          <ActionButton action="save" type="submit">
+            {strings.environments.form.saveButton}
+          </ActionButton>
+          <ActionButton action="cancel" type="button" onClick={onCancel}>
+            {strings.environments.form.cancelButton}
+          </ActionButton>
+          <Button
+            aria-busy={testState === "loading"}
+            type="button"
+            variant="outline"
+
+            disabled={!credentialsComplete || testState === "loading"}
+            onClick={handleTest}
+            className="gap-1.5"
+          >
+            {testState === "loading" ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <span className="size-3.5" />
+            )}
+            {testState === "loading"
+              ? strings.environments.form.testingButton
+              : strings.environments.form.testButton}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-2">
         <Label htmlFor="env-name">{strings.environments.form.nameLabel}</Label>
         <Input
           id="env-name"
+          autoFocus
           aria-describedby={errors.name ? "env-name-error" : undefined}
           placeholder={strings.environments.form.namePlaceholder}
           value={form.name}
@@ -166,7 +195,7 @@ export function EnvironmentForm({
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="env-sid">
           {strings.environments.form.accountSidLabel}
         </Label>
@@ -194,75 +223,49 @@ export function EnvironmentForm({
         </p>
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label htmlFor="env-token">
           {strings.environments.form.authTokenLabel}
         </Label>
-        <InputActions>
-          <div className="min-w-0 flex-1">
-            <div className="relative flex items-center">
-              <Input
-                id="env-token"
-                aria-describedby={
-                  errors.authToken
-                    ? "env-token-error env-token-hint"
-                    : "env-token-hint"
-                }
-                type={showToken ? "text" : "password"}
-                placeholder={strings.environments.form.authTokenPlaceholder}
-                value={form.authToken}
-                onChange={(e) => handleChange("authToken", e.target.value)}
-                className="pr-10 font-mono text-sm"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-                aria-invalid={!!errors.authToken}
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken((v) => !v)}
-                className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                aria-label={
-                  showToken
-                    ? strings.environments.form.hideTokenAriaLabel
-                    : strings.environments.form.showTokenAriaLabel
-                }
-              >
-                {showToken ? (
-                  <EyeOff className="size-4" />
-                ) : (
-                  <Eye className="size-4" />
-                )}
-              </button>
-            </div>
-          </div>
-          <ActionBar className="sm:max-w-56">
-            <ActionButton action="save" type="submit">
-              {strings.environments.form.saveButton}
-            </ActionButton>
-            <ActionButton action="cancel" type="button" onClick={onCancel}>
-              {strings.environments.form.cancelButton}
-            </ActionButton>
-            <Button
-              aria-busy={testState === "loading"}
-              type="button"
-              variant="outline"
 
-              disabled={!credentialsComplete || testState === "loading"}
-              onClick={handleTest}
-              className="gap-1.5"
+        <div className="min-w-0 flex-1">
+          <div className="relative flex items-center">
+            <Input
+              id="env-token"
+              aria-describedby={
+                errors.authToken
+                  ? "env-token-error env-token-hint"
+                  : "env-token-hint"
+              }
+              type={showToken ? "text" : "password"}
+              placeholder={strings.environments.form.authTokenPlaceholder}
+              value={form.authToken}
+              onChange={(e) => handleChange("authToken", e.target.value)}
+              className="pr-10 font-mono text-sm"
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="off"
+              aria-invalid={!!errors.authToken}
+            />
+            <button
+              type="button"
+              onClick={() => setShowToken((v) => !v)}
+              className="absolute right-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+              aria-label={
+                showToken
+                  ? strings.environments.form.hideTokenAriaLabel
+                  : strings.environments.form.showTokenAriaLabel
+              }
             >
-              {testState === "loading" ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              {showToken ? (
+                <EyeOff className="size-4" />
               ) : (
-                <span className="size-3.5" />
+                <Eye className="size-4" />
               )}
-              {testState === "loading"
-                ? strings.environments.form.testingButton
-                : strings.environments.form.testButton}
-            </Button>
-          </ActionBar>
-        </InputActions>
+            </button>
+          </div>
+        </div>
+
         {errors.authToken && (
           <p id="env-token-error" className="text-xs text-destructive">
             {errors.authToken}
@@ -294,6 +297,6 @@ export function EnvironmentForm({
           </span>
         )}
       </div>
-    </form>
+    </OperationForm>
   )
 }

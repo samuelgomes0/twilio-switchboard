@@ -54,7 +54,7 @@ export function WorkerManagementForm({
           title={labels.title}
           description={labels.subtitle}
           parent={{
-            href: "/taskrouter",
+            href: "/?area=taskrouter",
             label: strings.sidebar.sections.taskrouter,
           }}
           badge={tab !== "details" && <WarningBadge />}
@@ -65,13 +65,19 @@ export function WorkerManagementForm({
           </Label>
           <StoredInput
             id="worker-management-workspace"
-            className="search-control"
+            aria-describedby="worker-management-workspace-hint"
             storageKey={STORED_KEYS.workspaceSids}
             environmentId={activeEnvironment?.id}
             value={workspaceSid}
             onChange={setWorkspaceSid}
             placeholder={labels.workspacePlaceholder}
           />
+          <p
+            id="worker-management-workspace-hint"
+            className="text-xs text-muted-foreground"
+          >
+            {strings.common.workspaceSidHint}
+          </p>
         </div>
         <Tabs.Root
           value={tab}

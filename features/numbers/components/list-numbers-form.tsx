@@ -16,16 +16,6 @@ import {
 } from "lucide-react"
 import * as React from "react"
 
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,7 +26,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/search-input"
 import { useEnvironment } from "@/features/environments/context"
-import type { NumberListResult, NumberRecord, PhoneNumberService } from "@/features/numbers/types"
+import type {
+  NumberListResult,
+  NumberRecord,
+  PhoneNumberService,
+} from "@/features/numbers/types"
 import { escapeCsvCell, sanitizeSpreadsheetCell } from "@/lib/spreadsheet"
 import { strings } from "@/lib/strings"
 
@@ -81,7 +75,6 @@ export function ListNumbersForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [warning, setWarning] = React.useState<string | null>(null)
   const [results, setResults] = React.useState<NumberRecord[] | null>(null)
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
   const abortRef = React.useRef<AbortController | null>(null)
   React.useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -91,7 +84,7 @@ export function ListNumbersForm() {
   const [sortDir, setSortDir] = React.useState<SortDir>("asc")
 
   async function runFetch() {
-    if (!activeEnvironment) return
+    if (!activeEnvironment || abortRef.current) return
     setLoading(true)
     setError(null)
     setWarning(null)
@@ -164,9 +157,8 @@ export function ListNumbersForm() {
   async function exportExcel() {
     if (!results) return
     try {
-      const { default: writeXlsxFile } = await import(
-        "write-excel-file/browser"
-      )
+      const { default: writeXlsxFile } =
+        await import("write-excel-file/browser")
       const data = [
         [
           s.table.colMark,
@@ -232,17 +224,24 @@ export function ListNumbersForm() {
       <PageHeader
         title={s.title}
         description={s.subtitle}
-        parent={{ href: "/numbers", label: strings.sidebar.sections.numbers }}
+        parent={{
+          href: "/?area=numbers",
+          label: strings.sidebar.sections.numbers,
+        }}
       />
 
       {/* No environment warning */}
       {!activeEnvironment && <NoEnvironmentSelected />}
 
+      <p className="mb-5 max-w-prose text-sm text-muted-foreground">
+        {s.classificationHint}
+      </p>
+
       {/* Fetch button (idle state) */}
       {results === null && !loading && (
         <Button
           type="button"
-          onClick={() => setConfirmOpen(true)}
+          onClick={() => void runFetch()}
           disabled={!activeEnvironment}
           className="gap-2"
         >
@@ -262,29 +261,6 @@ export function ListNumbersForm() {
         </div>
       )}
 
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{s.confirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {s.confirmDescription(activeEnvironment?.name ?? "")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmOpen(false)
-                void runFetch()
-              }}
-            >
-              {s.submit}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
-
       {/* Error */}
       {error && (
         <div
@@ -296,7 +272,10 @@ export function ListNumbersForm() {
       )}
 
       {warning && (
-        <div role="status" className="mt-5 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning">
+        <div
+          role="status"
+          className="mt-5 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning"
+        >
           {warning}
         </div>
       )}
@@ -334,10 +313,7 @@ export function ListNumbersForm() {
                 />
               </div>
               <ActionBar>
-                <ActionButton
-                  action="refresh"
-                  onClick={() => setConfirmOpen(true)}
-                >
+                <ActionButton action="refresh" onClick={() => void runFetch()}>
                   {strings.common.refresh}
                 </ActionButton>
                 <DropdownMenuRoot>

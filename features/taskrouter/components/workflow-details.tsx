@@ -1,8 +1,7 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
-import { ActionBar } from "@/components/action-bar"
 import { ActionButton } from "@/components/action-button"
-import { InputActions } from "@/components/input-actions"
 import { JsonBlock } from "@/components/json-block"
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
 import { PageHeader } from "@/components/page-header"
@@ -46,13 +45,21 @@ function filterName(filter: WorkflowFilter, index: number): string {
 export function WorkflowDetails({
   initialWorkflowSid = "",
   initialWorkspaceSid = "",
+  initialEnvironmentId,
 }: {
   initialWorkflowSid?: string
   initialWorkspaceSid?: string
+  initialEnvironmentId?: string
 }) {
   const { activeEnvironment } = useEnvironment()
-  const [workspaceSid, setWorkspaceSid] = React.useState(initialWorkspaceSid)
-  const [workflowSid, setWorkflowSid] = React.useState(initialWorkflowSid)
+  const contextMismatch =
+    !!initialEnvironmentId && initialEnvironmentId !== activeEnvironment?.id
+  const [workspaceSid, setWorkspaceSid] = React.useState(
+    contextMismatch ? "" : initialWorkspaceSid
+  )
+  const [workflowSid, setWorkflowSid] = React.useState(
+    contextMismatch ? "" : initialWorkflowSid
+  )
   const [workflow, setWorkflow] = React.useState<WorkflowDetailsData | null>(
     null
   )
@@ -121,6 +128,7 @@ export function WorkflowDetails({
   React.useEffect(() => {
     if (
       !autoLoadedRef.current &&
+      !contextMismatch &&
       activeEnvironment &&
       WORKSPACE_SID_RE.test(initialWorkspaceSid) &&
       WORKFLOW_SID_RE.test(initialWorkflowSid)
@@ -130,6 +138,7 @@ export function WorkflowDetails({
     }
   }, [
     activeEnvironment,
+    contextMismatch,
     initialWorkflowSid,
     initialWorkspaceSid,
     loadWorkflow,
@@ -165,8 +174,38 @@ export function WorkflowDetails({
       />
 
       {!activeEnvironment && <NoEnvironmentSelected />}
+      {contextMismatch && activeEnvironment && (
+        <p role="status" className="mb-5 text-sm text-muted-foreground">
+          {strings.common.contextEnvironmentMismatch}
+        </p>
+      )}
 
-      <form onSubmit={handleSubmit} className="operation-form form-grid">
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="form-grid"
+        actions={
+          <>
+            <ActionButton
+              action="search"
+              type="submit"
+              disabled={
+                !activeEnvironment ||
+                !workspaceSid.trim() ||
+                !workflowSid.trim() ||
+                loading
+              }
+              aria-busy={loading}
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="size-3.5" aria-hidden="true" />
+              )}
+              {labels.details.submit}
+            </ActionButton>
+          </>
+        }
+      >
         <div className="space-y-2">
           <Label htmlFor="workflow-details-workspace">
             {labels.workspaceLabel}
@@ -190,11 +229,17 @@ export function WorkflowDetails({
             aria-invalid={!!fieldErrors.workspaceSid}
             aria-describedby={
               fieldErrors.workspaceSid
-                ? "workflow-details-workspace-error"
-                : undefined
+                ? "workflow-details-workspace-error workflow-details-workspace-hint"
+                : "workflow-details-workspace-hint"
             }
             className="font-mono"
           />
+          <p
+            id="workflow-details-workspace-hint"
+            className="text-xs text-muted-foreground"
+          >
+            {strings.common.workspaceSidHint}
+          </p>
           {fieldErrors.workspaceSid && (
             <p
               id="workflow-details-workspace-error"
@@ -209,53 +254,28 @@ export function WorkflowDetails({
           <Label htmlFor="workflow-details-sid">
             {labels.workflowSidLabel}
           </Label>
-          <InputActions>
-            <SearchInput
-              id="workflow-details-sid"
-              value={workflowSid}
-              onChange={(event) => {
-                setWorkflowSid(event.target.value)
-                if (fieldErrors.workflowSid) {
-                  setFieldErrors((current) => ({
-                    ...current,
-                    workflowSid: undefined,
-                  }))
-                }
-              }}
-              placeholder={strings.common.placeholders.workflowSid}
-              disabled={loading}
-              aria-invalid={!!fieldErrors.workflowSid}
-              aria-describedby={
-                fieldErrors.workflowSid
-                  ? "workflow-details-sid-error"
-                  : undefined
+
+          <SearchInput
+            id="workflow-details-sid"
+            value={workflowSid}
+            onChange={(event) => {
+              setWorkflowSid(event.target.value)
+              if (fieldErrors.workflowSid) {
+                setFieldErrors((current) => ({
+                  ...current,
+                  workflowSid: undefined,
+                }))
               }
-              className="min-w-0 flex-1 font-mono"
-            />
-            <ActionBar>
-              <ActionButton
-                action="search"
-                type="submit"
-                disabled={
-                  !activeEnvironment ||
-                  !workspaceSid.trim() ||
-                  !workflowSid.trim() ||
-                  loading
-                }
-                aria-busy={loading}
-              >
-                {loading ? (
-                  <Loader2
-                    className="size-3.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Search className="size-3.5" aria-hidden="true" />
-                )}
-                {labels.details.submit}
-              </ActionButton>
-            </ActionBar>
-          </InputActions>
+            }}
+            placeholder={strings.common.placeholders.workflowSid}
+            disabled={loading}
+            aria-invalid={!!fieldErrors.workflowSid}
+            aria-describedby={
+              fieldErrors.workflowSid ? "workflow-details-sid-error" : undefined
+            }
+            className="min-w-0 flex-1 font-mono"
+          />
+
           {fieldErrors.workflowSid && (
             <p
               id="workflow-details-sid-error"
@@ -265,7 +285,7 @@ export function WorkflowDetails({
             </p>
           )}
         </div>
-      </form>
+      </OperationForm>
 
       {error && (
         <div
@@ -366,7 +386,8 @@ export function WorkflowDetails({
                   {labels.details.assignmentCallback}
                 </dt>
                 <dd className="mt-1 text-sm break-all">
-                  {workflow.assignmentCallbackUrl ?? strings.common.notAvailable}
+                  {workflow.assignmentCallbackUrl ??
+                    strings.common.notAvailable}
                 </dd>
               </div>
               <div className="sm:col-span-2 lg:col-span-3">
@@ -420,7 +441,7 @@ export function WorkflowDetails({
               <div className="mt-3 space-y-4">
                 <p className="text-sm">
                   <span className="text-muted-foreground">
-                    {labels.details.defaultQueue}: {" "}
+                    {labels.details.defaultQueue}:{" "}
                   </span>
                   <span className="font-mono">
                     {defaultQueue ?? labels.details.noDefaultQueue}
@@ -434,7 +455,7 @@ export function WorkflowDetails({
                 ) : (
                   <div className="overflow-hidden rounded-lg border border-border">
                     <div className="overflow-auto">
-                      <table className="min-w-[46rem] w-full text-sm">
+                      <table className="w-full min-w-[46rem] text-sm">
                         <thead className="border-b border-border bg-muted">
                           <tr>
                             <th scope="col" className="px-4 py-3 text-left">
@@ -458,7 +479,8 @@ export function WorkflowDetails({
                                 {filterName(filter, index)}
                               </td>
                               <td className="px-4 py-3 font-mono text-xs break-all">
-                                {filter.expression ?? strings.common.notAvailable}
+                                {filter.expression ??
+                                  strings.common.notAvailable}
                               </td>
                               <td className="px-4 py-3 font-mono text-xs break-all">
                                 {(filter.targets ?? [])
@@ -481,7 +503,10 @@ export function WorkflowDetails({
             <summary className="cursor-pointer text-sm font-medium">
               {labels.details.rawConfiguration}
             </summary>
-            <JsonBlock value={workflow.configuration} className="mt-4 max-h-[32rem] overflow-auto rounded-md bg-muted/60 p-4 text-xs leading-relaxed" />
+            <JsonBlock
+              value={workflow.configuration}
+              className="mt-4 max-h-[32rem] overflow-auto rounded-md bg-muted/60 p-4 text-xs leading-relaxed"
+            />
           </details>
         </div>
       )}

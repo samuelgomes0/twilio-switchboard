@@ -1,10 +1,7 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
 
 import { ActionButton } from "@/components/action-button"
 
@@ -25,6 +22,7 @@ import { useConversationHistory } from "./use-conversation-history"
 interface ConversationFormProps {
   initialSid?: string
   initialTab?: "details" | "messages"
+  initialEnvironmentId?: string
 }
 
 function EnvironmentConversationForm({
@@ -72,31 +70,36 @@ function EnvironmentConversationForm({
 
   return (
     <>
-      <form onSubmit={searchConversation} className="operation-form space-y-5">
+      <OperationForm
+        onSubmit={searchConversation}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton action="search" type="submit" disabled={!valid}>
+              <Search aria-hidden="true" className="size-3.5" />
+              {strings.common.search}
+            </ActionButton>
+          </>
+        }
+      >
         <div className="space-y-2">
           <Label htmlFor="conversation-sid">
             {strings.conversations.history.sidLabel}
           </Label>
-          <InputActions>
-            <StoredInput
-              id="conversation-sid"
-              className="search-control"
-              aria-describedby="conversation-sid-feedback"
-              aria-invalid={!!sid.trim() && !valid}
-              storageKey={STORED_KEYS.conversationSids}
-              environmentId={environment.id}
-              value={sid}
-              onChange={setSid}
-              placeholder={strings.conversations.history.sidPlaceholder}
-              containerClassName="w-full min-w-0 flex-1"
-            />
-            <ActionBar>
-              <ActionButton action="search" type="submit" disabled={!valid}>
-                <Search aria-hidden="true" className="size-3.5" />
-                {strings.common.search}
-              </ActionButton>
-            </ActionBar>
-          </InputActions>
+
+          <StoredInput
+            id="conversation-sid"
+            className="search-control"
+            aria-describedby="conversation-sid-feedback"
+            aria-invalid={!!sid.trim() && !valid}
+            storageKey={STORED_KEYS.conversationSids}
+            environmentId={environment.id}
+            value={sid}
+            onChange={setSid}
+            placeholder={strings.conversations.history.sidPlaceholder}
+            containerClassName="w-full min-w-0 flex-1"
+          />
+
           <p
             id="conversation-sid-feedback"
             className={
@@ -110,7 +113,7 @@ function EnvironmentConversationForm({
               : strings.conversations.history.sidHint}
           </p>
         </div>
-      </form>
+      </OperationForm>
       {query && (
         <ConversationResult
           key={`${query.sid}:${query.revision}`}
@@ -147,6 +150,9 @@ function EnvironmentConversationForm({
 
 export function ConversationForm(props: ConversationFormProps) {
   const { activeEnvironment } = useEnvironment()
+  const contextMismatch =
+    !!props.initialEnvironmentId &&
+    props.initialEnvironmentId !== activeEnvironment?.id
   const labels = strings.conversations.consult
   return (
     <div className="workspace-page">
@@ -154,14 +160,20 @@ export function ConversationForm(props: ConversationFormProps) {
         title={labels.title}
         description={labels.subtitle}
         parent={{
-          href: "/conversations",
+          href: "/?area=conversations",
           label: strings.sidebar.sections.conversations,
         }}
       />
+      {contextMismatch && activeEnvironment && (
+        <p role="status" className="mb-5 text-sm text-muted-foreground">
+          {strings.common.contextEnvironmentMismatch}
+        </p>
+      )}
       {activeEnvironment ? (
         <EnvironmentConversationForm
           key={activeEnvironment.id}
           {...props}
+          initialSid={contextMismatch ? "" : props.initialSid}
           environment={activeEnvironment}
         />
       ) : (

@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   description: strings.dashboard.subtitle,
 }
 
-export default function DashboardPage() {
-  return <ToolDirectory />
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ area?: string | string[] }>
+}) {
+  const { area } = await searchParams
+  const initialArea = typeof area === "string" ? area : ""
+  return <ToolDirectory key={initialArea} initialArea={initialArea} />
 }

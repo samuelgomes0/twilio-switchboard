@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import type { SearchTaskResult } from "@/features/taskrouter/types"
 import { strings } from "@/lib/strings"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { useEnvironment } from "@/features/environments/context"
+import { taskInvestigationLinks } from "@/features/taskrouter/lib/task-investigation-links"
 function formatDate(d: Date | null | string): string {
   if (!d) return strings.common.notAvailable
   const date = typeof d === "string" ? new Date(d) : d
@@ -58,12 +62,16 @@ function channelVariant(
 }
 
 export function TaskCard({ task }: { task: SearchTaskResult }) {
+  const { activeEnvironment } = useEnvironment()
+  const links = activeEnvironment
+    ? taskInvestigationLinks(task, activeEnvironment.id)
+    : null
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-1">
-            <CardTitle className="font-mono text-sm leading-relaxed break-all">
+            <CardTitle className="font-heading text-sm leading-relaxed break-all">
               {task.sid}
             </CardTitle>
           </div>
@@ -85,6 +93,27 @@ export function TaskCard({ task }: { task: SearchTaskResult }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {links && (links.conversation || links.workflow) && (
+          <nav
+            aria-label={strings.taskrouter.searchTasks.relatedResources}
+            className="flex flex-wrap gap-2"
+          >
+            {links.conversation && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={links.conversation}>
+                  {strings.taskrouter.searchTasks.openConversation}
+                </Link>
+              </Button>
+            )}
+            {links.workflow && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={links.workflow}>
+                  {strings.taskrouter.searchTasks.openWorkflow}
+                </Link>
+              </Button>
+            )}
+          </nav>
+        )}
         <div className="grid grid-cols-1 gap-x-4 gap-y-3 text-xs sm:grid-cols-2">
           <div>
             <p className="mb-0.5 text-muted-foreground">

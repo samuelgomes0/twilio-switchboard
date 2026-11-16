@@ -1,4 +1,5 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
 import { ActionBar } from "@/components/action-bar"
 import { ActionButton } from "@/components/action-button"
@@ -79,7 +80,12 @@ export function WorkflowList() {
 
   async function loadWorkflows(pageToken?: string) {
     const requestedWorkspaceSid = workspaceSid.trim()
-    if (!activeEnvironment || !requestedWorkspaceSid || loading || loadingMore) {
+    if (
+      !activeEnvironment ||
+      !requestedWorkspaceSid ||
+      loading ||
+      loadingMore
+    ) {
       return
     }
 
@@ -169,36 +175,18 @@ export function WorkflowList() {
         title={labels.title}
         description={labels.subtitle}
         parent={{
-          href: "/taskrouter",
+          href: "/?area=taskrouter",
           label: strings.sidebar.sections.taskrouter,
         }}
       />
 
       {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleSubmit} className="operation-form space-y-2">
-        <Label htmlFor="workflow-list-workspace">
-          {labels.workspaceLabel}
-        </Label>
-        <InputActions>
-          <StoredInput
-            id="workflow-list-workspace"
-            storageKey={STORED_KEYS.workspaceSids}
-            environmentId={activeEnvironment?.id}
-            value={workspaceSid}
-            onChange={(value) => {
-              setWorkspaceSid(value)
-              if (workspaceError) setWorkspaceError(null)
-            }}
-            placeholder={strings.common.placeholders.workspaceSid}
-            disabled={loading || loadingMore}
-            aria-invalid={!!workspaceError}
-            aria-describedby={
-              workspaceError ? "workflow-list-workspace-error" : undefined
-            }
-            className="min-w-0 flex-1 font-mono"
-          />
-          <ActionBar>
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="space-y-2"
+        actions={
+          <>
             <ActionButton
               action="search"
               type="submit"
@@ -217,8 +205,37 @@ export function WorkflowList() {
               )}
               {labels.load}
             </ActionButton>
-          </ActionBar>
-        </InputActions>
+          </>
+        }
+      >
+        <Label htmlFor="workflow-list-workspace">{labels.workspaceLabel}</Label>
+
+        <StoredInput
+          id="workflow-list-workspace"
+          storageKey={STORED_KEYS.workspaceSids}
+          environmentId={activeEnvironment?.id}
+          value={workspaceSid}
+          onChange={(value) => {
+            setWorkspaceSid(value)
+            if (workspaceError) setWorkspaceError(null)
+          }}
+          placeholder={strings.common.placeholders.workspaceSid}
+          disabled={loading || loadingMore}
+          aria-invalid={!!workspaceError}
+          aria-describedby={
+            workspaceError
+              ? "workflow-list-workspace-error workflow-list-workspace-hint"
+              : "workflow-list-workspace-hint"
+          }
+          className="min-w-0 flex-1 font-mono"
+        />
+
+        <p
+          id="workflow-list-workspace-hint"
+          className="text-xs text-muted-foreground"
+        >
+          {strings.common.workspaceSidHint}
+        </p>
         {workspaceError && (
           <p
             id="workflow-list-workspace-error"
@@ -227,7 +244,7 @@ export function WorkflowList() {
             {workspaceError}
           </p>
         )}
-      </form>
+      </OperationForm>
 
       {error && (
         <div
@@ -269,14 +286,19 @@ export function WorkflowList() {
 
           {displayedWorkflows.length === 0 ? (
             <EmptyState
-              title={workflows.length === 0 ? labels.empty : labels.emptyFiltered}
+              title={
+                workflows.length === 0 ? labels.empty : labels.emptyFiltered
+              }
             >
               {directWorkflowSid && (
                 <Button asChild variant="outline">
                   <Link
                     href={{
                       pathname: `/taskrouter/workflows/${directWorkflowSid}`,
-                      query: { workspaceSid: workspaceSid.trim() },
+                      query: {
+                        workspaceSid: workspaceSid.trim(),
+                        environmentId: activeEnvironment?.id,
+                      },
                     }}
                   >
                     {labels.openSid}
@@ -287,7 +309,7 @@ export function WorkflowList() {
           ) : (
             <div className="overflow-hidden rounded-lg border border-border bg-card">
               <div className="overflow-auto">
-                <table className="min-w-[48rem] w-full text-sm">
+                <table className="w-full min-w-[48rem] text-sm">
                   <caption className="sr-only">{labels.table.caption}</caption>
                   <thead className="border-b border-border bg-muted">
                     <tr>
@@ -330,7 +352,10 @@ export function WorkflowList() {
                             <Link
                               href={{
                                 pathname: `/taskrouter/workflows/${workflow.sid}`,
-                                query: { workspaceSid: workspaceSid.trim() },
+                                query: {
+                                  workspaceSid: workflow.workspaceSid,
+                                  environmentId: activeEnvironment?.id,
+                                },
                               }}
                             >
                               {labels.open}

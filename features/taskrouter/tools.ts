@@ -5,10 +5,10 @@ import type { Tool } from "@/lib/tool"
 
 export const taskrouterTools: Tool[] = [
   {
-    label: strings.taskrouter.workerManagement.title,
-    description: strings.taskrouter.workerManagement.subtitle,
-    href: "/taskrouter/manage-workers",
-    icon: User,
+    label: strings.taskrouter.addParticularFilter.breadcrumb,
+    description: strings.taskrouter.addParticularFilter.subtitle,
+    href: "/taskrouter/add-business-rule-filter",
+    icon: Filter,
     available: true,
   },
   {
@@ -16,13 +16,6 @@ export const taskrouterTools: Tool[] = [
     description: strings.taskrouter.searchTasks.subtitle,
     href: "/taskrouter/search-tasks-by-sid-or-number",
     icon: Search,
-    available: true,
-  },
-  {
-    label: strings.taskrouter.workflows.title,
-    description: strings.taskrouter.workflows.subtitle,
-    href: "/taskrouter/workflows",
-    icon: Workflow,
     available: true,
   },
   {
@@ -40,10 +33,17 @@ export const taskrouterTools: Tool[] = [
     available: true,
   },
   {
-    label: strings.taskrouter.addParticularFilter.breadcrumb,
-    description: strings.taskrouter.addParticularFilter.subtitle,
-    href: "/taskrouter/add-business-rule-filter",
-    icon: Filter,
+    label: strings.taskrouter.workerManagement.title,
+    description: strings.taskrouter.workerManagement.subtitle,
+    href: "/taskrouter/manage-workers",
+    icon: User,
+    available: true,
+  },
+  {
+    label: strings.taskrouter.workflows.title,
+    description: strings.taskrouter.workflows.subtitle,
+    href: "/taskrouter/workflows",
+    icon: Workflow,
     available: true,
   },
 ]

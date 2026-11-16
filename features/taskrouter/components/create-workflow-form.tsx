@@ -1,11 +1,10 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
+
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
 import { useBrowserState } from "@/components/use-browser-state"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
 
 import { ActionButton } from "@/components/action-button"
 
@@ -38,7 +37,12 @@ import { useEnvironment } from "@/features/environments/context"
 import { WorkflowCsvPreviewPanel } from "@/features/taskrouter/components/workflow-csv-preview"
 import type { WorkflowCsvPreview } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -211,20 +215,17 @@ export function CreateWorkflowForm() {
     try {
       const csvContent = await csvFile.text()
       controller.signal.throwIfAborted()
-      const response = await fetch(
-        "/api/taskrouter/workflows/preview-import",
-        {
-          method: "POST",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workspaceSid: requestedWorkspaceSid,
-            csvContent,
-            accountSid: activeEnvironment.accountSid,
-            authToken: activeEnvironment.authToken,
-          }),
-        }
-      )
+      const response = await fetch("/api/taskrouter/workflows/preview-import", {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceSid: requestedWorkspaceSid,
+          csvContent,
+          accountSid: activeEnvironment.accountSid,
+          authToken: activeEnvironment.authToken,
+        }),
+      })
       const data: unknown = await response.json()
       if (controller.signal.aborted) return
       if (!response.ok) {
@@ -400,7 +401,7 @@ export function CreateWorkflowForm() {
         title={strings.taskrouter.createWorkflow.title}
         description={strings.taskrouter.createWorkflow.subtitle}
         parent={{
-          href: "/taskrouter",
+          href: "/?area=taskrouter",
           label: strings.sidebar.sections.taskrouter,
         }}
         badge={<WarningBadge />}
@@ -409,7 +410,63 @@ export function CreateWorkflowForm() {
       {/* No environment warning */}
       {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="operation-form form-grid">
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="form-grid"
+        actions={
+          <>
+            <ActionButton
+              action="search"
+              type="button"
+              onClick={() => void runPreview()}
+              disabled={!canAnalyze}
+              aria-busy={previewStatus === "loading"}
+            >
+              {previewStatus === "loading" ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <FileSearch2 className="size-3.5" aria-hidden="true" />
+              )}
+              {previewStatus === "loading"
+                ? previewLabels.analyzing
+                : previewLabels.analyze}
+            </ActionButton>
+            <ActionButton
+              action="primary"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" aria-hidden="true" />
+                  {strings.taskrouter.createWorkflow.submit}
+                </>
+              )}
+            </ActionButton>
+
+            {busy && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+
+            {(logs.length > 0 || status !== "idle") && !busy && (
+              <ActionButton action="clear" type="button" onClick={reset}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
         {/* Workspace SID */}
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
@@ -455,81 +512,26 @@ export function CreateWorkflowForm() {
         </div>
 
         {/* CSV file */}
-        <div className="space-y-2">
+        <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="csvFile">
             {strings.taskrouter.createWorkflow.csvLabel}
           </Label>
-          <InputActions>
-            <div className="min-w-0 flex-1">
-              <Input
-                id="csvFile"
-                aria-describedby={csvFile ? "workflow-csv-selected" : undefined}
-                type="file"
-                accept=".csv"
-                onChange={(e) => {
-                  setCsvFile(e.target.files?.[0] ?? null)
-                  invalidatePreview()
-                }}
-                disabled={busy}
-                className="cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted/80"
-              />
-            </div>
-            <ActionBar>
-              <ActionButton
-                action="search"
-                type="button"
-                onClick={() => void runPreview()}
-                disabled={!canAnalyze}
-                aria-busy={previewStatus === "loading"}
-              >
-                {previewStatus === "loading" ? (
-                  <Loader2
-                    className="size-3.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <FileSearch2 className="size-3.5" aria-hidden="true" />
-                )}
-                {previewStatus === "loading"
-                  ? previewLabels.analyzing
-                  : previewLabels.analyze}
-              </ActionButton>
-              <ActionButton
-                action="primary"
-                aria-busy={status === "running"}
-                type="submit"
-                disabled={!canSubmit}
-              >
-                {status === "running" ? (
-                  <>
-                    <Loader2
-                      className="size-3.5 animate-spin"
-                      aria-hidden="true"
-                    />
-                    {strings.common.processing}
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-3.5" aria-hidden="true" />
-                    {strings.taskrouter.createWorkflow.submit}
-                  </>
-                )}
-              </ActionButton>
 
-              {busy && (
-                <ActionButton action="stop" type="button" onClick={handleAbort}>
-                  {strings.common.cancel}
-                </ActionButton>
-              )}
+          <div className="min-w-0 flex-1">
+            <Input
+              id="csvFile"
+              aria-describedby={csvFile ? "workflow-csv-selected" : undefined}
+              type="file"
+              accept=".csv"
+              onChange={(e) => {
+                setCsvFile(e.target.files?.[0] ?? null)
+                invalidatePreview()
+              }}
+              disabled={busy}
+              className="cursor-pointer file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-foreground hover:file:bg-muted/80"
+            />
+          </div>
 
-              {(logs.length > 0 || status !== "idle") &&
-                !busy && (
-                  <ActionButton action="clear" type="button" onClick={reset}>
-                    {strings.common.clear}
-                  </ActionButton>
-                )}
-            </ActionBar>
-          </InputActions>
           {csvFile && (
             <p
               id="workflow-csv-selected"
@@ -539,7 +541,7 @@ export function CreateWorkflowForm() {
             </p>
           )}
         </div>
-      </form>
+      </OperationForm>
 
       {previewError && (
         <div
@@ -569,6 +571,7 @@ export function CreateWorkflowForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction

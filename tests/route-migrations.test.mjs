@@ -13,7 +13,7 @@ test("all old page URLs redirect directly to a canonical page with their tabs pr
     assert.equal(destination, PAGE_ROUTES[source])
     assert.equal(permanent, true)
     const url = new URL(destination, "http://localhost")
-    assert.ok(existsSync(`app/(pages)${url.pathname}/page.tsx`), destination)
+    assert.ok(existsSync(url.pathname === "/" ? "app/page.tsx" : `app/(pages)${url.pathname}/page.tsx`), destination)
     assert.ok(!Object.hasOwn(PAGE_ROUTES, url.pathname), "redirect must not create a chain")
   }
   assert.equal(new URL(PAGE_ROUTES["/conversations/history"], "http://localhost").searchParams.get("tab"), "messages")

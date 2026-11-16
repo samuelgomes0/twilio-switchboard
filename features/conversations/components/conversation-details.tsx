@@ -39,7 +39,7 @@ export function ConversationDetails({
           <p className="mb-1 text-xs font-medium text-muted-foreground">
             {labels.sidLabel}
           </p>
-          <h2 className="font-mono text-sm font-semibold break-all text-foreground">
+          <h2 className="font-heading text-sm font-semibold break-all text-foreground">
             {conversation.sid}
           </h2>
           <Badge

@@ -1,11 +1,8 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 import { useBrowserState } from "@/components/use-browser-state"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
 
 import { ActionButton } from "@/components/action-button"
 
@@ -16,16 +13,6 @@ import * as React from "react"
 
 import { ContactInput } from "@/components/contact-input"
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -33,7 +20,12 @@ import { FetchByParticipantResultsSkeleton } from "@/features/conversations/comp
 import { useParticipantSearch } from "@/features/conversations/components/use-participant-search"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { strings } from "@/lib/strings"
 import { CloseConversationButton } from "@/features/conversations/components/close-conversation-button"
 
@@ -127,11 +119,8 @@ function ParticipantSearchForm() {
     [],
     historyKey
   )
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
 
   const canSubmit = phone.trim().length > 0 && !loading && !!activeEnvironment
-
-  const address = `whatsapp:+55${phone.trim()}`
 
   async function runSearch(
     requestedPhone = phone.trim(),
@@ -159,7 +148,7 @@ function ParticipantSearchForm() {
       return
     }
     setPhoneError(null)
-    setConfirmOpen(true)
+    void runSearch()
   }
 
   function clearHistory() {
@@ -200,7 +189,7 @@ function ParticipantSearchForm() {
         title={strings.conversations.fetchByParticipant.title}
         description={strings.conversations.fetchByParticipant.subtitle}
         parent={{
-          href: "/conversations",
+          href: "/?area=conversations",
           label: strings.sidebar.sections.conversations,
         }}
       />
@@ -209,9 +198,26 @@ function ParticipantSearchForm() {
       {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form
+      <OperationForm
         onSubmit={handleSubmit}
-        className="operation-form w-full max-w-3xl space-y-5"
+        bodyClassName="w-full space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="search"
+              aria-busy={loading}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              {strings.common.search}
+            </ActionButton>
+          </>
+        }
       >
         <div className="space-y-2">
           <Label htmlFor="phone">
@@ -220,43 +226,24 @@ function ParticipantSearchForm() {
               {strings.conversations.fetchByParticipant.phoneLabelHint}
             </span>
           </Label>
-          <InputActions>
-            <ContactInput
-              id="phone"
-              aria-describedby={
-                phoneError ? "participant-phone-error" : undefined
-              }
-              aria-invalid={!!phoneError}
-              value={phone}
-              onChange={(v) => {
-                setPhone(v)
-                if (phoneError) setPhoneError(null)
-              }}
-              placeholder={strings.common.placeholders.localPhone}
-              disabled={loading}
-              prefix="whatsapp:+55"
-              containerClassName="w-full min-w-0 flex-1"
-              className="search-control pl-[7.5rem]"
-            />
-            <ActionBar>
-              <ActionButton
-                action="search"
-                aria-busy={loading}
-                type="submit"
-                disabled={!canSubmit}
-              >
-                {loading ? (
-                  <Loader2
-                    className="size-3.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Search className="size-3.5" />
-                )}
-                {strings.common.search}
-              </ActionButton>
-            </ActionBar>
-          </InputActions>
+
+          <ContactInput
+            id="phone"
+            aria-describedby={
+              phoneError ? "participant-phone-error" : undefined
+            }
+            aria-invalid={!!phoneError}
+            value={phone}
+            onChange={(v) => {
+              setPhone(v)
+              if (phoneError) setPhoneError(null)
+            }}
+            placeholder={strings.common.placeholders.localPhone}
+            disabled={loading}
+            prefix="whatsapp:+55"
+            containerClassName="w-full min-w-0 flex-1"
+            className="search-control pl-[7.5rem]"
+          />
         </div>
 
         {phoneError && (
@@ -290,38 +277,7 @@ function ParticipantSearchForm() {
             ))}
           </div>
         </div>
-      </form>
-
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {strings.conversations.fetchByParticipant.confirmTitle}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {strings.conversations.fetchByParticipant.confirmDescription(
-                address,
-                activeEnvironment?.name ?? "",
-                stateFilter !== "all" ? stateFilter : undefined
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              className="gap-2"
-              onClick={() => {
-                setConfirmOpen(false)
-                void runSearch()
-              }}
-            >
-              <Search aria-hidden="true" className="size-3.5" />
-              {strings.common.search}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
+      </OperationForm>
 
       {/* Error */}
       {error && (
@@ -358,7 +314,7 @@ function ParticipantSearchForm() {
       {/* Results */}
       {filteredResults !== null &&
         !(loading && filteredResults.length === 0) && (
-          <div className="mt-6 w-full max-w-3xl">
+          <div className="mt-6 w-full">
             {filteredResults.length === 0 ? (
               <div>
                 <p className="text-sm text-muted-foreground">
@@ -395,7 +351,7 @@ function ParticipantSearchForm() {
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h2 className="font-mono text-sm font-semibold break-all text-foreground">
+                            <h2 className="font-heading text-sm font-semibold break-all text-foreground">
                               {pc.conversationSid}
                             </h2>
                             {pc.conversationFriendlyName && (
@@ -443,6 +399,7 @@ function ParticipantSearchForm() {
                                 query: {
                                   sid: pc.conversationSid,
                                   tab: "details",
+                                  environmentId: activeEnvironment?.id,
                                 },
                               }}
                             >

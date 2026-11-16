@@ -1,11 +1,8 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 import { useBrowserState } from "@/components/use-browser-state"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
 
 import { ActionButton } from "@/components/action-button"
 import { JsonBlock } from "@/components/json-block"
@@ -16,16 +13,6 @@ import * as React from "react"
 
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { StoredInput } from "@/components/stored-input"
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +21,12 @@ import { Separator } from "@/components/ui/separator"
 import { useEnvironment } from "@/features/environments/context"
 import type { WorkerData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { useWorkerManagement } from "./worker-management-context"
@@ -116,7 +108,6 @@ export function FetchWorkerForm() {
     [],
     historyKey
   )
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
   const abortRef = React.useRef<AbortController | null>(null)
   React.useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -132,6 +123,7 @@ export function FetchWorkerForm() {
   ) {
     if (
       loading ||
+      abortRef.current ||
       !activeEnvironment ||
       !WS_SID_RE.test(requestedWorkspaceSid) ||
       !requestedIdentifier
@@ -190,7 +182,7 @@ export function FetchWorkerForm() {
       return
     }
     setWsSidError(null)
-    setConfirmOpen(true)
+    void runSearch()
   }
 
   function clearHistory() {
@@ -208,7 +200,7 @@ export function FetchWorkerForm() {
           title={strings.taskrouter.fetchWorker.title}
           description={strings.taskrouter.fetchWorker.subtitle}
           parent={{
-            href: "/taskrouter",
+            href: "/?area=taskrouter",
             label: strings.sidebar.sections.taskrouter,
           }}
           embedded
@@ -219,7 +211,27 @@ export function FetchWorkerForm() {
       {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="operation-form space-y-5">
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="search"
+              aria-busy={loading}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {loading ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="size-3.5" />
+              )}
+              {strings.common.search}
+            </ActionButton>
+          </>
+        }
+      >
         {!management && (
           <div data-worker-workspace-field className="space-y-2">
             <Label htmlFor="fetch-worker-workspace">
@@ -257,38 +269,20 @@ export function FetchWorkerForm() {
           <Label htmlFor="identifier">
             {strings.taskrouter.fetchWorker.identifierLabel}
           </Label>
-          <InputActions>
-            <StoredInput
-              id="identifier"
-              aria-describedby="worker-identifier-hint"
-              storageKey={WORKER_IDS_KEY}
-              environmentId={activeEnvironment?.id}
-              value={identifier}
-              onChange={setIdentifier}
-              placeholder={strings.common.placeholders.worker}
-              disabled={loading}
-              containerClassName="w-full min-w-0 flex-1"
-              className="search-control font-sans placeholder:font-sans"
-            />
-            <ActionBar>
-              <ActionButton
-                action="search"
-                aria-busy={loading}
-                type="submit"
-                disabled={!canSubmit}
-              >
-                {loading ? (
-                  <Loader2
-                    className="size-3.5 animate-spin"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <Search className="size-3.5" />
-                )}
-                {strings.common.search}
-              </ActionButton>
-            </ActionBar>
-          </InputActions>
+
+          <StoredInput
+            id="identifier"
+            aria-describedby="worker-identifier-hint"
+            storageKey={WORKER_IDS_KEY}
+            environmentId={activeEnvironment?.id}
+            value={identifier}
+            onChange={setIdentifier}
+            placeholder={strings.common.placeholders.worker}
+            disabled={loading}
+            containerClassName="w-full min-w-0 flex-1"
+            className="search-control font-sans placeholder:font-sans"
+          />
+
           <p
             id="worker-identifier-hint"
             className="text-xs text-muted-foreground"
@@ -296,37 +290,7 @@ export function FetchWorkerForm() {
             {strings.taskrouter.fetchWorker.identifierHint}
           </p>
         </div>
-      </form>
-
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {strings.taskrouter.fetchWorker.confirmTitle}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {strings.taskrouter.fetchWorker.confirmDescription(
-                identifier.trim(),
-                activeEnvironment?.name ?? ""
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              className="gap-2"
-              onClick={() => {
-                setConfirmOpen(false)
-                void runSearch()
-              }}
-            >
-              <Search aria-hidden="true" className="size-3.5" />
-              {strings.common.search}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
+      </OperationForm>
 
       {/* Error */}
       {error && (

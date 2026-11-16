@@ -72,7 +72,7 @@ export function EnvironmentsManager() {
 
       {/* Add form */}
       {showAddForm && (
-        <div className="mb-6 rounded-md border border-border bg-card px-5 py-5">
+        <div className="mb-6 rounded-2xl bg-card p-6 ring-1 ring-foreground/10">
           <h2 className="mb-4 text-sm font-semibold">
             {strings.environments.manager.addTitle}
           </h2>
@@ -103,7 +103,7 @@ export function EnvironmentsManager() {
             editingId === env.id ? (
               <div
                 key={env.id}
-                className="rounded-md border border-border bg-card px-5 py-5"
+                className="rounded-2xl bg-card p-6 ring-1 ring-foreground/10"
               >
                 <h2 className="mb-4 text-sm font-semibold">
                   {strings.environments.manager.editTitle}
@@ -161,6 +161,23 @@ export function EnvironmentsManager() {
           )}
         </div>
       )}
+
+      {environments.length === 0 && (
+        <section
+          className="mt-6 space-y-3 text-sm"
+          aria-label={strings.environments.manager.addTitle}
+        >
+          <ol className="list-decimal space-y-2 pl-5 text-muted-foreground">
+            {strings.environments.manager.setupSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <p className="text-muted-foreground">
+            {strings.environments.manager.localCredentials}
+          </p>
+        </section>
+      )}
+
     </div>
   )
 }

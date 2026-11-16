@@ -103,7 +103,10 @@ export function ConversationResult({
                 onRefresh={() => refresh("details")}
                 onUpdated={updateConversation}
               />
-              <ConversationParticipants participants={details.participants} />
+              <ConversationParticipants
+                participants={details.participants}
+                environmentId={environment.id}
+              />
             </>
           ) : (
             <QueryFeedback

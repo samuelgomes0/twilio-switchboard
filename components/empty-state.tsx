@@ -11,7 +11,9 @@ export function EmptyState({
 }) {
   return (
     <div className="empty-state">
-      <Inbox aria-hidden="true" className="mb-3 size-7 text-muted-foreground" />
+      <span className="mb-4 grid size-14 place-items-center rounded-full bg-muted text-muted-foreground">
+        <Inbox aria-hidden="true" className="size-6" />
+      </span>
       <h2 className="text-base font-semibold">{title}</h2>
       {description && (
         <p className="mt-2 max-w-md text-sm text-muted-foreground">

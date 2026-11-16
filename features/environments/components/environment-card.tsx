@@ -53,7 +53,7 @@ export function EnvironmentCard({
   return (
     <div
       className={cn(
-        "environment-row rounded-md border px-5 py-5 transition-colors",
+        "environment-row rounded-2xl border p-6 transition-colors",
         isActive ? "border-input bg-muted" : "border-border bg-card"
       )}
     >

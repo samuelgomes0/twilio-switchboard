@@ -4,9 +4,7 @@ import { useBrowserState } from "@/components/use-browser-state"
 import { PageHeader } from "@/components/page-header"
 import { Select } from "@/components/ui/select"
 
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
+import { OperationForm } from "@/components/operation-form"
 
 import { ActionButton } from "@/components/action-button"
 
@@ -56,7 +54,12 @@ import {
   isValidWebhookUrl,
 } from "@/features/flex/lib/validate-create-address-config"
 import { MAX_HISTORY } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 
@@ -245,7 +248,7 @@ export function CreateAddressConfigForm() {
   }
 
   const formActions = (
-    <ActionBar>
+    <>
       <ActionButton
         action="primary"
         aria-busy={loading}
@@ -260,12 +263,12 @@ export function CreateAddressConfigForm() {
       <ActionButton
         action="cancel"
         type="button"
-        onClick={() => router.push("/flex")}
+        onClick={() => router.push("/?area=flex")}
         disabled={loading}
       >
         {s.cancel}
       </ActionButton>
-    </ActionBar>
+    </>
   )
 
   return (
@@ -274,7 +277,7 @@ export function CreateAddressConfigForm() {
       <PageHeader
         title={s.title}
         description={s.subtitle}
-        parent={{ href: "/flex", label: strings.sidebar.sections.flex }}
+        parent={{ href: "/?area=flex", label: strings.sidebar.sections.flex }}
         badge={<WarningBadge />}
       />
 
@@ -282,7 +285,11 @@ export function CreateAddressConfigForm() {
       {!activeEnvironment && <NoEnvironmentSelected />}
 
       {/* Form */}
-      <form onSubmit={handleFormSubmit} className="operation-form space-y-5">
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={formActions}
+      >
         {/* Address type */}
         <div className="space-y-2">
           <Label htmlFor="addressType">
@@ -373,26 +380,24 @@ export function CreateAddressConfigForm() {
               <span className="mr-0.5 text-destructive">*</span>
               {s.integrationTypeLabel}
             </Label>
-            <InputActions>
-              <div className="min-w-0 flex-1">
-                <Select
-                  id="integrationType"
-                  value={integrationType}
-                  onChange={(e) =>
-                    setIntegrationType(e.target.value as AutoCreationType)
-                  }
-                  disabled={loading}
-                  className={selectClass}
-                >
-                  {INTEGRATION_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              {integrationType === "default" && formActions}
-            </InputActions>
+
+            <div className="min-w-0 flex-1">
+              <Select
+                id="integrationType"
+                value={integrationType}
+                onChange={(e) =>
+                  setIntegrationType(e.target.value as AutoCreationType)
+                }
+                disabled={loading}
+                className={selectClass}
+              >
+                {INTEGRATION_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           {/* Studio fields */}
@@ -402,25 +407,24 @@ export function CreateAddressConfigForm() {
                 <span className="mr-0.5 text-destructive">*</span>
                 {s.studioFlowLabel}
               </Label>
-              <InputActions>
-                <div className="min-w-0 flex-1">
-                  <StoredInput
-                    id="studioFlowSid"
-                    storageKey={STORED_KEYS.studioFlowSids}
-                    environmentId={activeEnvironment?.id}
-                    value={studioFlowSid}
-                    onChange={setStudioFlowSid}
-                    aria-describedby="studio-flow-hint"
-                    aria-invalid={
-                      studioFlowSid.length > 0 &&
-                      !isValidStudioFlowSid(studioFlowSid)
-                    }
-                    placeholder={s.studioFlowPlaceholder}
-                    disabled={loading}
-                  />
-                </div>
-                {formActions}
-              </InputActions>
+
+              <div className="min-w-0 flex-1">
+                <StoredInput
+                  id="studioFlowSid"
+                  storageKey={STORED_KEYS.studioFlowSids}
+                  environmentId={activeEnvironment?.id}
+                  value={studioFlowSid}
+                  onChange={setStudioFlowSid}
+                  aria-describedby="studio-flow-hint"
+                  aria-invalid={
+                    studioFlowSid.length > 0 &&
+                    !isValidStudioFlowSid(studioFlowSid)
+                  }
+                  placeholder={s.studioFlowPlaceholder}
+                  disabled={loading}
+                />
+              </div>
+
               <p
                 id="studio-flow-hint"
                 className="text-xs text-muted-foreground"
@@ -452,28 +456,26 @@ export function CreateAddressConfigForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="webhookMethod">{s.webhookMethodLabel}</Label>
-                <InputActions>
-                  <div className="min-w-0 flex-1">
-                    <Select
-                      id="webhookMethod"
-                      value={webhookMethod}
-                      onChange={(e) =>
-                        setWebhookMethod(e.target.value as "GET" | "POST")
-                      }
-                      disabled={loading}
-                      className={selectClass}
-                    >
-                      <option value="POST">{s.httpMethods.post}</option>
-                      <option value="GET">{s.httpMethods.get}</option>
-                    </Select>
-                  </div>
-                  {formActions}
-                </InputActions>
+
+                <div className="min-w-0 flex-1">
+                  <Select
+                    id="webhookMethod"
+                    value={webhookMethod}
+                    onChange={(e) =>
+                      setWebhookMethod(e.target.value as "GET" | "POST")
+                    }
+                    disabled={loading}
+                    className={selectClass}
+                  >
+                    <option value="POST">{s.httpMethods.post}</option>
+                    <option value="GET">{s.httpMethods.get}</option>
+                  </Select>
+                </div>
               </div>
             </div>
           )}
         </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -520,7 +522,7 @@ export function CreateAddressConfigForm() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-4 shrink-0 text-success" />
-                    <CardTitle className="min-w-0 font-mono text-sm break-all">
+                    <CardTitle className="min-w-0 font-heading text-sm break-all">
                       {result.sid}
                     </CardTitle>
                   </div>

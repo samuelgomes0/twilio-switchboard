@@ -1,10 +1,9 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 import { EmptyState } from "@/components/empty-state"
 import { useBrowserState } from "@/components/use-browser-state"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
 
 import { ActionBar } from "@/components/action-bar"
 
@@ -52,9 +51,26 @@ function ContactForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <OperationForm
+      onSubmit={handleSubmit}
+      bodyClassName="space-y-4"
+      actions={
+        <>
+          <ActionButton
+            action="save"
+            type="submit"
+            disabled={nameError || phoneError}
+          >
+            {strings.contacts.form.saveButton}
+          </ActionButton>
+          <ActionButton action="cancel" type="button" onClick={onCancel}>
+            {strings.common.cancel}
+          </ActionButton>
+        </>
+      }
+    >
       <div className="space-y-4">
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="contact-name">
             {strings.contacts.form.nameLabel}
           </Label>
@@ -65,38 +81,25 @@ function ContactForm({
             placeholder={strings.contacts.form.namePlaceholder}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="contact-phone">
             {strings.contacts.form.phoneLabel}
           </Label>
-          <InputActions>
-            <div className="min-w-0 flex-1">
-              <Input
-                id="contact-phone"
-                value={form.phone}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, phone: e.target.value }))
-                }
-                placeholder={strings.contacts.form.phonePlaceholder}
-                className="font-mono"
-              />
-            </div>
-            <ActionBar>
-              <ActionButton
-                action="save"
-                type="submit"
-                disabled={nameError || phoneError}
-              >
-                {strings.contacts.form.saveButton}
-              </ActionButton>
-              <ActionButton action="cancel" type="button" onClick={onCancel}>
-                {strings.common.cancel}
-              </ActionButton>
-            </ActionBar>
-          </InputActions>
+
+          <div className="min-w-0 flex-1">
+            <Input
+              id="contact-phone"
+              value={form.phone}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, phone: e.target.value }))
+              }
+              placeholder={strings.contacts.form.phonePlaceholder}
+              className="font-mono"
+            />
+          </div>
         </div>
       </div>
-    </form>
+    </OperationForm>
   )
 }
 
@@ -152,7 +155,7 @@ export function ContactsManager() {
 
       {/* Add form */}
       {showAddForm && (
-        <div className="mb-6 rounded-md border border-border bg-card px-5 py-5">
+        <div className="mb-6 rounded-2xl bg-card p-6 ring-1 ring-foreground/10">
           <h2 className="mb-4 text-sm font-semibold">
             {strings.contacts.manager.addTitle}
           </h2>
@@ -183,7 +186,7 @@ export function ContactsManager() {
             editingId === contact.id ? (
               <div
                 key={contact.id}
-                className="rounded-md border border-border bg-card px-5 py-5"
+                className="rounded-2xl bg-card p-6 ring-1 ring-foreground/10"
               >
                 <h2 className="mb-4 text-sm font-semibold">
                   {strings.contacts.manager.editTitle}

@@ -1,5 +1,7 @@
 export const strings = {
   interface: {
+    collapseSidebar: "Recolher navegação",
+    expandSidebar: "Expandir navegação",
     toolDirectory: "Ferramentas",
     toolSearch: "Buscar por nome ou finalidade…",
     allAreas: "Todas as áreas",
@@ -9,12 +11,6 @@ export const strings = {
     configureEnvironment: "Configurar ambiente",
     catalogCount: (count: number) =>
       `${count} ferramenta${count === 1 ? "" : "s"}`,
-    catalogSummary: "Disponíveis neste workspace",
-    areaSummary: "Domínios da operação",
-    apiTools: "Ferramentas Twilio",
-    apiToolsSummary: "Consultas e alterações",
-    currentEnvironment: "Ambiente atual",
-    localEnvironment: "Credenciais neste navegador",
     emptyCatalog: "Nenhuma ferramenta corresponde à busca.",
     searchTools: "Buscar ferramenta",
     searchShortcut: "Ctrl K",
@@ -23,7 +19,6 @@ export const strings = {
     expandNavigation: (section: string) => `Expandir ou recolher ${section}`,
     areaColumn: "Área",
     purposeColumn: "O que você pode fazer",
-    toolsColumn: "Ferramentas",
     savedEnvironments: "Ambientes salvos",
     storageLabel: "Armazenamento",
     environmentSelectedHint:
@@ -122,7 +117,7 @@ export const strings = {
       taskSid: "WTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       phone: "+5511999999999",
       localPhone: "11999999999",
-      worker: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
+      worker: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou nome amigável",
       queue: "SUPORTE_WHATSAPP",
       skill: "suporte-tecnico",
       level: "5",
@@ -162,6 +157,10 @@ export const strings = {
     aborted: "Operação cancelada",
     remove: "Remover",
     workspaceSidInvalid: "Deve começar com WS e ter 34 caracteres",
+    workspaceSidHint:
+      "Identifica o espaço de roteamento da conta (WS + 32 caracteres). Se não souber qual usar, peça o Workspace SID à equipe técnica. Não é o Account SID.",
+    contextEnvironmentMismatch:
+      "Este link foi aberto a partir de outro ambiente. Os campos não foram reaproveitados. Volte ao ambiente de origem ou informe os identificadores do ambiente atual.",
     phoneDigitsOnly: "Deve conter apenas dígitos",
     waitingForOperations: "Aguardando operações...",
     warningBadge: {
@@ -177,7 +176,7 @@ export const strings = {
     environment: "Ambiente",
     noEnvironment: "Nenhum ambiente",
     noEnvironmentRegistered: "Nenhum ambiente cadastrado",
-    configureEnvironments: "Configurar ambientes",
+    configureEnvironments: "Configurações",
     footer: {
       toggleThemePress: "Pressione",
       toggleThemeKey: "d",
@@ -270,7 +269,7 @@ export const strings = {
       numbers: {
         label: "Números",
         description:
-          "Liste números WhatsApp e identifique se usam Conversations ou Programmable Chat.",
+          "Liste números WhatsApp e confira configurações de Conversations e classificações estimadas de serviço.",
       },
     },
   },
@@ -295,6 +294,7 @@ export const strings = {
       },
     },
     consult: {
+      searchTasksForNumber: "Buscar Tasks deste número",
       title: "Consultar Conversation",
       subtitle:
         "Consulte detalhes, participantes e mensagens usando o Conversation SID.",
@@ -397,7 +397,7 @@ export const strings = {
       confirmTitle: "Encerrar esta Conversation?",
       confirmDescription: (sid: string) =>
         `A Conversation ${sid} será encerrada. Esta ação não pode ser desfeita e afeta apenas esta conversa.`,
-      confirmAction: "Sim, encerrar",
+      confirmAction: "Encerrar Conversation",
       success: "Conversation encerrada com sucesso.",
       notActive:
         "A Conversation não está mais ativa. Seu estado foi atualizado; nenhum encerramento foi realizado.",
@@ -437,9 +437,10 @@ export const strings = {
       removePhone: "Remover número",
       submit: "Encerrar Conversations",
       confirmTitle: "Encerrar conversations?",
-      confirmDescription: (n: number) =>
-        `Você está prestes a encerrar ${n} conversation(s) ativa(s) para ${n} número(s). Esta ação não pode ser desfeita.`,
-      confirmAction: "Sim, encerrar",
+      confirmDescription: (n: number, environment: string) =>
+        `No ambiente ${environment}, serão encerradas todas as Conversations ativas vinculadas aos ${n} número(s) abaixo. Cada número pode ter várias conversas; a quantidade será conhecida durante a execução. Esta ação não pode ser desfeita.`,
+      confirmTargets: "Números que serão consultados",
+      confirmAction: "Encerrar todas as conversas ativas",
       summary: {
         prefix: "Concluído:",
         closed: (n: number) => `${n} conversation(s) encerrada(s)`,
@@ -478,9 +479,6 @@ export const strings = {
         inactive: "Inativas",
         closed: "Fechadas",
       },
-      confirmTitle: "Buscar conversas?",
-      confirmDescription: (address: string, env: string, state?: string) =>
-        `Buscar conversas do participante ${address}${state ? ` com estado ${state}` : ""} no ambiente ${env}?`,
       results: {
         none: "Nenhuma conversa encontrada para esse número.",
         noneFiltered: (state: string) =>
@@ -707,7 +705,8 @@ export const strings = {
         invalidInput:
           "Dados inválidos. Revise nome, callbacks, timeout, JSON e data da versão carregada.",
         invalidName: "Informe um nome com até 256 caracteres.",
-        invalidCallback: "Informe uma URL HTTP ou HTTPS válida, ou deixe vazio.",
+        invalidCallback:
+          "Informe uma URL HTTP ou HTTPS válida, ou deixe vazio.",
         invalidTimeout: "Informe um número inteiro entre 1 e 86.400.",
         invalidConfiguration:
           "A configuração precisa ser um JSON válido com uma seção task_routing reconhecida.",
@@ -759,6 +758,8 @@ export const strings = {
       removeWorker: (position: number) => `Remover Worker ${position}`,
       workersPlaceholder:
         "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
+      workersHint:
+        "Use o SID do agente ou um e-mail que seja exatamente o nome amigável (friendlyName) dele. A busca não consulta o atributo email. Para nomes repetidos, use o SID.",
       featureLabel: "Nome do plugin",
       featurePlaceholder: "dasa_cdc_integration",
       featureHint:
@@ -835,15 +836,15 @@ export const strings = {
       },
       breadcrumb: "Adicionar Skill a Workers",
       title: "Adicionar skill a Workers",
-      subtitle: "Adicione uma skill a vários Workers por e-mail ou SID.",
+      subtitle:
+        "Adicione uma skill a vários agentes (Workers) por SID ou nome amigável.",
       workspaceSidLabel: "Workspace SID",
       skillLabel: "Nome da skill (fila)",
       levelLabel: "Nível",
       levelOptional: "(opcional)",
       workersLabel: "Workers",
       workerLabel: (position: number) => `Worker ${position}`,
-      workerPlaceholder:
-        "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou agente@exemplo.com",
+      workerPlaceholder: "WKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx ou nome amigável",
       addWorker: "Adicionar Worker",
       removeWorker: (position: number) => `Remover Worker ${position}`,
       submit: "Atribuir Workers",
@@ -871,8 +872,7 @@ export const strings = {
           'Colunas "Regra de Negócio" e "Fila Twilio" não encontradas no CSV.',
         invalidCsv: "O arquivo CSV possui aspas ou colunas malformadas.",
         noValidRows: "O arquivo CSV não contém regras válidas para importar.",
-        invalidRule:
-          "O CSV contém uma regra com caracteres não permitidos.",
+        invalidRule: "O CSV contém uma regra com caracteres não permitidos.",
         loadingQueues: "Carregando filas do workspace...",
         noDefaultQueue: (queueName: string) =>
           `Fila "${queueName}" não encontrada. Workflow será criado sem filtro padrão.`,
@@ -906,8 +906,7 @@ export const strings = {
         "O CSV está validado para este Workspace. Revise as linhas antes de criar.",
       analysisBlocked:
         "Corrija os erros indicados e analise o arquivo novamente antes de criar.",
-      analysisNoRows:
-        "O arquivo não contém linhas úteis para criar filtros.",
+      analysisNoRows: "O arquivo não contém linhas úteis para criar filtros.",
       analysisInvalidResponse:
         "A resposta da análise do CSV não possui o formato esperado.",
       analysisInvalidated:
@@ -919,8 +918,7 @@ export const strings = {
           `${count} ${count === 1 ? "linha válida" : "linhas válidas"}`,
         ignored: (count: number) =>
           `${count} ${count === 1 ? "linha ignorada" : "linhas ignoradas"}`,
-        errors: (count: number) =>
-          `${count} ${count === 1 ? "erro" : "erros"}`,
+        errors: (count: number) => `${count} ${count === 1 ? "erro" : "erros"}`,
       },
       previewTable: {
         caption: "Diagnóstico das linhas do CSV",
@@ -963,13 +961,11 @@ export const strings = {
       breadcrumb: "Detalhes do Worker",
       title: "Detalhes do Worker",
       subtitle:
-        "Consulte atividade, skills e atributos por SID, e-mail ou nome.",
+        "Consulte atividade, skills e atributos de um agente (Worker) por SID ou nome amigável.",
       workspaceSidLabel: "Workspace SID",
-      identifierLabel: "Worker SID ou e-mail",
-      identifierHint: "Aceita SID (WK + 32 hex) ou e-mail/nome do worker",
-      confirmTitle: "Buscar worker?",
-      confirmDescription: (identifier: string, env: string) =>
-        `Buscar dados do worker ${identifier} no ambiente ${env}?`,
+      identifierLabel: "Worker SID ou nome amigável",
+      identifierHint:
+        "Use o SID (WK + 32 caracteres hexadecimais) ou o nome amigável exato (friendlyName). E-mail só funciona quando é o nome amigável do Worker. Se houver nomes repetidos, use o SID para escolher o agente correto.",
       result: {
         skills: "Skills",
         level: (n: number) => `nível ${n}`,
@@ -980,6 +976,9 @@ export const strings = {
       },
     },
     searchTasks: {
+      openConversation: "Consultar Conversation vinculada",
+      openWorkflow: "Consultar Workflow de roteamento",
+      relatedResources: "Continuar investigação",
       log: {
         workspaceNotFound: (workspaceSid: string) =>
           `Workspace não encontrado: ${workspaceSid}`,
@@ -1010,12 +1009,6 @@ export const strings = {
       phoneLabelHint:
         "Aceita +5511999999999, 5511999999999 ou whatsapp:+5511999999999",
       submit: "Buscar",
-      confirmSidTitle: "Buscar task?",
-      confirmSidDescription: (sid: string, env: string) =>
-        `Buscar dados da task ${sid} no ambiente ${env}?`,
-      confirmPhoneTitle: "Buscar tasks?",
-      confirmPhoneDescription: (phone: string, env: string) =>
-        `Buscar tasks do número ${phone} no ambiente ${env}?`,
       result: {
         count: (n: number) => `${n} task(s) encontrada(s)`,
         none: "Nenhuma task encontrada para esse número.",
@@ -1092,8 +1085,8 @@ export const strings = {
       submit: "Encerrar Tasks",
       confirmTitle: "Encerrar tasks da fila?",
       confirmDescription: (queue: string, workspaceSid: string) =>
-        `Você está prestes a encerrar todas as tasks pendentes/reservadas da fila "${queue}" no workspace ${workspaceSid}. As conversas associadas receberão uma mensagem e serão fechadas. Esta ação não pode ser desfeita.`,
-      confirmAction: "Sim, encerrar",
+        `Serão canceladas as Tasks pendentes ou reservadas encontradas na fila "${queue}", no Workspace ${workspaceSid}. Após cada cancelamento, será tentado o envio da mensagem abaixo e o encerramento da Conversation associada. Esta ação não pode ser desfeita. A lista carregada tem limite de 1.000 Tasks por execução.`,
+      confirmAction: "Cancelar Tasks e encerrar conversas",
       summary: {
         success: (n: number) => `${n} encerrada(s)`,
         skipped: (n: number) => `${n} ignorada(s)`,
@@ -1283,9 +1276,15 @@ export const strings = {
       addTitle: "Novo ambiente",
       editTitle: "Editar ambiente",
       emptyTitle: "Nenhum ambiente cadastrado",
-      emptyHint: "Clique em",
-      emptyHintLink: "Novo ambiente",
-      emptyHintSuffix: "para começar",
+      emptyHint:
+        "Cadastre a conta Twilio que deseja consultar. Um ambiente reúne um nome, o Account SID e o Auth Token fornecidos pela sua equipe técnica.",
+      setupSteps: [
+        "Peça à equipe técnica as credenciais da conta Twilio e confirme se ela é de homologação ou produção.",
+        "Crie um ambiente com um nome que identifique claramente a conta.",
+        "Teste a conexão, salve e selecione o ambiente. Confira o destino antes de consultar ou alterar dados.",
+      ],
+      localCredentials:
+        "As credenciais ficam salvas em texto simples neste navegador. Use um perfil confiável e não compartilhe o Auth Token.",
       deleteConfirm: (name: string) =>
         `Excluir "${name}"? Esta ação não pode ser desfeita.`,
       deleteButton: "Confirmar exclusão",
@@ -1304,12 +1303,13 @@ export const strings = {
       nameRequired: "Nome obrigatório",
       accountSidLabel: "Account SID",
       accountSidHint:
-        "Começa com AC, seguido de 32 caracteres hexadecimais. Total: 34 caracteres",
+        "Identifica a conta Twilio. Use o Account SID fornecido pela equipe técnica: AC seguido de 32 caracteres hexadecimais.",
       accountSidRequired: "Account SID obrigatório",
       accountSidInvalid: "Deve começar com AC e ter 34 caracteres",
       authTokenLabel: "Auth Token",
       authTokenPlaceholder: "32 caracteres",
-      authTokenHint: "Exatamente 32 caracteres",
+      authTokenHint:
+        "Credencial secreta da conta, com 32 caracteres. Solicite à equipe técnica e não compartilhe em mensagens ou capturas de tela.",
       authTokenRequired: "Auth Token obrigatório",
       authTokenInvalid: "Deve ter exatamente 32 caracteres",
       showTokenAriaLabel: "Revelar token",
@@ -1325,11 +1325,12 @@ export const strings = {
   numbers: {
     page: {
       title: "Números",
-      subtitle: "Identifique o serviço associado a cada número do WhatsApp.",
+      subtitle:
+        "Confira as configurações de mensageria dos números de WhatsApp.",
       metadata: {
         title: "Números WhatsApp da Conta",
         description:
-          "Liste os números WhatsApp da conta e identifique o serviço associado a cada um.",
+          "Liste os números WhatsApp da conta e confira configurações e classificações estimadas de mensageria.",
       },
       intro: {
         badge: "Numbers API",
@@ -1345,16 +1346,15 @@ export const strings = {
       breadcrumb: "Classificar Senders",
       title: "Classificar WhatsApp Senders",
       subtitle:
-        "Liste os Senders e identifique o serviço de mensageria de cada número.",
+        "Liste os remetentes de WhatsApp (Senders) e confira as configurações de mensageria encontradas.",
+      classificationHint:
+        "Conversations indica uma configuração de endereço encontrada. Programmable Chat é uma classificação estimada para os demais números e não comprova a origem do serviço.",
       metadata: {
         title: "Classificar WhatsApp Senders",
         description:
-          "Liste, filtre e exporte WhatsApp Senders classificados por Conversations ou Programmable Chat.",
+          "Liste, filtre e exporte WhatsApp Senders com configurações de Conversations ou classificação estimada de Programmable Chat.",
       },
       submit: "Listar Senders",
-      confirmTitle: "Listar senders?",
-      confirmDescription: (env: string) =>
-        `Listar todos os WhatsApp senders da conta no ambiente ${env}?`,
       partialWarning:
         "Uma das fontes da Twilio não respondeu. Os resultados exibidos são parciais.",
       truncatedWarning:
@@ -1367,7 +1367,7 @@ export const strings = {
         colService: "Serviço",
         filterAll: "Todos",
         filterConversations: "Conversations",
-        filterPchat: "Programmable Chat",
+        filterPchat: "Programmable Chat (estimado)",
         searchPlaceholder: "Busque por nome ou número",
         searchLabel: "Buscar Senders por nome ou número",
         empty: "Nenhum número encontrado.",

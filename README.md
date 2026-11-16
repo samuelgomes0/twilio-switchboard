@@ -1,6 +1,6 @@
 # Switchboard
 
-Dashboard interno para equipes de suporte e operações executarem tarefas da Twilio sem escrever código. A aplicação reúne operações de Conversations, TaskRouter, Numbers e Flex em uma interface em pt-BR.
+Dashboard interno para DEVs, POs e PMs de times de atendimento digital investigarem atendimentos e executarem operações na Twilio sem chamar a API manualmente. A aplicação reúne operações de Conversations, TaskRouter, Numbers e Flex em uma interface em pt-BR.
 
 O Switchboard não possui banco de dados nem autenticação própria. Cada ambiente Twilio é cadastrado no navegador; `Account SID` e `Auth Token` são enviados no corpo de cada requisição ao servidor Next.js, usados para criar o cliente Twilio daquela chamada e descartados ao final. O servidor não lê credenciais Twilio de variáveis de ambiente e não as persiste.
 
@@ -61,6 +61,14 @@ O Switchboard não possui banco de dados nem autenticação própria. Cada ambie
 | Testes | Node.js test runner e loader TypeScript próprio |
 
 As versões exatas e os intervalos aceitos estão em `package.json` e `package-lock.json`.
+
+## Interface
+
+A interface segue os tokens e padrões de `design-system-rotas-autenticadas.md`: paleta azul de ações em OKLCH nos temas claro/escuro, com vermelho reservado a erros e ações destrutivas, Outfit no corpo, Manrope nos títulos e Geist Mono em identificadores e números tabulares. Formulários operacionais seguem a estrutura de fieldset do Vercel/Geist e usam raio de 12px; seus botões e campos usam raio de 8px. Controles de busca e navegação mantêm o formato arredondado. O shell tem sidebar de 256px, recolhível para 48px, e painel mobile de 288px abaixo de 768px. Todas as páginas usam um contêiner centralizado e fluido, com largura máxima de 1280px. Cabeçalhos, formulários, resultados e skeletons compartilham essa largura; tabelas mantêm rolagem horizontal quando necessário. O conteúdo usa 40px de padding no desktop, adaptado para 24px na vertical e 20px nas laterais no mobile.
+
+A Visão geral centraliza o catálogo, com busca, filtro por área e tabela de ferramentas de Conversations, TaskRouter, Numbers e Flex, sem itens de Configurações ou cards de resumo. Cada ferramenta tem uma única descrição, na coluna “O que você pode fazer”; no mobile, a tabela mantém rolagem horizontal. O componente compartilhado `OperationForm` separa o corpo de campos de uma única faixa inferior de ações, com fundo discreto e borda superior, alinhada à direita no desktop e adaptada ao mobile. Ações de execução são passadas em `actions` e sempre renderizadas depois de todos os campos e mensagens de validação; nunca ficam em uma coluna ou no meio do formulário. Adicionar/remover itens permanece junto à lista; buscas locais e edições rápidas conservam controles inline. Labels de campos são exibidas em bloco, com linha de 20px e separação de 8px até o controle. As funcionalidades são apresentadas em ordem alfabética dentro de cada categoria na sidebar e nos catálogos. Os itens de cada categoria da sidebar têm 8px de separação. As antigas páginas de Conversations, TaskRouter, Números e Flex redirecionam permanentemente para a Visão geral filtrada (`/?area=<área>`), sem etapa intermediária de catálogo. Na sidebar expandida, Conversations e TaskRouter são grupos expansíveis; Números e Flex abrem diretamente sua única ferramenta. A busca global permanece como atalho para ferramentas e configurações. O acesso a Configurações fica no rodapé da sidebar e abre `/settings`, com ambientes, contatos e variáveis.
+
+O header reúne breadcrumb, busca de ferramentas, seleção de ambiente e tema Claro/Escuro/Sistema. `Ctrl/Cmd+B` recolhe a navegação, `Ctrl/Cmd+K` abre a busca e `D` alterna o tema fora de campos de digitação. As mesmas ações têm controles visíveis. O token `muted-foreground` do tema claro foi escurecido para atender contraste AA também sobre `muted`; os testes verificam as combinações principais dos dois temas, sem declarar conformidade global de acessibilidade. Os padrões financeiros da referência foram adaptados para o catálogo de ferramentas e os recursos Twilio, sem adicionar autenticação ou alterar as regras das operações.
 
 ## Arquitetura
 
@@ -211,9 +219,19 @@ O botão de cancelar interrompe a conexão e impede novos passos quando o sinal 
 - antes da criação, o CSV de Workflow é analisado por linha e as filas são conferidas no Workspace; qualquer erro bloqueia a confirmação, enquanto linhas vazias, incompletas, excluídas ou duplicadas são identificadas e ignoradas.
 - a edição de Workflow valida o JSON e todos os Queue SIDs alterados antes do write, compara a versão carregada com `dateUpdated` e exige confirmação após exibir o antes/depois; `ReEvaluateTasks` é sempre uma escolha explícita e começa desativada.
 
+### Investigação e primeira experiência
+
+- Ambientes explica como obter as credenciais com a equipe técnica, testar a conexão, salvar e selecionar a conta. O cadastro não seleciona o ambiente automaticamente.
+- Consultas por telefone, Task, Worker e listagem de senders executam diretamente, sem confirmação intermediária. Alterações remotas continuam exigindo confirmação.
+- A busca de Worker usa SID ou nome amigável exato (`friendlyName`), sem consultar o atributo `email`. Um e-mail só funciona se for o nome amigável; para nomes repetidos, use SID. A configuração de plugins mantém o contrato de SID ou e-mail usado como nome amigável.
+- Resultados de Tasks oferecem links para a Conversation identificada nos atributos `conversationSid`, `conversation_id` ou `channelSid`, e para o Workflow identificado no resultado. Somente SIDs válidos geram links; nenhuma relação é inferida de outros campos.
+- Participantes de Conversations com endereço telefônico oferecem uma busca de Tasks com o telefone preenchido. O usuário informa o Workspace e executa a consulta; não há busca automática nem garantia de correspondência única.
+- Os novos links entre ferramentas carregam `environmentId` com os identificadores do recurso. Se o ambiente selecionado for diferente, os campos não são reaproveitados e nenhuma consulta inicial é disparada por esse contexto. Links antigos sem `environmentId` mantêm o comportamento anterior. Credenciais nunca vão na URL.
+- A listagem e as exportações de Numbers identificam Programmable Chat como estimativa, sem alterar a deduplicação ou o escopo dos resultados exportados.
+
 ### Escritas destrutivas
 
-Formulários que alteram dados remotos exibem aviso e confirmação. Históricos de escrita são informativos e não reexecutam ações. Resultados parciais, contadores e logs fazem parte do contrato e não devem ser reduzidos a um sucesso genérico.
+Formulários que alteram dados remotos exibem aviso e confirmação com o ambiente. O encerramento por número confirma todos os números informados e deixa explícito que cada número pode ter várias Conversations ativas, cuja quantidade só será conhecida durante a execução. O cancelamento de fila também apresenta a mensagem que será tentada após cancelar cada Task. Históricos de escrita são informativos e não reexecutam ações. Resultados parciais, contadores e logs fazem parte do contrato e não devem ser reduzidos a um sucesso genérico.
 
 ## Testes
 

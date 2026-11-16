@@ -1,9 +1,8 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
 
 import { PageHeader } from "@/components/page-header"
 import { Select } from "@/components/ui/select"
-
-import { InputActions } from "@/components/input-actions"
 
 import { ActionBar } from "@/components/action-bar"
 
@@ -72,7 +71,7 @@ export function UpdateWorkerFeatureForm() {
           title={messages.title}
           description={messages.subtitle}
           parent={{
-            href: "/taskrouter",
+            href: "/?area=taskrouter",
             label: strings.sidebar.sections.taskrouter,
           }}
           badge={<WarningBadge />}
@@ -80,14 +79,45 @@ export function UpdateWorkerFeatureForm() {
         />
       )}
       {!activeEnvironment && <NoEnvironmentSelected />}
-      <form
+      <OperationForm
         onSubmit={(event) => {
           event.preventDefault()
           if (valid && activeEnvironment && !running) setConfirmOpen(true)
         }}
-        className="space-y-5"
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="primary"
+              aria-busy={running}
+              type="submit"
+              disabled={!valid || !activeEnvironment || running}
+              aria-label={messages.submit}
+            >
+              {running ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" aria-hidden="true" />
+                  {messages.submit}
+                </>
+              )}
+            </ActionButton>
+            {running && (
+              <ActionButton action="stop" type="button" onClick={cancel}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+          </>
+        }
       >
-        <fieldset disabled={running} className="operation-form space-y-5">
+        <fieldset disabled={running} className="space-y-5">
           {!management && (
             <div data-worker-workspace-field className="space-y-2">
               <Label htmlFor="feature-workspace">
@@ -104,11 +134,20 @@ export function UpdateWorkerFeatureForm() {
               />
             </div>
           )}
-          <fieldset className="space-y-2">
+          <fieldset
+            className="space-y-2"
+            aria-describedby="feature-workers-hint"
+          >
             <legend className="mb-2 text-sm font-medium">
               {messages.workersLabel}
             </legend>
-            <InputActions>
+            <p
+              id="feature-workers-hint"
+              className="text-xs text-muted-foreground"
+            >
+              {messages.workersHint}
+            </p>
+            <>
               <div className="min-w-0 flex-1 space-y-2">
                 {workers.map((worker, index) => (
                   <div key={index} className="flex items-center gap-2">
@@ -156,7 +195,7 @@ export function UpdateWorkerFeatureForm() {
                   {messages.addWorker}
                 </ActionButton>
               </ActionBar>
-            </InputActions>
+            </>
           </fieldset>
           <div className="space-y-2">
             <Label htmlFor="feature-name">{messages.featureLabel}</Label>
@@ -175,51 +214,21 @@ export function UpdateWorkerFeatureForm() {
         </fieldset>
         <div className="space-y-2">
           <Label htmlFor="feature-enabled">{messages.enabledLabel}</Label>
-          <InputActions>
-            <div className="min-w-0 flex-1">
-              <Select
-                disabled={running}
-                id="feature-enabled"
-                value={String(enabled)}
-                onChange={(event) => setEnabled(event.target.value === "true")}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="true">{messages.enabled}</option>
-                <option value="false">{messages.disabled}</option>
-              </Select>
-            </div>
-            <ActionBar>
-              <ActionButton
-                action="primary"
-                aria-busy={running}
-                type="submit"
-                disabled={!valid || !activeEnvironment || running}
-                aria-label={messages.submit}
-              >
-                {running ? (
-                  <>
-                    <Loader2
-                      className="size-3.5 animate-spin"
-                      aria-hidden="true"
-                    />
-                    {strings.common.processing}
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-3.5" aria-hidden="true" />
-                    {messages.submit}
-                  </>
-                )}
-              </ActionButton>
-              {running && (
-                <ActionButton action="stop" type="button" onClick={cancel}>
-                  {strings.common.cancel}
-                </ActionButton>
-              )}
-            </ActionBar>
-          </InputActions>
+
+          <div className="min-w-0 flex-1">
+            <Select
+              disabled={running}
+              id="feature-enabled"
+              value={String(enabled)}
+              onChange={(event) => setEnabled(event.target.value === "true")}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="true">{messages.enabled}</option>
+              <option value="false">{messages.disabled}</option>
+            </Select>
+          </div>
         </div>
-      </form>
+      </OperationForm>
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

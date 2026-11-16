@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Outfit, Manrope, Geist_Mono } from "next/font/google"
 
 import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -8,7 +8,9 @@ import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-sans" })
+
+const heading = Manrope({ subsets: ["latin"], variable: "--font-title" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -38,7 +40,12 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, geist.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        outfit.variable,
+        heading.variable
+      )}
     >
       <body>
         <ThemeProvider>

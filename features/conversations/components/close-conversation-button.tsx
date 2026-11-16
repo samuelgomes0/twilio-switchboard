@@ -1,5 +1,7 @@
 "use client"
 
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
+
 import * as React from "react"
 import { Loader2 } from "lucide-react"
 import { ActionButton } from "@/components/action-button"
@@ -72,6 +74,7 @@ export function CloseConversationButton({
               {labels.confirmDescription(sid)}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction

@@ -76,7 +76,7 @@ export function ConversationMessages({
       {data.messages.length > 0 && (
         <div className="mb-6 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="message-content-search">
                 {strings.conversations.history.filters.contentLabel}
               </Label>
@@ -94,7 +94,7 @@ export function ConversationMessages({
                 {resultActions}
               </InputActions>
             </div>
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="message-author-filter">
                 {strings.conversations.history.filters.authorLabel}
               </Label>
@@ -114,7 +114,7 @@ export function ConversationMessages({
                 ))}
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="message-start-date">
                 {strings.conversations.history.filters.startDateLabel}
               </Label>
@@ -126,7 +126,7 @@ export function ConversationMessages({
                 onChange={(event) => setStartDate(event.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <Label htmlFor="message-end-date">
                 {strings.conversations.history.filters.endDateLabel}
               </Label>

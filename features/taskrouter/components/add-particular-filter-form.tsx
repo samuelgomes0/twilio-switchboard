@@ -1,9 +1,10 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
+
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
 import { useBrowserState } from "@/components/use-browser-state"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
 
 import { ActionBar } from "@/components/action-bar"
 
@@ -37,7 +38,12 @@ import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { AddParticularFilterEntry } from "@/features/taskrouter/types"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -265,26 +271,29 @@ export function AddParticularFilterForm() {
 
       const reader = res.body.getReader()
       await consumeSseStream(reader, (payload) => {
-          addLog(payload.level, payload.message)
+        addLog(payload.level, payload.message)
 
-          if (payload.done === true) {
-            const totalAdded = typeof payload.totalAdded === "number" ? payload.totalAdded : 0
-            const totalSkipped = typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
-            const totalErrors = typeof payload.totalErrors === "number" ? payload.totalErrors : 0
-            setSummary({ totalAdded, totalSkipped, totalErrors })
-            setStatus(totalAdded === 0 && totalSkipped === 0 ? "error" : "done")
-            const entry: HistoryEntry = {
-              ts: Date.now(),
-              workspaceSid: workspaceSid.trim(),
-              filterName: filterName.trim(),
-              totalEntries: pendingEntries.length,
-              totalAdded,
-              totalSkipped,
-              totalErrors,
-            }
-            pushHistory(historyKey, entry)
-            setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        if (payload.done === true) {
+          const totalAdded =
+            typeof payload.totalAdded === "number" ? payload.totalAdded : 0
+          const totalSkipped =
+            typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+          const totalErrors =
+            typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+          setSummary({ totalAdded, totalSkipped, totalErrors })
+          setStatus(totalAdded === 0 && totalSkipped === 0 ? "error" : "done")
+          const entry: HistoryEntry = {
+            ts: Date.now(),
+            workspaceSid: workspaceSid.trim(),
+            filterName: filterName.trim(),
+            totalEntries: pendingEntries.length,
+            totalAdded,
+            totalSkipped,
+            totalErrors,
           }
+          pushHistory(historyKey, entry)
+          setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        }
       })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -307,7 +316,7 @@ export function AddParticularFilterForm() {
         title={strings.taskrouter.addParticularFilter.title}
         description={strings.taskrouter.addParticularFilter.subtitle}
         parent={{
-          href: "/taskrouter",
+          href: "/?area=taskrouter",
           label: strings.sidebar.sections.taskrouter,
         }}
         badge={<WarningBadge />}
@@ -316,39 +325,85 @@ export function AddParticularFilterForm() {
       {/* No environment warning */}
       {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="operation-form form-grid">
-        {/* Workspace SID */}
-        <div className="space-y-2">
-          <Label htmlFor="workspaceSid">
-            {strings.taskrouter.addParticularFilter.workspaceSidLabel}
-          </Label>
-          <StoredInput
-            id="workspaceSid"
-            aria-describedby={wsSidError ? "filter-workspace-error" : undefined}
-            aria-invalid={!!wsSidError}
-            storageKey={STORED_KEYS.workspaceSids}
-            environmentId={activeEnvironment?.id}
-            value={workspaceSid}
-            onChange={(v) => {
-              setWorkspaceSid(v)
-              if (wsSidError) setWsSidError(null)
-            }}
-            placeholder={strings.common.placeholders.workspaceSid}
-            disabled={status === "running"}
-          />
-          {wsSidError && (
-            <p id="filter-workspace-error" className="text-xs text-destructive">
-              {wsSidError}
-            </p>
-          )}
-        </div>
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="primary"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" />
+                  {strings.taskrouter.addParticularFilter.submit}
+                </>
+              )}
+            </ActionButton>
 
-        {/* Filter name */}
-        <div className="space-y-2">
-          <Label htmlFor="filterName">
-            {strings.taskrouter.addParticularFilter.filterNameLabel}
-          </Label>
-          <InputActions>
+            {status === "running" && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+
+            {(logs.length > 0 || status !== "idle") && status !== "running" && (
+              <ActionButton action="clear" type="button" onClick={reset}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
+        <div className="grid gap-x-2 gap-y-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
+          {/* Workspace SID */}
+          <div className="space-y-2">
+            <Label htmlFor="workspaceSid">
+              {strings.taskrouter.addParticularFilter.workspaceSidLabel}
+            </Label>
+            <StoredInput
+              id="workspaceSid"
+              aria-describedby={
+                wsSidError ? "filter-workspace-error" : undefined
+              }
+              aria-invalid={!!wsSidError}
+              storageKey={STORED_KEYS.workspaceSids}
+              environmentId={activeEnvironment?.id}
+              value={workspaceSid}
+              onChange={(v) => {
+                setWorkspaceSid(v)
+                if (wsSidError) setWsSidError(null)
+              }}
+              placeholder={strings.common.placeholders.workspaceSid}
+              disabled={status === "running"}
+            />
+            {wsSidError && (
+              <p
+                id="filter-workspace-error"
+                className="text-xs text-destructive"
+              >
+                {wsSidError}
+              </p>
+            )}
+          </div>
+
+          {/* Filter name */}
+          <div className="space-y-2">
+            <Label htmlFor="filterName">
+              {strings.taskrouter.addParticularFilter.filterNameLabel}
+            </Label>
+
             <div className="min-w-0 flex-1">
               <Input
                 id="filterName"
@@ -367,54 +422,19 @@ export function AddParticularFilterForm() {
                 disabled={status === "running"}
               />
             </div>
-            <ActionBar>
-              <ActionButton
-                action="primary"
-                aria-busy={status === "running"}
-                type="submit"
-                disabled={!canSubmit}
-              >
-                {status === "running" ? (
-                  <>
-                    <Loader2
-                      className="size-3.5 animate-spin"
-                      aria-hidden="true"
-                    />
-                    {strings.common.processing}
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-3.5" />
-                    {strings.taskrouter.addParticularFilter.submit}
-                  </>
-                )}
-              </ActionButton>
 
-              {status === "running" && (
-                <ActionButton action="stop" type="button" onClick={handleAbort}>
-                  {strings.common.cancel}
-                </ActionButton>
-              )}
-
-              {(logs.length > 0 || status !== "idle") &&
-                status !== "running" && (
-                  <ActionButton action="clear" type="button" onClick={reset}>
-                    {strings.common.clear}
-                  </ActionButton>
-                )}
-            </ActionBar>
-          </InputActions>
-          {filterNameError && (
-            <p id="filter-name-error" className="text-xs text-destructive">
-              {filterNameError}
-            </p>
-          )}
+            {filterNameError && (
+              <p id="filter-name-error" className="text-xs text-destructive">
+                {filterNameError}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Workflow / Task Queue pairs */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {/* Column headers */}
-          <InputActions>
+          <>
             <div className="min-w-0 flex-1 space-y-2">
               <div className="hidden gap-2 sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
                 <p className="text-sm font-medium">
@@ -431,7 +451,7 @@ export function AddParticularFilterForm() {
                 {rows.map((row, i) => (
                   <div key={i} className="space-y-1">
                     <div className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem]">
-                      <div className="col-start-1 space-y-1 sm:col-auto">
+                      <div className="col-start-1 space-y-2 sm:col-auto">
                         <Label
                           htmlFor={`filter-workflow-${i}`}
                           className="sm:sr-only"
@@ -473,7 +493,7 @@ export function AddParticularFilterForm() {
                           </p>
                         )}
                       </div>
-                      <div className="col-start-1 space-y-1 sm:col-auto">
+                      <div className="col-start-1 space-y-2 sm:col-auto">
                         <Label
                           htmlFor={`filter-queue-${i}`}
                           className="sm:sr-only"
@@ -529,7 +549,7 @@ export function AddParticularFilterForm() {
                 ))}
               </div>
             </div>
-            <ActionBar className="sm:pt-7">
+            <ActionBar>
               <ActionButton
                 action="add"
                 type="button"
@@ -539,9 +559,9 @@ export function AddParticularFilterForm() {
                 {strings.taskrouter.addParticularFilter.addEntry}
               </ActionButton>
             </ActionBar>
-          </InputActions>
+          </>
         </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -558,6 +578,7 @@ export function AddParticularFilterForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction

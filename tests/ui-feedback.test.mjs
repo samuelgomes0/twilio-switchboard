@@ -42,9 +42,9 @@ function render(file, name, { activeEnvironment = environment, states = {}, prop
   const mocks = {
     "next/link": { __esModule: true, default: ({ children, href, ...rest }) =>
       React.createElement("a", { ...rest, href: typeof href === "string" ? href : href.pathname }, children) },
-    "next/navigation": { useRouter: () => ({ push: noop }), useSearchParams: () => new URLSearchParams() },
+    "next/navigation": { usePathname: () => "/", useRouter: () => ({ push: noop }), useSearchParams: () => new URLSearchParams() },
     "next/dynamic": { __esModule: true, default: () => () => null },
-    "@/features/environments/context": { useEnvironment: () => ({ activeEnvironment }) },
+    "@/features/environments/context": { useEnvironment: () => ({ activeEnvironment, environments: activeEnvironment ? [activeEnvironment] : [] }) },
   }
   function load(relative) {
     if (cache.has(relative)) return cache.get(relative)
@@ -496,7 +496,7 @@ test("phone examples and hints match each form's accepted format without removin
   }
 })
 
-test("search actions sit beside their input and retain submit semantics in both task modes", () => {
+test("search forms keep a separate action footer and submit semantics in both task modes", () => {
   for (const [file, name] of tools.filter(([file]) => /conversation-form|fetch-by-participant|fetch-worker|search-tasks/.test(file))) {
     for (const mode of ["sid", "phone"]) {
       const html = render(file, name, { states: { [file]: { mode } } })
@@ -507,16 +507,15 @@ test("search actions sit beside their input and retain submit semantics in both 
       assert.match(search[0], /type="submit"/)
       assert.match(search[0], /data-variant="default"/)
       assert.match(search[0], /data-size="default"/)
-      const row = form.slice(form.indexOf('data-slot="input-actions"'))
-      assert.match(row, /class="[^"]*flex-col[^"]*lg:flex-row/)
-      assert.match(row, /<input\b[^>]*\/>\s*<\/div>\s*<div data-slot="action-bar"|<input\b[^>]*\/>\s*<div data-slot="action-bar"/)
+      const row = form
+      assert.match(form, /data-form-actions="true"/)
       assert.ok(row.indexOf('data-action="search"') > row.indexOf("<input"), file)
       inspectReferences(html)
     }
   }
 })
 
-test("settings save and cancel share size and order beside the inputs", () => {
+test("settings save and cancel share size and order in the footer", () => {
   for (const [file, name, options] of [
     ["features/contacts/components/contacts-manager.tsx", "ContactsManager", { states: {
       "features/contacts/components/contacts-manager.tsx": { showAddForm: true },
@@ -559,7 +558,7 @@ function inspectInputActions(html, actions) {
     const action = attributes.match(/data-action="([^"]+)"/)?.[1]
     if (tag === "button" && actions.includes(action)) {
       found.add(action)
-      assert.ok(ancestors.some(parent => parent.includes('data-slot="input-actions"')), action)
+      assert.ok(ancestors.some(parent => parent.includes('data-slot="input-actions"') || parent.includes('data-form-actions="true"') || /^form\b/.test(parent)), action)
       if (action === "stop") {
         assert.doesNotMatch(attributes, /\bdisabled=/)
         assert.ok(!ancestors.some(parent => /^fieldset\b.*\bdisabled=/.test(parent)))
@@ -572,17 +571,17 @@ function inspectInputActions(html, actions) {
   for (const action of actions) assert.ok(found.has(action), action)
 }
 
-test("every batch form keeps submit and enabled cancellation beside inputs", () => {
+test("every batch form keeps submit and enabled cancellation in its form layout", () => {
   for (const [file, name] of tools.filter(([file]) => /close-form|assign-workers|cancel-queue-tasks|create-workflow|add-particular-filter|update-worker-feature/.test(file))) {
     const stateFile = file.includes("update-worker-feature") ? file.replace("update-worker-feature-form.tsx", "use-update-worker-feature.ts") : file
-    const html = render(file, name, { states: { [stateFile]: { status: "running" } } })
+    const html = render(file, name, { states: { [stateFile]: { status: "running", ...(/close-form/.test(file) ? { phones: ["11999999999", "11888888888"] } : {}) } } })
     inspectInputActions(html, [/close-form|cancel-queue-tasks/.test(file) ? "destructive" : "primary", "stop"])
     if (/close-form|assign-workers|add-particular-filter|update-worker-feature/.test(file)) inspectInputActions(html, ["add", "remove"])
     inspectReferences(html)
   }
 })
 
-test("Flex keeps exactly one submit beside its active integration input", () => {
+test("Flex keeps exactly one submit after its active integration fields", () => {
   const file = "features/flex/components/create-address-config-form.tsx"
   for (const integrationType of ["default", "studio", "webhook"]) {
     const html = render(file, "CreateAddressConfigForm", { states: { [file]: { integrationType } } })
@@ -601,5 +600,103 @@ test("variable add and edit actions stay beside their inputs", () => {
     } } } })
     inspectInputActions(html, ["save", "cancel"])
     inspectReferences(html)
+  }
+})
+
+test("cross-tool context is prefilled only for its source environment", () => {
+  const CH = `CH${"1".repeat(32)}`
+  const WS = `WS${"2".repeat(32)}`
+  const WW = `WW${"3".repeat(32)}`
+  for (const [file, name, props, id, expected] of [
+    ["features/conversations/components/conversation-form.tsx", "ConversationForm", { initialSid: CH }, "conversation-sid", CH],
+    ["features/taskrouter/components/search-tasks-form.tsx", "SearchTasksForm", { initialPhone: "whatsapp:+5511999999999" }, "phone", "whatsapp:+5511999999999"],
+    ["features/taskrouter/components/workflow-details.tsx", "WorkflowDetails", { initialWorkspaceSid: WS, initialWorkflowSid: WW }, "workflow-details-workspace", WS],
+  ]) {
+    let html = render(file, name, { props: { ...props, initialEnvironmentId: environment.id } })
+    assert.match(html, new RegExp(`<input(?=[^>]*id="${id}")(?=[^>]*value="${expected.replaceAll("+", "\\+")}")`))
+    assert.ok(!html.includes(strings.common.contextEnvironmentMismatch))
+    html = render(file, name, { props: { ...props, initialEnvironmentId: "other" } })
+    assert.ok(html.includes(strings.common.contextEnvironmentMismatch))
+    assert.ok(!html.includes(`value="${expected}"`))
+    assert.match(html, /role="status"/)
+    inspectReferences(html)
+  }
+})
+
+test("first use explains environment setup", () => {
+  const file = "features/environments/components/environments-manager.tsx"
+  const html = render(file, "EnvironmentsManager", { activeEnvironment: null })
+  assert.ok(html.includes(strings.environments.manager.emptyHint))
+  for (const step of strings.environments.manager.setupSteps) assert.ok(html.includes(step))
+  assert.ok(html.includes(strings.environments.manager.localCredentials))
+
+})
+
+test("number classification explains uncertainty next to results", () => {
+  const file = "features/numbers/components/list-numbers-form.tsx"
+  const html = render(file, "ListNumbersForm", { states: { [file]: {
+    results: [{ id: "sender", friendlyName: "Teste", phoneNumber: "11999999999", service: "Programmable Chat" }],
+  } } })
+  assert.ok(html.includes(strings.numbers.list.classificationHint))
+  assert.ok(html.includes("Programmable Chat (estimado)"))
+})
+
+
+test("directory supports category links and safely ignores unknown areas", () => {
+  const file = "components/tool-directory.tsx"
+  const html = render(file, "ToolDirectory", { props: { initialArea: "numbers" } })
+  assert.ok(html.includes(strings.numbers.list.breadcrumb))
+  assert.ok(!html.includes(strings.taskrouter.searchTasks.breadcrumb))
+  const fallback = render(file, "ToolDirectory", { props: { initialArea: "unknown" } })
+  assert.ok(fallback.includes(strings.numbers.list.breadcrumb))
+  assert.ok(fallback.includes(strings.taskrouter.searchTasks.breadcrumb))
+})
+
+test("sidebar groups disclose tools and single-tool areas link directly", () => {
+  const file = "components/sidebar-nav.tsx"
+  const html = render(file, "SidebarNav")
+  assert.match(html, /href="\/numbers\/list-messaging-numbers"/)
+  assert.match(html, /href="\/flex\/create-conversation-address"/)
+  assert.ok(html.includes(strings.interface.expandNavigation(strings.sidebar.sections.conversations)))
+  assert.ok(!html.includes('href="/?area=conversations"'))
+  inspectReferences(html)
+  const collapsed = render(file, "SidebarNav", { props: { collapsed: true } })
+  assert.ok(collapsed.includes('href="/?area=conversations"'))
+  assert.ok(collapsed.includes('href="/?area=taskrouter"'))
+})
+
+
+test("close form groups list editing before the separate submit footer", () => {
+  const file = "features/conversations/components/close-form.tsx"
+  const html = render(file, "CloseForm")
+  assert.ok(!html.includes('data-action="remove"'))
+  assert.ok(html.indexOf('data-action="add"') < html.indexOf('data-slot="action-bar"'))
+  assert.ok(html.indexOf('data-slot="action-bar"') < html.indexOf('data-action="destructive"'))
+  assert.match(html, /aria-describedby="close-phones-hint"/)
+  inspectReferences(html)
+  const multiple = render(file, "CloseForm", { states: { [file]: { phones: ["11999999999", "11888888888"] } } })
+  assert.equal((multiple.match(/data-action="remove"/g) ?? []).length, 2)
+  inspectReferences(multiple)
+})
+
+
+test("operational forms keep exactly one direct footer after every field", () => {
+  const cases = [...tools, ["features/environments/components/environment-form.tsx", "EnvironmentForm"], ["features/contacts/components/contacts-manager.tsx", "ContactsManager"]]
+  for (const [file, name] of cases) {
+    const options = name === "EnvironmentForm" ? { props: { onSave: noop, onCancel: noop } } : name === "ContactsManager" ? { states: { [file]: { showAddForm: true } } } : {}
+    const html = render(file, name, options)
+    for (const form of html.matchAll(/<form\b[^>]*data-slot="operation-form"[^>]*>(.*?)<\/form>/gs)) {
+      const content = form[1]
+      assert.equal((content.match(/data-form-actions="true"/g) ?? []).length, 1, file)
+      const footer = content.indexOf('data-form-actions="true"')
+      for (const field of content.matchAll(/<(?:input|select|textarea)\b/g)) assert.ok(field.index < footer, `${file}: field after footer`)
+      const stack = []
+      for (const match of content.matchAll(/<(\/?)([a-z][a-z0-9-]*)\b([^>]*)>/gi)) {
+        const [, close, tag, attrs] = match
+        if (close) { stack.pop(); continue }
+        if (attrs.includes('data-form-actions="true"')) assert.equal(stack.length, 0, `${file}: nested footer`)
+        if (!/^(input|br|hr|img|meta|link|area|base|col|embed|param|source|track|wbr)$/.test(tag) && !attrs.endsWith("/")) stack.push(tag)
+      }
+    }
   }
 })

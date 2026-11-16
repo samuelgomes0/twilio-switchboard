@@ -139,7 +139,7 @@ try {
 
   await go("/conversations/search-by-number")
   await page.locator("#phone").fill("11999999999")
-  await confirmSubmit()
+  await page.locator("main button[type=submit]:visible").click()
   await page.locator('main a').filter({ hasText: strings.conversations.fetchByParticipant.results.consultConversation }).nth(1).waitFor()
   assert.ok(requests.some(r => r.url === "/api/conversations/search-by-number" && r.body.pageToken === "page-2"))
   console.log("Conversations: deep link, lazy tab, filtros, CSV e paginação aprovados")
@@ -147,7 +147,8 @@ try {
   await go("/taskrouter/manage-workers")
   await page.locator("#worker-management-workspace").fill(WS)
   await page.locator('main form input:visible').fill(WK)
-  await confirmSubmit()
+  await page.locator('main button[type=submit]:visible').click()
+  await page.getByText(worker.friendlyName, { exact: true }).waitFor()
   await page.getByRole("button", { name: strings.taskrouter.workerManagement.actions.addSkill, exact: true }).click()
   await page.locator("#skill").fill("suporte")
   await confirmSubmit()
@@ -163,17 +164,17 @@ try {
 
   for (const route of ["/conversations/close-by-number", "/taskrouter/cancel-queue-tasks-and-close-conversations", "/taskrouter/create-workflow-from-csv", "/taskrouter/add-business-rule-filter"]) {
     await go(route)
-    if (route.endsWith("close")) await page.locator("#close-phone-0").fill("11999999999")
+    if (route.endsWith("close-by-number")) await page.locator("#close-phone-0").fill("11999999999")
     else {
       await page.locator("#workspaceSid").fill(WS)
-      if (route.endsWith("cancel-queue-tasks")) await page.locator("#taskQueueName").fill("Suporte")
+      if (route.endsWith("cancel-queue-tasks-and-close-conversations")) await page.locator("#taskQueueName").fill("Suporte")
       if (route.includes("create-workflow")) {
         await page.locator("#workflowName").fill("Workflow de teste")
         await page.locator("#csvFile").setInputFiles({ name: "regras.csv", mimeType: "text/csv", buffer: Buffer.from("Regra de Negócio;Fila Twilio\nSuporte;Suporte") })
         await page.getByRole("button", { name: strings.taskrouter.createWorkflow.analyze }).click()
         await page.getByText(strings.taskrouter.createWorkflow.analysisReady).waitFor()
       }
-      if (route.endsWith("add-particular-filter")) {
+      if (route.endsWith("add-business-rule-filter")) {
         await page.locator("#filterName").fill("Suporte")
         await page.locator("#filter-workflow-0").fill(sid("WW"))
         await page.locator("#filter-queue-0").fill(sid("WQ"))
@@ -191,7 +192,6 @@ try {
   }
   await go("/numbers/list-messaging-numbers")
   await page.locator("main > div button").filter({ hasText: strings.numbers.list.submit }).first().click()
-  await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-action"]').click()
   await page.locator("tbody tr").first().waitFor()
   await page.getByRole("searchbox", { name: strings.numbers.list.table.searchLabel }).fill("Outra")
   assert.equal(await page.locator("tbody tr").count(), 1)
@@ -230,12 +230,10 @@ try {
   mode = "error"
   await go("/numbers/list-messaging-numbers")
   await page.locator("main button").filter({ hasText: strings.numbers.list.submit }).first().click()
-  await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-action"]').click()
   await page.locator("main").getByRole("alert").waitFor()
   mode = "empty"
   await go("/numbers/list-messaging-numbers")
   await page.locator("main button").filter({ hasText: strings.numbers.list.submit }).first().click()
-  await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-action"]').click()
   await page.getByText(strings.numbers.list.table.empty, { exact: true }).waitFor()
   mode = "success"
 

@@ -3,18 +3,12 @@
 import { SearchInput } from "@/components/search-input"
 import { Select } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { useEnvironment } from "@/features/environments/context"
 import { conversationsTools } from "@/features/conversations/tools"
 import { taskrouterTools } from "@/features/taskrouter/tools"
 import { numbersTools } from "@/features/numbers/tools"
 import { flexTools } from "@/features/flex/tools"
 import { strings } from "@/lib/strings"
-import {
-  ArrowUpRight,
-  BookUser,
-  Settings2,
-  SlidersHorizontal,
-} from "lucide-react"
+import { ArrowUpRight, ChevronDown, Settings2 } from "lucide-react"
 import Link from "next/link"
 import * as React from "react"
 
@@ -36,30 +30,6 @@ const GROUPS = [
     tools: numbersTools,
   },
   { id: "flex", label: strings.sidebar.sections.flex, tools: flexTools },
-  {
-    id: "settings",
-    label: strings.sidebar.sections.settings,
-    tools: [
-      {
-        ...strings.environments.page.tools.manage,
-        href: "/settings/manage-environments",
-        icon: Settings2,
-        available: true,
-      },
-      {
-        ...strings.environments.page.tools.contacts,
-        href: "/settings/manage-contacts",
-        icon: BookUser,
-        available: true,
-      },
-      {
-        ...strings.environments.page.tools.variables,
-        href: "/settings/manage-variables",
-        icon: SlidersHorizontal,
-        available: true,
-      },
-    ],
-  },
 ]
 const TOOLS = GROUPS.flatMap((group) =>
   group.tools
@@ -67,10 +37,11 @@ const TOOLS = GROUPS.flatMap((group) =>
     .map((tool) => ({ ...tool, groupId: group.id, groupLabel: group.label }))
 )
 
-export function ToolDirectory() {
-  const { activeEnvironment } = useEnvironment()
+export function ToolDirectory({ initialArea = "" }: { initialArea?: string }) {
   const [query, setQuery] = React.useState("")
-  const [area, setArea] = React.useState("")
+  const [area, setArea] = React.useState(
+    GROUPS.some((group) => group.id === initialArea) ? initialArea : ""
+  )
   const term = query.trim().toLocaleLowerCase("pt-BR")
   const matches = TOOLS.filter(
     (tool) =>
@@ -94,35 +65,6 @@ export function ToolDirectory() {
           </Link>
         </Button>
       </header>
-      <dl className="directory-summary">
-        <div>
-          <dt>{s.toolsColumn}</dt>
-          <dd>{TOOLS.length}</dd>
-          <small>{s.catalogSummary}</small>
-        </div>
-        <div>
-          <dt>{s.areaColumn}</dt>
-          <dd>{GROUPS.length}</dd>
-          <small>{s.areaSummary}</small>
-        </div>
-        <div>
-          <dt>{s.apiTools}</dt>
-          <dd>{TOOLS.filter((tool) => tool.groupId !== "settings").length}</dd>
-          <small>{s.apiToolsSummary}</small>
-        </div>
-        <div className="directory-environment">
-          <dt>{s.currentEnvironment}</dt>
-          <dd>
-            <span
-              className="environment-dot"
-              data-selected={!!activeEnvironment}
-              aria-hidden="true"
-            />
-            {activeEnvironment?.name ?? strings.sidebar.noEnvironment}
-          </dd>
-          <small>{s.localEnvironment}</small>
-        </div>
-      </dl>
       <section aria-labelledby="directory-title" className="directory-list">
         <div className="directory-toolbar">
           <h2 id="directory-title">{s.toolDirectory}</h2>
@@ -141,71 +83,82 @@ export function ToolDirectory() {
           <label className="sr-only" htmlFor="directory-area">
             {s.filterArea}
           </label>
-          <Select
-            id="directory-area"
-            aria-label={s.filterArea}
-            value={area}
-            onChange={(event) => setArea(event.target.value)}
-          >
-            <option value="">{s.allAreas}</option>
-            {GROUPS.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.label}
-              </option>
-            ))}
-          </Select>
+          <div className="directory-area-control">
+            <Select
+              id="directory-area"
+              className="search-control"
+              aria-label={s.filterArea}
+              value={area}
+              onChange={(event) => setArea(event.target.value)}
+            >
+              <option value="">{s.allAreas}</option>
+              {GROUPS.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.label}
+                </option>
+              ))}
+            </Select>
+            <ChevronDown aria-hidden="true" className="directory-area-icon" />
+          </div>
         </div>
-        <table className="directory-table">
-          <caption className="sr-only">{s.toolDirectory}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{s.toolColumn}</th>
-              <th scope="col">{s.purposeColumn}</th>
-              <th scope="col">{s.areaColumn}</th>
-              <th scope="col">
-                <span className="sr-only">{s.openTool}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {matches.map(
-              ({
-                href,
-                label,
-                description,
-                icon: Icon,
-                groupId,
-                groupLabel,
-              }) => (
-                <tr key={href}>
-                  <td>
-                    <Link href={href} className="directory-tool-link">
-                      <span className="directory-tool-icon">
-                        <Icon aria-hidden="true" className="size-3.5" />
+        <div
+          className="directory-table-scroll"
+          role="region"
+          aria-label={s.toolDirectory}
+          tabIndex={0}
+        >
+          <table className="directory-table">
+            <caption className="sr-only">{s.toolDirectory}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{s.toolColumn}</th>
+                <th scope="col">{s.purposeColumn}</th>
+                <th scope="col">{s.areaColumn}</th>
+                <th scope="col">
+                  <span className="sr-only">{s.openTool}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {matches.map(
+                ({
+                  href,
+                  label,
+                  description,
+                  icon: Icon,
+                  groupId,
+                  groupLabel,
+                }) => (
+                  <tr key={href}>
+                    <td>
+                      <Link href={href} className="directory-tool-link">
+                        <span className="directory-tool-icon">
+                          <Icon aria-hidden="true" className="size-3.5" />
+                        </span>
+                        <span>{label}</span>
+                      </Link>
+                    </td>
+                    <td className="directory-purpose">{description}</td>
+                    <td>
+                      <span className="directory-tag" data-area={groupId}>
+                        {groupLabel}
                       </span>
-                      <span>{label}</span>
-                    </Link>
-                  </td>
-                  <td className="directory-purpose">{description}</td>
-                  <td>
-                    <span className="directory-tag" data-area={groupId}>
-                      {groupLabel}
-                    </span>
-                  </td>
-                  <td>
-                    <Link
-                      href={href}
-                      className="directory-open"
-                      aria-label={`${s.openTool}: ${label}`}
-                    >
-                      <ArrowUpRight aria-hidden="true" className="size-3.5" />
-                    </Link>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
+                    </td>
+                    <td>
+                      <Link
+                        href={href}
+                        className="directory-open"
+                        aria-label={`${s.openTool}: ${label}`}
+                      >
+                        <ArrowUpRight aria-hidden="true" className="size-3.5" />
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
         {!matches.length && (
           <p className="directory-empty" role="status">
             {s.emptyCatalog}

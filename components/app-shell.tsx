@@ -1,7 +1,7 @@
 "use client"
 import { CommandMenu } from "@/components/command-menu"
 import { EnvironmentSelector } from "@/components/environment-selector"
-import { SidebarNav } from "@/components/sidebar-nav"
+import { SidebarNav, getNavigationTrail } from "@/components/sidebar-nav"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenuContent,
@@ -12,17 +12,40 @@ import {
 import { strings } from "@/lib/strings"
 import { useEnvironment } from "@/features/environments/context"
 import { STORAGE_ERROR_EVENT } from "@/lib/browser-storage"
-import { Menu, SunMoon, X } from "lucide-react"
+import { ChevronRight, Menu, PanelLeft, SunMoon, X } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { Dialog } from "radix-ui"
 import * as React from "react"
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = React.useState(false)
+  const pathname = usePathname()
+  const trail = getNavigationTrail(pathname)
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const { activeEnvironment, activeEnvironmentRevision } = useEnvironment()
   const [storageError, setStorageError] = React.useState(false)
   const { setTheme } = useTheme()
   React.useEffect(() => {
-    const media = window.matchMedia("(min-width: 64rem)")
+    function toggleSidebar(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b") {
+        if (
+          event.target instanceof HTMLElement &&
+          (event.target.isContentEditable ||
+            ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName))
+        )
+          return
+        event.preventDefault()
+        if (window.matchMedia("(min-width: 48rem)").matches)
+          setCollapsed((value) => !value)
+        else setMobileOpen((value) => !value)
+      }
+    }
+    window.addEventListener("keydown", toggleSidebar)
+    return () => window.removeEventListener("keydown", toggleSidebar)
+  }, [])
+  React.useEffect(() => {
+    const media = window.matchMedia("(min-width: 48rem)")
     const closeOnDesktop = () => {
       if (media.matches) setMobileOpen(false)
     }
@@ -36,12 +59,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       window.removeEventListener(STORAGE_ERROR_EVENT, showStorageError)
   }, [])
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-collapsed={collapsed}>
       <a href="#main-content" className="skip-link">
         {strings.interface.skip}
       </a>
       <aside className="desktop-navigation">
-        <SidebarNav />
+        <SidebarNav collapsed={collapsed} />
       </aside>
       <div className="shell-main">
         <header className="shell-header">
@@ -79,8 +102,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Dialog.Content>
             </Dialog.Portal>
           </Dialog.Root>
-          <CommandMenu />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="desktop-sidebar-trigger"
+            aria-label={
+              collapsed
+                ? strings.interface.expandSidebar
+                : strings.interface.collapseSidebar
+            }
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            <PanelLeft aria-hidden="true" className="size-4" />
+          </Button>
+          <span className="header-separator" aria-hidden="true" />
+          <nav
+            className="shell-breadcrumb"
+            aria-label={strings.interface.breadcrumb}
+          >
+            <Link href="/">{strings.interface.home}</Link>
+            {trail.map((item, index) => (
+              <React.Fragment key={item.href}>
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-3 shrink-0 text-muted-foreground"
+                />
+                {index === trail.length - 1 ? (
+                  <span aria-current="page">{item.label}</span>
+                ) : (
+                  <Link href={item.href}>{item.label}</Link>
+                )}
+              </React.Fragment>
+            ))}
+          </nav>
           <div className="ml-auto flex min-w-0 items-center gap-2">
+            <CommandMenu />
             <EnvironmentSelector />
             <DropdownMenuRoot>
               <DropdownMenuTrigger asChild>

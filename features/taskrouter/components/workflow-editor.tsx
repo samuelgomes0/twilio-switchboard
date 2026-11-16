@@ -1,5 +1,7 @@
 "use client"
 
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
+
 import { ActionBar } from "@/components/action-bar"
 import { ActionButton } from "@/components/action-button"
 import { JsonBlock } from "@/components/json-block"
@@ -74,8 +76,7 @@ function createDraft(workflow: WorkflowDetails): Draft {
   return {
     friendlyName: workflow.friendlyName,
     assignmentCallbackUrl: workflow.assignmentCallbackUrl ?? "",
-    fallbackAssignmentCallbackUrl:
-      workflow.fallbackAssignmentCallbackUrl ?? "",
+    fallbackAssignmentCallbackUrl: workflow.fallbackAssignmentCallbackUrl ?? "",
     taskReservationTimeout: String(workflow.taskReservationTimeout),
     configuration: workflow.parsedConfiguration
       ? stringifyWorkflowConfiguration(workflow.parsedConfiguration, 2)
@@ -359,11 +360,16 @@ export function WorkflowEditor({
               }
               aria-invalid={!!fieldErrors.friendlyName}
               aria-describedby={
-                fieldErrors.friendlyName ? "workflow-edit-name-error" : undefined
+                fieldErrors.friendlyName
+                  ? "workflow-edit-name-error"
+                  : undefined
               }
             />
             {fieldErrors.friendlyName && (
-              <p id="workflow-edit-name-error" className="text-xs text-destructive">
+              <p
+                id="workflow-edit-name-error"
+                className="text-xs text-destructive"
+              >
                 {fieldErrors.friendlyName}
               </p>
             )}
@@ -390,11 +396,17 @@ export function WorkflowEditor({
                   : "workflow-edit-timeout-hint"
               }
             />
-            <p id="workflow-edit-timeout-hint" className="text-xs text-muted-foreground">
+            <p
+              id="workflow-edit-timeout-hint"
+              className="text-xs text-muted-foreground"
+            >
               {labels.reservationTimeoutHint}
             </p>
             {fieldErrors.taskReservationTimeout && (
-              <p id="workflow-edit-timeout-error" className="text-xs text-destructive">
+              <p
+                id="workflow-edit-timeout-error"
+                className="text-xs text-destructive"
+              >
                 {fieldErrors.taskReservationTimeout}
               </p>
             )}
@@ -419,11 +431,17 @@ export function WorkflowEditor({
                   : "workflow-edit-assignment-hint"
               }
             />
-            <p id="workflow-edit-assignment-hint" className="text-xs text-muted-foreground">
+            <p
+              id="workflow-edit-assignment-hint"
+              className="text-xs text-muted-foreground"
+            >
               {labels.optionalCallback}
             </p>
             {fieldErrors.assignmentCallbackUrl && (
-              <p id="workflow-edit-assignment-error" className="text-xs text-destructive">
+              <p
+                id="workflow-edit-assignment-error"
+                className="text-xs text-destructive"
+              >
                 {fieldErrors.assignmentCallbackUrl}
               </p>
             )}
@@ -448,11 +466,17 @@ export function WorkflowEditor({
                   : "workflow-edit-fallback-hint"
               }
             />
-            <p id="workflow-edit-fallback-hint" className="text-xs text-muted-foreground">
+            <p
+              id="workflow-edit-fallback-hint"
+              className="text-xs text-muted-foreground"
+            >
               {labels.optionalCallback}
             </p>
             {fieldErrors.fallbackAssignmentCallbackUrl && (
-              <p id="workflow-edit-fallback-error" className="text-xs text-destructive">
+              <p
+                id="workflow-edit-fallback-error"
+                className="text-xs text-destructive"
+              >
                 {fieldErrors.fallbackAssignmentCallbackUrl}
               </p>
             )}
@@ -477,11 +501,17 @@ export function WorkflowEditor({
                   : "workflow-edit-configuration-hint"
               }
             />
-            <p id="workflow-edit-configuration-hint" className="text-xs text-muted-foreground">
+            <p
+              id="workflow-edit-configuration-hint"
+              className="text-xs text-muted-foreground"
+            >
               {labels.configurationHint}
             </p>
             {fieldErrors.configuration && (
-              <p id="workflow-edit-configuration-error" className="text-xs text-destructive">
+              <p
+                id="workflow-edit-configuration-error"
+                className="text-xs text-destructive"
+              >
                 {fieldErrors.configuration}
               </p>
             )}
@@ -515,7 +545,10 @@ export function WorkflowEditor({
 
         {changes.length > 0 && (
           <section aria-labelledby="workflow-edit-review-heading">
-            <h3 id="workflow-edit-review-heading" className="text-sm font-semibold">
+            <h3
+              id="workflow-edit-review-heading"
+              className="text-sm font-semibold"
+            >
               {labels.reviewTitle}
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -523,7 +556,7 @@ export function WorkflowEditor({
             </p>
             <div className="mt-3 overflow-hidden rounded-md border border-border">
               <div className="overflow-auto">
-                <table className="min-w-[42rem] w-full text-sm">
+                <table className="w-full min-w-[42rem] text-sm">
                   <thead className="border-b border-border bg-muted">
                     <tr>
                       <th scope="col" className="px-3 py-2 text-left">
@@ -539,11 +572,17 @@ export function WorkflowEditor({
                   </thead>
                   <tbody>
                     {changes.map((change) => (
-                      <tr key={change.key} className="border-b border-border last:border-0">
-                        <th scope="row" className="px-3 py-2 text-left font-medium">
+                      <tr
+                        key={change.key}
+                        className="border-b border-border last:border-0"
+                      >
+                        <th
+                          scope="row"
+                          className="px-3 py-2 text-left font-medium"
+                        >
                           {change.field}
                         </th>
-                        <td className="px-3 py-2 text-muted-foreground break-all">
+                        <td className="px-3 py-2 break-all text-muted-foreground">
                           {change.before}
                         </td>
                         <td className="px-3 py-2 break-all">{change.after}</td>
@@ -612,6 +651,7 @@ export function WorkflowEditor({
               {draft.reEvaluateTasks && ` ${labels.confirmReEvaluate}`}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={saving}>
               {strings.common.cancel}

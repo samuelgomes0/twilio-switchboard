@@ -1,9 +1,10 @@
 "use client"
+import { OperationForm } from "@/components/operation-form"
+
+import { ConfirmationEnvironment } from "@/components/confirmation-environment"
 import { useBrowserState } from "@/components/use-browser-state"
 
 import { PageHeader } from "@/components/page-header"
-
-import { InputActions } from "@/components/input-actions"
 
 import { ActionBar } from "@/components/action-bar"
 
@@ -36,7 +37,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import { MAX_HISTORY, MAX_ITEMS } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { consumeSseStream } from "@/lib/sse-reader"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
@@ -183,43 +189,46 @@ export function AssignWorkersForm() {
 
       const reader = res.body.getReader()
       await consumeSseStream(reader, (payload) => {
-          if (
-            typeof payload.progress === "object" &&
-            payload.progress !== null &&
-            "current" in payload.progress &&
-            "total" in payload.progress &&
-            typeof payload.progress.current === "number" &&
-            typeof payload.progress.total === "number"
-          ) {
-            setProgress(payload.progress as Progress)
-          }
-          addLog(payload.level, payload.message)
+        if (
+          typeof payload.progress === "object" &&
+          payload.progress !== null &&
+          "current" in payload.progress &&
+          "total" in payload.progress &&
+          typeof payload.progress.current === "number" &&
+          typeof payload.progress.total === "number"
+        ) {
+          setProgress(payload.progress as Progress)
+        }
+        addLog(payload.level, payload.message)
 
-          if (payload.done === true) {
-            if (payload.level === "error") {
-              setStatus("error")
-              return
-            }
-            const updated = typeof payload.totalUpdated === "number" ? payload.totalUpdated : 0
-            const skipped = typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
-            const errors = typeof payload.totalErrors === "number" ? payload.totalErrors : 0
-            setSummary({
-              totalUpdated: updated,
-              totalSkipped: skipped,
-              totalErrors: errors,
-            })
-            setStatus("done")
-            const entry: HistoryEntry = {
-              ts: Date.now(),
-              workspaceSid: workspaceSid.trim(),
-              skill: skill.trim(),
-              updated,
-              skipped,
-              errors,
-            }
-            pushHistory(historyKey, entry)
-            setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        if (payload.done === true) {
+          if (payload.level === "error") {
+            setStatus("error")
+            return
           }
+          const updated =
+            typeof payload.totalUpdated === "number" ? payload.totalUpdated : 0
+          const skipped =
+            typeof payload.totalSkipped === "number" ? payload.totalSkipped : 0
+          const errors =
+            typeof payload.totalErrors === "number" ? payload.totalErrors : 0
+          setSummary({
+            totalUpdated: updated,
+            totalSkipped: skipped,
+            totalErrors: errors,
+          })
+          setStatus("done")
+          const entry: HistoryEntry = {
+            ts: Date.now(),
+            workspaceSid: workspaceSid.trim(),
+            skill: skill.trim(),
+            updated,
+            skipped,
+            errors,
+          }
+          pushHistory(historyKey, entry)
+          setHistory((prev) => [entry, ...prev].slice(0, MAX_HISTORY))
+        }
       })
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
@@ -259,7 +268,7 @@ export function AssignWorkersForm() {
           title={strings.taskrouter.assignWorkers.title}
           description={strings.taskrouter.assignWorkers.subtitle}
           parent={{
-            href: "/taskrouter",
+            href: "/?area=taskrouter",
             label: strings.sidebar.sections.taskrouter,
           }}
           badge={<WarningBadge />}
@@ -270,7 +279,47 @@ export function AssignWorkersForm() {
       {/* No environment warning */}
       {!activeEnvironment && <NoEnvironmentSelected />}
 
-      <form onSubmit={handleFormSubmit} className="operation-form space-y-5">
+      <OperationForm
+        onSubmit={handleFormSubmit}
+        bodyClassName="space-y-6"
+        actions={
+          <>
+            <ActionButton
+              action="primary"
+              aria-busy={status === "running"}
+              type="submit"
+              disabled={!canSubmit}
+            >
+              {status === "running" ? (
+                <>
+                  <Loader2
+                    className="size-3.5 animate-spin"
+                    aria-hidden="true"
+                  />
+                  {strings.common.processing}
+                </>
+              ) : (
+                <>
+                  <Play className="size-3.5" />
+                  {strings.taskrouter.assignWorkers.submit}
+                </>
+              )}
+            </ActionButton>
+
+            {status === "running" && (
+              <ActionButton action="stop" type="button" onClick={handleAbort}>
+                {strings.common.cancel}
+              </ActionButton>
+            )}
+
+            {(logs.length > 0 || status !== "idle") && status !== "running" && (
+              <ActionButton action="clear" type="button" onClick={reset}>
+                {strings.common.clear}
+              </ActionButton>
+            )}
+          </>
+        }
+      >
         {/* Workspace SID */}
         {!management && (
           <div data-worker-workspace-field className="space-y-2">
@@ -309,11 +358,18 @@ export function AssignWorkersForm() {
           </div>
         )}
 
-        <fieldset className="space-y-2" disabled={status === "running"}>
+        <fieldset
+          className="space-y-2"
+          disabled={status === "running"}
+          aria-describedby="skill-workers-hint"
+        >
           <legend className="mb-2 text-sm font-medium">
             {strings.taskrouter.assignWorkers.workersLabel}
           </legend>
-          <InputActions>
+          <p id="skill-workers-hint" className="text-xs text-muted-foreground">
+            {strings.taskrouter.fetchWorker.identifierHint}
+          </p>
+          <>
             <div className="min-w-0 flex-1 space-y-2">
               {workers.map((worker, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -362,7 +418,7 @@ export function AssignWorkersForm() {
                 {strings.taskrouter.assignWorkers.addWorker}
               </ActionButton>
             </ActionBar>
-          </InputActions>
+          </>
         </fieldset>
 
         {/* Skill name */}
@@ -390,58 +446,21 @@ export function AssignWorkersForm() {
               {strings.taskrouter.assignWorkers.levelOptional}
             </span>
           </Label>
-          <InputActions>
-            <div className="min-w-0 flex-1">
-              <Input
-                id="level"
-                type="number"
-                placeholder={strings.common.placeholders.level}
-                min={0}
-                max={5}
-                value={levelInput}
-                onChange={(e) => setLevelInput(e.target.value)}
-                disabled={status === "running"}
-              />
-            </div>
-            <ActionBar>
-              <ActionButton
-                action="primary"
-                aria-busy={status === "running"}
-                type="submit"
-                disabled={!canSubmit}
-              >
-                {status === "running" ? (
-                  <>
-                    <Loader2
-                      className="size-3.5 animate-spin"
-                      aria-hidden="true"
-                    />
-                    {strings.common.processing}
-                  </>
-                ) : (
-                  <>
-                    <Play className="size-3.5" />
-                    {strings.taskrouter.assignWorkers.submit}
-                  </>
-                )}
-              </ActionButton>
 
-              {status === "running" && (
-                <ActionButton action="stop" type="button" onClick={handleAbort}>
-                  {strings.common.cancel}
-                </ActionButton>
-              )}
-
-              {(logs.length > 0 || status !== "idle") &&
-                status !== "running" && (
-                  <ActionButton action="clear" type="button" onClick={reset}>
-                    {strings.common.clear}
-                  </ActionButton>
-                )}
-            </ActionBar>
-          </InputActions>
+          <div className="min-w-0 flex-1">
+            <Input
+              id="level"
+              type="number"
+              placeholder={strings.common.placeholders.level}
+              min={0}
+              max={5}
+              value={levelInput}
+              onChange={(e) => setLevelInput(e.target.value)}
+              disabled={status === "running"}
+            />
+          </div>
         </div>
-      </form>
+      </OperationForm>
 
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -458,6 +477,7 @@ export function AssignWorkersForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationEnvironment />
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction

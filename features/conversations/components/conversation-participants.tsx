@@ -4,11 +4,15 @@ import { Separator } from "@/components/ui/separator"
 import { formatConversationDate } from "@/features/conversations/lib/format-conversation-date"
 import type { Participant } from "@/features/conversations/types"
 import { strings } from "@/lib/strings"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function ConversationParticipants({
   participants,
+  environmentId,
 }: {
   participants: Participant[]
+  environmentId?: string
 }) {
   return (
     <Card>
@@ -72,6 +76,27 @@ export function ConversationParticipants({
                           </span>
                         </div>
                       )}
+                      {environmentId &&
+                        typeof p.messagingBinding.address === "string" &&
+                        /^(?:whatsapp:)?\+?\d{10,15}$/.test(
+                          p.messagingBinding.address
+                        ) && (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                          >
+                            <Link
+                              href={`/taskrouter/search-tasks-by-sid-or-number?${new URLSearchParams({ phone: p.messagingBinding.address, environmentId })}`}
+                            >
+                              {
+                                strings.conversations.consult
+                                  .searchTasksForNumber
+                              }
+                            </Link>
+                          </Button>
+                        )}
                     </div>
                   )}
 

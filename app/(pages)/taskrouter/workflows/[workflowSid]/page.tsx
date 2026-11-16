@@ -13,18 +13,23 @@ export default async function WorkflowDetailsPage({
   searchParams,
 }: {
   params: Promise<{ workflowSid: string }>
-  searchParams: Promise<{ workspaceSid?: string | string[] }>
+  searchParams: Promise<{
+    workspaceSid?: string | string[]
+    environmentId?: string | string[]
+  }>
 }) {
-  const [{ workflowSid }, { workspaceSid }] = await Promise.all([
+  const [{ workflowSid }, { workspaceSid, environmentId }] = await Promise.all([
     params,
     searchParams,
   ])
   return (
     <WorkflowDetails
-      initialWorkflowSid={workflowSid}
-      initialWorkspaceSid={
-        typeof workspaceSid === "string" ? workspaceSid : ""
+      key={`${workflowSid}:${typeof workspaceSid === "string" ? workspaceSid : ""}:${typeof environmentId === "string" ? environmentId : ""}`}
+      initialEnvironmentId={
+        typeof environmentId === "string" ? environmentId : undefined
       }
+      initialWorkflowSid={workflowSid}
+      initialWorkspaceSid={typeof workspaceSid === "string" ? workspaceSid : ""}
     />
   )
 }

@@ -4,9 +4,7 @@ import { TaskCard } from "./task-result-card"
 
 import { PageHeader } from "@/components/page-header"
 
-import { InputActions } from "@/components/input-actions"
-
-import { ActionBar } from "@/components/action-bar"
+import { OperationForm } from "@/components/operation-form"
 
 import { ActionButton } from "@/components/action-button"
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
@@ -17,22 +15,17 @@ import * as React from "react"
 
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
 import { StoredInput } from "@/components/stored-input"
-import {
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogRoot,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { SearchInput } from "@/components/search-input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
 import type { SearchTaskResult, TaskData } from "@/features/taskrouter/types"
 import { MAX_HISTORY } from "@/lib/constants"
-import { clearHistory as clearStoredHistory, environmentHistoryKey, pushHistory, readHistory } from "@/lib/operation-history"
+import {
+  clearHistory as clearStoredHistory,
+  environmentHistoryKey,
+  pushHistory,
+  readHistory,
+} from "@/lib/operation-history"
 import { STORED_KEYS } from "@/lib/stored-keys"
 import { strings } from "@/lib/strings"
 import { cn } from "@/lib/utils"
@@ -92,15 +85,29 @@ function taskDataToResult(task: TaskData): SearchTaskResult {
 
 // ─── Main form ───────────────────────────────────────────────────────────────
 
-export function SearchTasksForm() {
+export function SearchTasksForm({
+  initialPhone = "",
+  initialEnvironmentId,
+}: {
+  initialPhone?: string
+  initialEnvironmentId?: string
+}) {
   const { activeEnvironment } = useEnvironment()
+  const contextMismatch =
+    !!initialEnvironmentId && initialEnvironmentId !== activeEnvironment?.id
+  const phoneFromLink =
+    !contextMismatch && /^(?:whatsapp:)?\+?\d{10,15}$/.test(initialPhone)
+      ? initialPhone
+      : ""
   const historyKey = activeEnvironment
     ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
     : ""
-  const [mode, setMode] = React.useState<SearchMode>("sid")
+  const [mode, setMode] = React.useState<SearchMode>(
+    phoneFromLink ? "phone" : "sid"
+  )
   const [workspaceSid, setWorkspaceSid] = React.useState("")
   const [taskSid, setTaskSid] = React.useState("")
-  const [phone, setPhone] = React.useState("")
+  const [phone, setPhone] = React.useState(phoneFromLink)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
@@ -112,7 +119,6 @@ export function SearchTasksForm() {
     [],
     historyKey
   )
-  const [confirmOpen, setConfirmOpen] = React.useState(false)
   const abortRef = React.useRef<AbortController | null>(null)
   React.useEffect(() => () => abortRef.current?.abort(), [])
 
@@ -143,6 +149,7 @@ export function SearchTasksForm() {
     if (
       !activeEnvironment ||
       loading ||
+      abortRef.current ||
       !requestedWorkspaceSid ||
       !requestedValue
     )
@@ -240,7 +247,7 @@ export function SearchTasksForm() {
       return
     }
     setFieldErrors({})
-    setConfirmOpen(true)
+    void runSearch()
   }
 
   function clearHistory() {
@@ -248,24 +255,8 @@ export function SearchTasksForm() {
     setHistory([])
   }
 
-  const confirmTitle =
-    mode === "sid"
-      ? strings.taskrouter.searchTasks.confirmSidTitle
-      : strings.taskrouter.searchTasks.confirmPhoneTitle
-
-  const confirmDescription =
-    mode === "sid"
-      ? strings.taskrouter.searchTasks.confirmSidDescription(
-          taskSid.trim(),
-          activeEnvironment?.name ?? ""
-        )
-      : strings.taskrouter.searchTasks.confirmPhoneDescription(
-          phone.trim(),
-          activeEnvironment?.name ?? ""
-        )
-
   const searchAction = (
-    <ActionBar>
+    <>
       <ActionButton
         action="search"
         aria-busy={loading}
@@ -279,7 +270,7 @@ export function SearchTasksForm() {
         )}
         {strings.taskrouter.searchTasks.submit}
       </ActionButton>
-    </ActionBar>
+    </>
   )
 
   return (
@@ -289,13 +280,18 @@ export function SearchTasksForm() {
         title={strings.taskrouter.searchTasks.title}
         description={strings.taskrouter.searchTasks.subtitle}
         parent={{
-          href: "/taskrouter",
+          href: "/?area=taskrouter",
           label: strings.sidebar.sections.taskrouter,
         }}
       />
 
       {/* No environment warning */}
       {!activeEnvironment && <NoEnvironmentSelected />}
+      {contextMismatch && activeEnvironment && (
+        <p role="status" className="mb-5 text-sm text-muted-foreground">
+          {strings.common.contextEnvironmentMismatch}
+        </p>
+      )}
 
       {/* Mode toggle */}
       <div className="mb-4 flex rounded-lg border border-border bg-muted/40 p-0.5">
@@ -330,7 +326,11 @@ export function SearchTasksForm() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="operation-form space-y-5">
+      <OperationForm
+        onSubmit={handleSubmit}
+        bodyClassName="space-y-6"
+        actions={searchAction}
+      >
         <div className="space-y-2">
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.searchTasks.workspaceSidLabel}
@@ -339,7 +339,9 @@ export function SearchTasksForm() {
             id="workspaceSid"
             className="search-control"
             aria-describedby={
-              fieldErrors.workspaceSid ? "task-workspace-error" : undefined
+              fieldErrors.workspaceSid
+                ? "task-workspace-error task-workspace-hint"
+                : "task-workspace-hint"
             }
             aria-invalid={!!fieldErrors.workspaceSid}
             storageKey={STORED_KEYS.workspaceSids}
@@ -357,6 +359,9 @@ export function SearchTasksForm() {
             placeholder={strings.common.placeholders.workspaceSid}
             disabled={loading}
           />
+          <p id="task-workspace-hint" className="text-xs text-muted-foreground">
+            {strings.common.workspaceSidHint}
+          </p>
           {fieldErrors.workspaceSid && (
             <p id="task-workspace-error" className="text-xs text-destructive">
               {fieldErrors.workspaceSid}
@@ -369,27 +374,26 @@ export function SearchTasksForm() {
             <Label htmlFor="taskSid">
               {strings.taskrouter.searchTasks.taskSidLabel}
             </Label>
-            <InputActions>
-              <SearchInput
-                id="taskSid"
-                aria-describedby="task-sid-feedback"
-                value={taskSid}
-                onChange={(e) => {
-                  setTaskSid(e.target.value)
-                  if (fieldErrors.taskSid)
-                    setFieldErrors((p) => {
-                      const n = { ...p }
-                      delete n.taskSid
-                      return n
-                    })
-                }}
-                placeholder={strings.common.placeholders.taskSid}
-                disabled={loading}
-                className="min-w-0 flex-1 font-mono"
-                aria-invalid={!!fieldErrors.taskSid}
-              />
-              {searchAction}
-            </InputActions>
+
+            <SearchInput
+              id="taskSid"
+              aria-describedby="task-sid-feedback"
+              value={taskSid}
+              onChange={(e) => {
+                setTaskSid(e.target.value)
+                if (fieldErrors.taskSid)
+                  setFieldErrors((p) => {
+                    const n = { ...p }
+                    delete n.taskSid
+                    return n
+                  })
+              }}
+              placeholder={strings.common.placeholders.taskSid}
+              disabled={loading}
+              className="min-w-0 flex-1 font-mono"
+              aria-invalid={!!fieldErrors.taskSid}
+            />
+
             {fieldErrors.taskSid ? (
               <p id="task-sid-feedback" className="text-xs text-destructive">
                 {fieldErrors.taskSid}
@@ -408,49 +412,23 @@ export function SearchTasksForm() {
             <Label htmlFor="phone">
               {strings.taskrouter.searchTasks.phoneLabel}
             </Label>
-            <InputActions>
-              <SearchInput
-                id="phone"
-                aria-describedby="task-phone-hint"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={strings.common.placeholders.phone}
-                disabled={loading}
-                className="min-w-0 flex-1"
-              />
-              {searchAction}
-            </InputActions>
+
+            <SearchInput
+              id="phone"
+              aria-describedby="task-phone-hint"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={strings.common.placeholders.phone}
+              disabled={loading}
+              className="min-w-0 flex-1"
+            />
+
             <p id="task-phone-hint" className="text-xs text-muted-foreground">
               {strings.taskrouter.searchTasks.phoneLabelHint}
             </p>
           </div>
         )}
-      </form>
-
-      {/* Confirmation dialog */}
-      <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
-            <AlertDialogAction
-              className="gap-2"
-              onClick={() => {
-                setConfirmOpen(false)
-                void runSearch()
-              }}
-            >
-              <Search aria-hidden="true" className="size-3.5" />
-              {strings.common.search}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialogRoot>
+      </OperationForm>
 
       {/* Error */}
       {error && (

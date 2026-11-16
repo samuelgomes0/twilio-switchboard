@@ -70,10 +70,10 @@ export function CommandMenu() {
       <Dialog.Trigger asChild>
         <button
           type="button"
-          className="command-trigger search-control"
+          className="command-trigger"
           aria-label={strings.interface.searchTools}
         >
-          <Search aria-hidden="true" className="size-3.5" />
+          <Search aria-hidden="true" className="size-4" />
           <span>{strings.interface.searchTools}</span>
           <kbd aria-hidden="true">{strings.interface.searchShortcut}</kbd>
         </button>

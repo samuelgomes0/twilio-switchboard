@@ -1,3 +1,4 @@
+import { FormActions } from "@/components/form-actions"
 import { InputActions } from "@/components/input-actions"
 import { Card } from "@/components/ui/card"
 import { strings } from "@/lib/strings"
@@ -31,10 +32,12 @@ export function ConversationPageSkeleton() {
           </div>
         </div>
         <Skeleton className="mb-2 h-4 w-32" />
-        <InputActions>
+        <>
           <Skeleton className="h-11 w-full min-w-0 rounded-lg sm:flex-1" />
-          <Skeleton className="h-11 w-24 shrink-0 rounded-md" />
-        </InputActions>
+          <FormActions>
+            <Skeleton className="h-10 w-24 shrink-0 rounded-md" />
+          </FormActions>
+        </>
         <Skeleton className="mt-2 h-3 w-64 max-w-full" />
       </div>
     </div>

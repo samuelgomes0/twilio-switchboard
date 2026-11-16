@@ -9,6 +9,7 @@ import {
   GitBranch,
   Hash,
   LayoutDashboard,
+  Network,
   ListX,
   MapPin,
   MessageSquare,
@@ -58,19 +59,14 @@ const flexNavItems: NavItem[] = [
 
 const taskrouterNavItems: NavItem[] = [
   {
-    label: strings.taskrouter.workerManagement.title,
-    href: "/taskrouter/manage-workers",
-    icon: Settings2,
+    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
+    href: "/taskrouter/add-business-rule-filter",
+    icon: Filter,
   },
   {
     label: strings.sidebar.nav.taskrouter.searchTasks.label,
     href: "/taskrouter/search-tasks-by-sid-or-number",
     icon: Search,
-  },
-  {
-    label: strings.sidebar.nav.taskrouter.workflows.label,
-    href: "/taskrouter/workflows",
-    icon: Workflow,
   },
   {
     label: strings.sidebar.nav.taskrouter.createWorkflow.label,
@@ -83,9 +79,14 @@ const taskrouterNavItems: NavItem[] = [
     icon: ListX,
   },
   {
-    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
-    href: "/taskrouter/add-business-rule-filter",
-    icon: Filter,
+    label: strings.taskrouter.workerManagement.title,
+    href: "/taskrouter/manage-workers",
+    icon: Settings2,
+  },
+  {
+    label: strings.sidebar.nav.taskrouter.workflows.label,
+    href: "/taskrouter/workflows",
+    icon: Workflow,
   },
 ]
 
@@ -117,55 +118,81 @@ const configNavItems: NavItem[] = [
 
 function NavSection({
   label,
-  href,
+  area,
   items,
   icon: Icon,
   pathname,
   onNavigate,
+  collapsed,
 }: {
   label: string
-  href: string
+  area: string
   items: NavItem[]
   icon: React.ElementType
   pathname: string
   onNavigate?: () => void
+  collapsed?: boolean
 }) {
   const [choice, setChoice] = React.useState({ path: "", expanded: false })
   const expanded =
     choice.path === pathname
       ? choice.expanded
-      : pathname.startsWith(href) ||
+      : pathname.startsWith(`/${area}/`) ||
         (pathname === "/" &&
-          (href === "/conversations" || href === "/taskrouter"))
+          (area === "conversations" || area === "taskrouter"))
   const id = React.useId()
-  return (
-    <section className="nav-group">
-      <div className="nav-group-row" data-active={pathname.startsWith(href)}>
+  if (items.length === 1) {
+    const item = items[0]
+    return (
+      <section className="nav-group">
         <Link
-          href={href}
+          href={item.href}
           onClick={onNavigate}
-          className="nav-group-link"
-          aria-current={pathname === href ? "page" : undefined}
+          className="nav-link"
+          aria-label={`${label}: ${item.label}`}
+          title={collapsed ? `${label}: ${item.label}` : undefined}
+          aria-current={pathname === item.href ? "page" : undefined}
         >
           <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>{label}</span>
+          <span className="nav-label">{label}</span>
         </Link>
-        <button
-          type="button"
-          className="nav-expand"
-          aria-label={strings.interface.expandNavigation(label)}
-          aria-expanded={expanded}
-          aria-controls={id}
-          onClick={() => setChoice({ path: pathname, expanded: !expanded })}
-        >
-          <ChevronDown
-            aria-hidden="true"
-            className={expanded ? "size-3 rotate-180" : "size-3"}
-          />
-        </button>
+      </section>
+    )
+  }
+  return (
+    <section className="nav-group">
+      <div className="nav-group-row" data-active={pathname.startsWith(`/${area}/`)}>
+        {collapsed ? (
+          <Link
+            href={`/?area=${area}`}
+            onClick={onNavigate}
+            className="nav-group-link"
+            aria-label={label}
+            title={label}
+          >
+            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+            <span className="nav-label">{label}</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="nav-group-link w-full text-left"
+            aria-label={strings.interface.expandNavigation(label)}
+            aria-expanded={expanded}
+            aria-controls={id}
+            onClick={() => setChoice({ path: pathname, expanded: !expanded })}
+          >
+            <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+            <span className="nav-label">{label}</span>
+            <ChevronDown
+              aria-hidden="true"
+              className={expanded ? "ml-auto size-3 rotate-180" : "ml-auto size-3"}
+            />
+          </button>
+        )}
       </div>
       <div id={id} hidden={!expanded} className="nav-children">
-        {items.map(({ label, href }) => (
+        {items.map(({ label, href, icon: ItemIcon }) => (
           <Link
             key={href}
             href={href}
@@ -173,19 +200,79 @@ function NavSection({
             className="nav-link"
             aria-current={pathname === href ? "page" : undefined}
           >
-            {label}
+            <ItemIcon aria-hidden="true" className="size-4 shrink-0" />
+            <span>{label}</span>
           </Link>
         ))}
       </div>
     </section>
   )
 }
-export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+export function getNavigationTrail(pathname: string) {
+  const groups = [
+    {
+      href: "/?area=conversations",
+      prefix: "/conversations/",
+      label: strings.sidebar.sections.conversations,
+      items: conversationsNavItems,
+    },
+    {
+      href: "/?area=taskrouter",
+      prefix: "/taskrouter/",
+      label: strings.sidebar.sections.taskrouter,
+      items: taskrouterNavItems,
+    },
+    {
+      href: "/?area=numbers",
+      prefix: "/numbers/",
+      label: strings.sidebar.sections.numbers,
+      items: numbersNavItems,
+    },
+    {
+      href: "/?area=flex",
+      prefix: "/flex/",
+      label: strings.sidebar.sections.flex,
+      items: flexNavItems,
+    },
+    {
+      href: "/settings",
+      prefix: "/settings/",
+      label: strings.sidebar.sections.settings,
+      items: configNavItems,
+    },
+  ]
+  const group = groups.find(
+    (item) => pathname === item.href || pathname.startsWith(item.prefix)
+  )
+  if (!group) return []
+  const item = group.items.find(
+    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+  )
+  return item ? [group, item] : [group]
+}
+
+export function SidebarNav({
+  onNavigate,
+  collapsed = false,
+}: {
+  onNavigate?: () => void
+  collapsed?: boolean
+}) {
   const pathname = usePathname()
   return (
     <div className="navigation-panel">
-      <Link href="/" className="nav-brand" onClick={onNavigate}>
-        {strings.sidebar.title}
+      <Link
+        href="/"
+        className="nav-brand"
+        aria-label={strings.sidebar.title}
+        onClick={onNavigate}
+      >
+        <span className="nav-brand-mark">
+          <Network aria-hidden="true" className="size-4" />
+        </span>
+        <span className="nav-brand-copy">
+          {strings.sidebar.title}
+        </span>
       </Link>
       <nav
         className="nav-content"
@@ -195,60 +282,63 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           href="/"
           onClick={onNavigate}
           className="nav-link"
+          aria-label={strings.interface.home}
+          title={collapsed ? strings.interface.home : undefined}
           aria-current={pathname === "/" ? "page" : undefined}
         >
           <LayoutDashboard aria-hidden="true" className="size-3.5" />
-          {strings.interface.home}
+          <span className="nav-label">{strings.interface.home}</span>
         </Link>
         <NavSection
           label={strings.sidebar.sections.conversations}
-          href="/conversations"
+          area="conversations"
           items={conversationsNavItems}
           icon={MessageSquare}
+          collapsed={collapsed}
           pathname={pathname}
           onNavigate={onNavigate}
         />
         <NavSection
           label={strings.sidebar.sections.taskrouter}
-          href="/taskrouter"
+          area="taskrouter"
           items={taskrouterNavItems}
           icon={Workflow}
+          collapsed={collapsed}
           pathname={pathname}
           onNavigate={onNavigate}
         />
         <NavSection
           label={strings.sidebar.sections.numbers}
-          href="/numbers"
+          area="numbers"
           items={numbersNavItems}
           icon={Hash}
+          collapsed={collapsed}
           pathname={pathname}
           onNavigate={onNavigate}
         />
         <NavSection
           label={strings.sidebar.sections.flex}
-          href="/flex"
+          area="flex"
           items={flexNavItems}
           icon={MapPin}
-          pathname={pathname}
-          onNavigate={onNavigate}
-        />
-        <NavSection
-          label={strings.sidebar.sections.settings}
-          href="/settings"
-          items={configNavItems}
-          icon={Settings2}
+          collapsed={collapsed}
           pathname={pathname}
           onNavigate={onNavigate}
         />
       </nav>
       <div className="nav-footer">
         <Link
-          href="/settings/manage-environments"
+          href="/settings"
           className="nav-link"
+          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+          aria-label={strings.sidebar.configureEnvironments}
+          title={collapsed ? strings.sidebar.configureEnvironments : undefined}
           onClick={onNavigate}
         >
           <Settings2 aria-hidden="true" className="size-3.5" />
-          {strings.sidebar.configureEnvironments}
+          <span className="nav-label">
+            {strings.sidebar.configureEnvironments}
+          </span>
         </Link>
       </div>
     </div>
