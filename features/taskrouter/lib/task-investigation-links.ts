@@ -27,11 +27,5 @@ export function taskInvestigationLinks(task: TaskData, environmentId: string) {
     conversation: conversationSid
       ? `/conversations/consult-by-sid?${new URLSearchParams({ environmentId, sid: conversationSid })}`
       : null,
-    workflow:
-      /^WS[0-9a-f]{32}$/i.test(task.workspaceSid) &&
-      typeof task.workflowSid === "string" &&
-      /^WW[0-9a-f]{32}$/i.test(task.workflowSid)
-        ? `/taskrouter/workflows/${task.workflowSid}?${new URLSearchParams({ environmentId, workspaceSid: task.workspaceSid })}`
-        : null,
   }
 }

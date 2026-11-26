@@ -7,12 +7,8 @@ const historyForms = [
   "features/conversations/components/close-form.tsx",
   "features/conversations/components/fetch-by-participant-form.tsx",
   "features/taskrouter/components/assign-workers-form.tsx",
-  "features/taskrouter/components/cancel-queue-tasks-form.tsx",
-  "features/taskrouter/components/create-workflow-form.tsx",
-  "features/taskrouter/components/add-particular-filter-form.tsx",
   "features/taskrouter/components/fetch-worker-form.tsx",
   "features/taskrouter/components/search-tasks-form.tsx",
-  "features/flex/components/create-address-config-form.tsx",
 ]
 
 test("operation histories use independent keys without rewriting legacy data", () => {

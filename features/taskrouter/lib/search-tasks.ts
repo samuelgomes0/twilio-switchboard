@@ -20,7 +20,7 @@ export async function searchTasks(
   workspaceSid: string,
   phoneNumber: string,
   client: ReturnType<typeof getTwilioClient>
-): Promise<{ tasks: SearchTaskResult[]; phone: string }> {
+): Promise<{ tasks: SearchTaskResult[]; phone: string; hasMore: boolean }> {
   const phone = normalizeTaskPhone(phoneNumber)
   if (!phone) throw new Error("Invalid phone number")
   const whatsappPhone = `whatsapp:${phone}`
@@ -28,12 +28,17 @@ export async function searchTasks(
 
   const rawTasks = await client.taskrouter.v1
     .workspaces(workspaceSid)
-    .tasks.list({ evaluateTaskAttributes: filter, limit: TASK_LIST_LIMIT })
+    .tasks.list({ evaluateTaskAttributes: filter, limit: TASK_LIST_LIMIT + 1 })
 
-  const tasks: SearchTaskResult[] = rawTasks.map((task) => ({
-    ...mapTask(task),
-    channel: inferChannel(task.attributes, task.taskChannelUniqueName ?? null),
-  }))
+  const tasks: SearchTaskResult[] = rawTasks
+    .slice(0, TASK_LIST_LIMIT)
+    .map((task) => ({
+      ...mapTask(task),
+      channel: inferChannel(
+        task.attributes,
+        task.taskChannelUniqueName ?? null
+      ),
+    }))
 
-  return { tasks, phone }
+  return { tasks, phone, hasMore: rawTasks.length > TASK_LIST_LIMIT }
 }

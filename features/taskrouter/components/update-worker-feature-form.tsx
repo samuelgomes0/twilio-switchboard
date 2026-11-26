@@ -1,4 +1,16 @@
 "use client"
+
+import {
+  OperationResults,
+  OperationRecovery,
+} from "@/components/operation-review"
+import { readWorkerConfiguration } from "@/features/taskrouter/lib/worker-configuration"
+import { useWorkspaceSid } from "./workspace-context"
+import { WorkspaceInput } from "./workspace-input"
+import {
+  useOperationDraft,
+  useUnsavedChanges,
+} from "@/components/use-operation-draft"
 import { OperationForm } from "@/components/operation-form"
 
 import { PageHeader } from "@/components/page-header"
@@ -10,7 +22,6 @@ import { ActionButton } from "@/components/action-button"
 
 import { LogOutput } from "@/components/log-output"
 import { NoEnvironmentSelected } from "@/components/no-environment-selected"
-import { StoredInput } from "@/components/stored-input"
 import { WarningBadge } from "@/components/warning-badge"
 import { Loader2, Play } from "lucide-react"
 import * as React from "react"
@@ -38,21 +49,33 @@ export function UpdateWorkerFeatureForm() {
   const management = useWorkerManagement()
   const messages = strings.taskrouter.updateWorkerFeature
   const { activeEnvironment } = useEnvironment()
-  const [localWorkspaceSid, setLocalWorkspaceSid] = React.useState("")
+  const [localWorkspaceSid, setLocalWorkspaceSid] = useWorkspaceSid()
   const workspaceSid = management?.workspaceSid ?? localWorkspaceSid
   const setWorkspaceSid = management?.setWorkspaceSid ?? setLocalWorkspaceSid
-  const [workers, setWorkers] = React.useState<string[]>([
-    management?.selectedWorkerSid ?? "",
-  ])
-  const [feature, setFeature] = React.useState("")
-  const [enabled, setEnabled] = React.useState(true)
+  const [localWorkers, setLocalWorkers] = React.useState<string[]>([""])
+  const workers = management?.workers ?? localWorkers
+  const setWorkers = management?.setWorkers ?? setLocalWorkers
+  const [feature, setFeature] = useOperationDraft(
+    "",
+    `${activeEnvironment?.id}:worker:feature`
+  )
+  const [enabled, setEnabled] = useOperationDraft(
+    true,
+    `${activeEnvironment?.id}:worker:enabled`
+  )
   const [confirmOpen, setConfirmOpen] = React.useState(false)
-  const { logs, status, run, cancel } = useUpdateWorkerFeature()
+  const { logs, results, status, run, cancel } = useUpdateWorkerFeature()
   const workerIdentifiers = [
     ...new Set(workers.map((sid) => sid.trim()).filter(Boolean)),
   ]
+  const configuredFeatures = management?.selectedWorker
+    ? (readWorkerConfiguration(management.selectedWorker.attributes)
+        ?.features ?? [])
+    : []
+  useUnsavedChanges(status === "running" || !!feature.trim())
   const running = status === "running"
   const valid =
+    (!management || management.canWrite) &&
     /^WS[0-9a-f]{32}$/i.test(workspaceSid.trim()) &&
     workerIdentifiers.length > 0 &&
     workerIdentifiers.length <= MAX_ITEMS &&
@@ -70,10 +93,6 @@ export function UpdateWorkerFeatureForm() {
         <PageHeader
           title={messages.title}
           description={messages.subtitle}
-          parent={{
-            href: "/?area=taskrouter",
-            label: strings.sidebar.sections.taskrouter,
-          }}
           badge={<WarningBadge />}
           embedded
         />
@@ -82,7 +101,8 @@ export function UpdateWorkerFeatureForm() {
       <OperationForm
         onSubmit={(event) => {
           event.preventDefault()
-          if (valid && activeEnvironment && !running) setConfirmOpen(true)
+          if (valid && activeEnvironment && !running && !management?.runningTab)
+            setConfirmOpen(true)
         }}
         bodyClassName="space-y-6"
         actions={
@@ -91,7 +111,12 @@ export function UpdateWorkerFeatureForm() {
               action="primary"
               aria-busy={running}
               type="submit"
-              disabled={!valid || !activeEnvironment || running}
+              disabled={
+                !valid ||
+                !activeEnvironment ||
+                running ||
+                !!management?.runningTab
+              }
               aria-label={messages.submit}
             >
               {running ? (
@@ -123,7 +148,7 @@ export function UpdateWorkerFeatureForm() {
               <Label htmlFor="feature-workspace">
                 {messages.workspaceLabel}
               </Label>
-              <StoredInput
+              <WorkspaceInput
                 id="feature-workspace"
                 storageKey={STORED_KEYS.workspaceSids}
                 environmentId={activeEnvironment?.id}
@@ -134,79 +159,94 @@ export function UpdateWorkerFeatureForm() {
               />
             </div>
           )}
-          <fieldset
-            className="space-y-2"
-            aria-describedby="feature-workers-hint"
-          >
-            <legend className="mb-2 text-sm font-medium">
-              {messages.workersLabel}
-            </legend>
-            <p
-              id="feature-workers-hint"
-              className="text-xs text-muted-foreground"
+          {!management && (
+            <fieldset
+              className="space-y-2"
+              aria-describedby="feature-workers-hint"
             >
-              {messages.workersHint}
-            </p>
-            <>
-              <div className="min-w-0 flex-1 space-y-2">
-                {workers.map((worker, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Label
-                      htmlFor={`feature-worker-${index}`}
-                      className="sr-only"
-                    >
-                      {messages.workerLabel(index + 1)}
-                    </Label>
-                    <Input
-                      id={`feature-worker-${index}`}
-                      value={worker}
-                      onChange={(event) =>
-                        setWorkers((previous) =>
-                          previous.map((sid, position) =>
-                            position === index ? event.target.value : sid
+              <legend className="mb-2 text-sm font-medium">
+                {messages.workersLabel}
+              </legend>
+              <p
+                id="feature-workers-hint"
+                className="text-xs text-muted-foreground"
+              >
+                {messages.workersHint}
+              </p>
+              <>
+                <div className="min-w-0 flex-1 space-y-2">
+                  {workers.map((worker, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Label
+                        htmlFor={`feature-worker-${index}`}
+                        className="sr-only"
+                      >
+                        {messages.workerLabel(index + 1)}
+                      </Label>
+                      <Input
+                        id={`feature-worker-${index}`}
+                        value={worker}
+                        onChange={(event) =>
+                          setWorkers((previous) =>
+                            previous.map((sid, position) =>
+                              position === index ? event.target.value : sid
+                            )
                           )
-                        )
-                      }
-                      placeholder={messages.workersPlaceholder}
-                      className="min-w-0 flex-1"
-                    />
-                    <ActionButton
-                      action="remove"
-                      iconOnly
-                      type="button"
-                      disabled={running || workers.length === 1}
-                      onClick={() =>
-                        setWorkers((previous) =>
-                          previous.filter((_, position) => position !== index)
-                        )
-                      }
-                      aria-label={messages.removeWorker(index + 1)}
-                    ></ActionButton>
-                  </div>
-                ))}
-              </div>
-              <ActionBar>
-                <ActionButton
-                  action="add"
-                  type="button"
-                  disabled={running || workers.length >= MAX_ITEMS}
-                  onClick={() => setWorkers((previous) => [...previous, ""])}
-                >
-                  {messages.addWorker}
-                </ActionButton>
-              </ActionBar>
-            </>
-          </fieldset>
+                        }
+                        placeholder={messages.workersPlaceholder}
+                        className="min-w-0 flex-1"
+                      />
+                      <ActionButton
+                        action="remove"
+                        iconOnly
+                        type="button"
+                        disabled={running || workers.length === 1}
+                        onClick={() =>
+                          setWorkers((previous) =>
+                            previous.filter((_, position) => position !== index)
+                          )
+                        }
+                        aria-label={messages.removeWorker(index + 1)}
+                      ></ActionButton>
+                    </div>
+                  ))}
+                </div>
+                <ActionBar>
+                  <ActionButton
+                    action="add"
+                    type="button"
+                    disabled={running || workers.length >= MAX_ITEMS}
+                    onClick={() => setWorkers((previous) => [...previous, ""])}
+                  >
+                    {messages.addWorker}
+                  </ActionButton>
+                </ActionBar>
+              </>
+            </fieldset>
+          )}
           <div className="space-y-2">
             <Label htmlFor="feature-name">{messages.featureLabel}</Label>
             <Input
               id="feature-name"
               value={feature}
-              onChange={(event) => setFeature(event.target.value)}
+              onChange={(event) => {
+                setFeature(event.target.value)
+                const existing = configuredFeatures.find(
+                  (item) => item.name === event.target.value.trim()
+                )
+                if (existing && existing.enabled !== null)
+                  setEnabled(existing.enabled)
+              }}
+              list="worker-feature-names"
               placeholder={messages.featurePlaceholder}
               maxLength={100}
               aria-describedby="feature-name-hint"
             />
+            <datalist id="worker-feature-names">
+              {configuredFeatures.map((item) => (
+                <option key={item.name} value={item.name} />
+              ))}
+            </datalist>
             <p id="feature-name-hint" className="text-xs text-muted-foreground">
               {messages.featureHint}
             </p>
@@ -243,12 +283,30 @@ export function UpdateWorkerFeatureForm() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {management?.selectedWorker && (
+            <p className="text-sm break-all">
+              {strings.taskrouter.workerManagement.selectedTarget(
+                management.selectedWorker.friendlyName,
+                management.selectedWorker.sid
+              )}
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              disabled={!valid || !activeEnvironment || running}
+              disabled={
+                !valid ||
+                !activeEnvironment ||
+                running ||
+                !!management?.runningTab
+              }
               onClick={() => {
-                if (!activeEnvironment || !valid) return
+                if (!activeEnvironment || !valid || running) return
+                const releaseOperation = management?.acquireOperation(
+                  "features",
+                  cancel
+                )
+                if (management && !releaseOperation) return
                 void run({
                   workspaceSid: workspaceSid.trim(),
                   workerSids: workerIdentifiers,
@@ -256,7 +314,7 @@ export function UpdateWorkerFeatureForm() {
                   enabled,
                   accountSid: activeEnvironment.accountSid,
                   authToken: activeEnvironment.authToken,
-                })
+                }).finally(() => releaseOperation?.())
               }}
             >
               {messages.submit}
@@ -264,6 +322,15 @@ export function UpdateWorkerFeatureForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialogRoot>
+      <OperationResults results={results ?? []} />
+      <OperationRecovery
+        status={
+          status === "done" &&
+          results?.some((result) => result.status !== "success")
+            ? "error"
+            : status
+        }
+      />
       {logs.length > 0 && (
         <section className="mt-5 space-y-2">
           <p className="text-xs font-medium tracking-normal text-muted-foreground">

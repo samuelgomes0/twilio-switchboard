@@ -220,14 +220,9 @@ export function ListNumbersForm() {
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={s.title}
         description={s.subtitle}
-        parent={{
-          href: "/?area=numbers",
-          label: strings.sidebar.sections.numbers,
-        }}
       />
 
       {/* No environment warning */}

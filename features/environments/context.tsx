@@ -1,11 +1,13 @@
 "use client"
 
+import { confirmDiscardChanges } from "@/lib/unsaved-changes"
 import {
   type TwilioEnvironment,
   getActiveEnvironmentId,
   getEnvironments,
   removeActiveEnvironmentId,
-  saveEnvironments,
+  mutateEnvironments,
+  subscribeEnvironments,
   setActiveEnvironmentId,
 } from "@/features/environments/storage"
 import * as React from "react"
@@ -14,12 +16,12 @@ interface EnvironmentContextValue {
   environments: TwilioEnvironment[]
   activeEnvironment: TwilioEnvironment | null
   activeEnvironmentRevision: number
-  addEnvironment: (env: Omit<TwilioEnvironment, "id">) => void
+  addEnvironment: (env: Omit<TwilioEnvironment, "id">) => Promise<boolean>
   updateEnvironment: (
     id: string,
     updates: Omit<TwilioEnvironment, "id">
-  ) => void
-  deleteEnvironment: (id: string) => void
+  ) => Promise<boolean>
+  deleteEnvironment: (id: string) => Promise<boolean>
   setActive: (id: string) => void
 }
 
@@ -36,23 +38,38 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     React.useReducer((revision: number) => revision + 1, 0)
   const [hydrated, setHydrated] = React.useState(false)
 
+  const snapshotRef = React.useRef<{ active: TwilioEnvironment | null }>({
+    active: null,
+  })
   React.useEffect(() => {
-    const frame = requestAnimationFrame(() => {
+    function refresh() {
       const storedEnvironments = getEnvironments()
       const storedActiveId = getActiveEnvironmentId()
-      setEnvironments(storedEnvironments)
+      const active =
+        storedEnvironments.find(
+          (environment) => environment.id === storedActiveId
+        ) ?? null
+      const previous = snapshotRef.current.active
       if (
-        storedActiveId &&
-        storedEnvironments.some((environment) => environment.id === storedActiveId)
-      ) {
-        setActiveId(storedActiveId)
-      } else {
-        setActiveId(null)
-        if (storedActiveId) removeActiveEnvironmentId()
-      }
+        previous &&
+        active &&
+        previous.id === active.id &&
+        (previous.accountSid !== active.accountSid ||
+          previous.authToken !== active.authToken ||
+          previous.name !== active.name)
+      )
+        bumpActiveEnvironmentRevision()
+      snapshotRef.current = { active }
+      setEnvironments(storedEnvironments)
+      setActiveId(active?.id ?? null)
       setHydrated(true)
-    })
-    return () => cancelAnimationFrame(frame)
+    }
+    const frame = requestAnimationFrame(refresh)
+    const unsubscribe = subscribeEnvironments(refresh)
+    return () => {
+      cancelAnimationFrame(frame)
+      unsubscribe()
+    }
   }, [])
 
   const activeEnvironment = React.useMemo(
@@ -61,39 +78,41 @@ function EnvironmentProvider({ children }: { children: React.ReactNode }) {
     [environments, activeId, hydrated]
   )
 
-  function addEnvironment(env: Omit<TwilioEnvironment, "id">) {
+  async function addEnvironment(env: Omit<TwilioEnvironment, "id">) {
     const newEnv: TwilioEnvironment = { id: crypto.randomUUID(), ...env }
-    const updated = [...environments, newEnv]
-    if (!saveEnvironments(updated)) return
-    setEnvironments(updated)
+    return mutateEnvironments((current) => [...current, newEnv])
   }
 
-  function updateEnvironment(
+  async function updateEnvironment(
     id: string,
     updates: Omit<TwilioEnvironment, "id">
   ) {
-    const updated = environments.map((e) =>
-      e.id === id ? { id, ...updates } : e
+    return mutateEnvironments((current) =>
+      current.some((environment) => environment.id === id)
+        ? current.map((environment) =>
+            environment.id === id ? { id, ...updates } : environment
+          )
+        : null
     )
-    if (!saveEnvironments(updated)) return
-    setEnvironments(updated)
-    if (activeId === id) bumpActiveEnvironmentRevision()
   }
 
-  function deleteEnvironment(id: string) {
-    const updated = environments.filter((e) => e.id !== id)
-    if (!saveEnvironments(updated)) return
-    if (activeId === id) removeActiveEnvironmentId()
-    setEnvironments(updated)
-    if (activeId === id) {
-      setActiveId(null)
-      bumpActiveEnvironmentRevision()
-    }
+  async function deleteEnvironment(id: string) {
+    const saved = await mutateEnvironments((current) =>
+      current.filter((environment) => environment.id !== id)
+    )
+    if (!saved) return false
+    if (getActiveEnvironmentId() === id) removeActiveEnvironmentId()
+    if (activeId === id) bumpActiveEnvironmentRevision()
+    return true
   }
 
   function setActive(id: string) {
+    if (id === activeId || !confirmDiscardChanges()) return
     if (!setActiveEnvironmentId(id)) return
     setActiveId(id)
+    snapshotRef.current = {
+      active: environments.find((environment) => environment.id === id) ?? null,
+    }
     bumpActiveEnvironmentRevision()
   }
 

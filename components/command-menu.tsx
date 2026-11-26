@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/search-input"
 import { conversationsTools } from "@/features/conversations/tools"
-import { flexTools } from "@/features/flex/tools"
 import { numbersTools } from "@/features/numbers/tools"
 import { taskrouterTools } from "@/features/taskrouter/tools"
 import { strings } from "@/lib/strings"
@@ -17,7 +16,6 @@ const TOOLS = [
   ...conversationsTools,
   ...taskrouterTools,
   ...numbersTools,
-  ...flexTools,
   {
     ...strings.environments.page.tools.manage,
     href: "/settings/manage-environments",

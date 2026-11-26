@@ -11,9 +11,14 @@ export const metadata: Metadata = {
 export default async function WorkersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>
+  searchParams: Promise<{ tab?: string; mode?: string }>
 }) {
-  const { tab } = await searchParams
+  const { tab, mode } = await searchParams
   const initialTab = tab === "skills" || tab === "features" ? tab : "details"
-  return <WorkerManagementForm initialTab={initialTab} />
+  return (
+    <WorkerManagementForm
+      initialTab={initialTab}
+      initialMode={mode === "individual" || mode === "batch" ? mode : undefined}
+    />
+  )
 }

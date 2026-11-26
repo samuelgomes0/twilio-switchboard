@@ -55,7 +55,11 @@ export async function updateWorkerFeature(
       const worker = await resolveWorker(client, input.workspaceSid, identifier)
       if (!worker) {
         totalErrors++
-        emit(sseEvent("error", messages.failedWorker(identifier)))
+        emit(
+          sseEvent("error", messages.failedWorker(identifier), {
+            result: { id: identifier, status: "error" },
+          })
+        )
         continue
       }
       const workerSid = worker.sid ?? identifier
@@ -72,16 +76,28 @@ export async function updateWorkerFeature(
         )
       } catch {
         totalErrors++
-        emit(sseEvent("error", messages.invalidWorkerAttributes(identifier)))
+        emit(
+          sseEvent("error", messages.invalidWorkerAttributes(identifier), {
+            result: { id: identifier, status: "error" },
+          })
+        )
         continue
       }
       // Do not retry writes automatically: a timeout can follow a successful update.
       await resource.update({ attributes })
       totalUpdated++
-      emit(sseEvent("success", messages.updatedWorker(identifier)))
+      emit(
+        sseEvent("success", messages.updatedWorker(identifier), {
+          result: { id: identifier, status: "success" },
+        })
+      )
     } catch {
       totalErrors++
-      emit(sseEvent("error", messages.failedWorker(identifier)))
+      emit(
+        sseEvent("error", messages.failedWorker(identifier), {
+          result: { id: identifier, status: "error" },
+        })
+      )
     }
   }
   return { totalUpdated, totalErrors }

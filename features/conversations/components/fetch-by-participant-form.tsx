@@ -184,14 +184,9 @@ function ParticipantSearchForm() {
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={strings.conversations.fetchByParticipant.title}
         description={strings.conversations.fetchByParticipant.subtitle}
-        parent={{
-          href: "/?area=conversations",
-          label: strings.sidebar.sections.conversations,
-        }}
       />
 
       {/* No environment warning */}

@@ -41,16 +41,10 @@ test("request validation accepts only objects with a complete credential pair", 
   )
 })
 
-test("TaskRouter rejects unsafe literals and normalizes only valid E.164 phones", () => {
-  const { isSafeTaskRouterLiteral } = createLoader()(
-    "features/taskrouter/lib/taskrouter-expression.ts"
-  )
+test("TaskRouter normalizes only valid E.164 phones", () => {
   const { normalizeTaskPhone } = createLoader()(
     "features/taskrouter/lib/search-tasks.ts"
   )
-  assert.equal(isSafeTaskRouterLiteral("Regra segura"), true)
-  for (const value of ["x' OR 1==1", 'x" OR 1==1', "x\\y", "x\n"])
-    assert.equal(isSafeTaskRouterLiteral(value), false)
   assert.equal(normalizeTaskPhone("whatsapp:+55 (11) 99999-9999"), "+5511999999999")
   assert.equal(normalizeTaskPhone("+55' OR 1==1"), null)
 })
@@ -95,104 +89,4 @@ test("number listing reports partial and truncated results and fails when both s
     messaging: { v2: { channelsSenders: { list: async () => { throw new Error() } } } },
   }
   await assert.rejects(listNumbers(failedClient))
-})
-
-test("Flex input validation enforces conditional integration fields", () => {
-  const {
-    isValidStudioFlowSid,
-    isValidWebhookUrl,
-    validateCreateAddressConfig,
-  } = createLoader()(
-    "features/flex/lib/validate-create-address-config.ts"
-  )
-  assert.deepEqual(validateCreateAddressConfig({ address: "+5511999999999", type: "whatsapp" }), {
-    address: "+5511999999999",
-    type: "whatsapp",
-  })
-  assert.equal(validateCreateAddressConfig({ address: "x", type: "invalid" }), null)
-  assert.equal(
-    validateCreateAddressConfig({ address: "x", type: "whatsapp", autoCreationWebhookFilters: [1] }),
-    null
-  )
-  assert.equal(
-    validateCreateAddressConfig({
-      address: "x",
-      type: "whatsapp",
-      autoCreationEnabled: true,
-      autoCreationType: "studio",
-    }),
-    null
-  )
-  assert.equal(
-    validateCreateAddressConfig({
-      address: "x",
-      type: "whatsapp",
-      autoCreationEnabled: true,
-      autoCreationType: "webhook",
-      autoCreationWebhookUrl: "javascript:alert(1)",
-    }),
-    null
-  )
-  const flowSid = `FW${"a".repeat(32)}`
-  assert.equal(isValidStudioFlowSid(` ${flowSid} `), true)
-  assert.equal(isValidStudioFlowSid("FW-invalid"), false)
-  assert.equal(isValidWebhookUrl("https://example.com/hook"), true)
-  assert.equal(isValidWebhookUrl("javascript:alert(1)"), false)
-  assert.deepEqual(
-    validateCreateAddressConfig({
-      address: "x",
-      type: "whatsapp",
-      autoCreationEnabled: true,
-      autoCreationType: "studio",
-      autoCreationStudioFlowSid: ` ${flowSid} `,
-    }),
-    {
-      address: "x",
-      type: "whatsapp",
-      autoCreationEnabled: true,
-      autoCreationType: "studio",
-      autoCreationStudioFlowSid: flowSid,
-    }
-  )
-})
-
-test("Flex route rejects incomplete integrations before creating a client", async () => {
-  let clients = 0
-  const { POST } = createLoader({
-    "@/lib/twilio-client": {
-      getTwilioClient: () => {
-        clients++
-        return {}
-      },
-    },
-  })("app/api/flex/create-conversation-address/route.ts")
-  for (const integration of [
-    { autoCreationEnabled: true, autoCreationType: "studio" },
-    {
-      autoCreationEnabled: true,
-      autoCreationType: "studio",
-      autoCreationStudioFlowSid: "FW-invalid",
-    },
-    { autoCreationEnabled: true, autoCreationType: "webhook" },
-    {
-      autoCreationEnabled: true,
-      autoCreationType: "webhook",
-      autoCreationWebhookUrl: "file:///secret",
-    },
-  ]) {
-    const response = await POST(
-      new Request("http://localhost/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          address: "+5511999999999",
-          type: "whatsapp",
-          ...integration,
-          ...credentials,
-        }),
-      })
-    )
-    assert.equal(response.status, 400)
-  }
-  assert.equal(clients, 0)
 })

@@ -1,16 +1,9 @@
-import { Filter, GitBranch, ListX, Search, User, Workflow } from "lucide-react"
+import { Search, User } from "lucide-react"
 
 import { strings } from "@/lib/strings"
 import type { Tool } from "@/lib/tool"
 
 export const taskrouterTools: Tool[] = [
-  {
-    label: strings.taskrouter.addParticularFilter.breadcrumb,
-    description: strings.taskrouter.addParticularFilter.subtitle,
-    href: "/taskrouter/add-business-rule-filter",
-    icon: Filter,
-    available: true,
-  },
   {
     label: strings.taskrouter.searchTasks.breadcrumb,
     description: strings.taskrouter.searchTasks.subtitle,
@@ -19,31 +12,10 @@ export const taskrouterTools: Tool[] = [
     available: true,
   },
   {
-    label: strings.taskrouter.createWorkflow.breadcrumb,
-    description: strings.taskrouter.createWorkflow.subtitle,
-    href: "/taskrouter/create-workflow-from-csv",
-    icon: GitBranch,
-    available: true,
-  },
-  {
-    label: strings.taskrouter.cancelQueueTasks.breadcrumb,
-    description: strings.taskrouter.cancelQueueTasks.subtitle,
-    href: "/taskrouter/cancel-queue-tasks-and-close-conversations",
-    icon: ListX,
-    available: true,
-  },
-  {
     label: strings.taskrouter.workerManagement.title,
     description: strings.taskrouter.workerManagement.subtitle,
     href: "/taskrouter/manage-workers",
     icon: User,
-    available: true,
-  },
-  {
-    label: strings.taskrouter.workflows.title,
-    description: strings.taskrouter.workflows.subtitle,
-    href: "/taskrouter/workflows",
-    icon: Workflow,
     available: true,
   },
 ]

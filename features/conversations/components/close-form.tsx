@@ -1,4 +1,15 @@
 "use client"
+import { useOperationReview } from "@/components/use-operation-review"
+import {
+  OperationReviewPanel,
+  OperationResults,
+  OperationRecovery,
+} from "@/components/operation-review"
+import { isTargetResult, type TargetResult } from "@/lib/operation-review"
+import {
+  useOperationDraft,
+  useUnsavedChanges,
+} from "@/components/use-operation-draft"
 import { OperationForm } from "@/components/operation-form"
 import { useBrowserState } from "@/components/use-browser-state"
 
@@ -42,7 +53,7 @@ import {
 import { consumeSseStream } from "@/lib/sse-reader"
 import { strings } from "@/lib/strings"
 
-type Status = "idle" | "running" | "done" | "error"
+type Status = "idle" | "running" | "done" | "error" | "cancelled"
 
 interface Summary {
   totalClosed: number
@@ -77,7 +88,10 @@ export function CloseForm() {
   const historyKey = activeEnvironment
     ? environmentHistoryKey(HISTORY_KEY, activeEnvironment.id)
     : ""
-  const [phones, setPhones] = React.useState<string[]>([""])
+  const [phones, setPhones] = useOperationDraft<string[]>(
+    [""],
+    `${activeEnvironment?.id}:close:phones`
+  )
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [status, setStatus] = React.useState<Status>("idle")
   const [summary, setSummary] = React.useState<Summary | null>(null)
@@ -89,14 +103,24 @@ export function CloseForm() {
   )
   const [fieldErrors, setFieldErrors] = React.useState<string[]>([])
   const [progress, setProgress] = React.useState<Progress | null>(null)
+  useUnsavedChanges(
+    status === "running" || phones.some((phone) => phone.trim())
+  )
   const abortRef = React.useRef<AbortController | null>(null)
   React.useEffect(() => () => abortRef.current?.abort(), [])
 
   const participants = phones.map((p) => p.trim()).filter(Boolean)
+  const targetPreview = useOperationReview(
+    "/api/conversations/close-by-number",
+    "CH",
+    { participants }
+  )
+  const [results, setResults] = React.useState<TargetResult[]>([])
+  const busy = status === "running" || targetPreview.loading
   const canSubmit =
     participants.length > 0 &&
     participants.length <= MAX_ITEMS &&
-    status !== "running" &&
+    !busy &&
     !!activeEnvironment
 
   function addLog(level: LogEntry["level"], message: string) {
@@ -104,6 +128,7 @@ export function CloseForm() {
   }
 
   function reset() {
+    setResults([])
     setLogs([])
     setStatus("idle")
     setSummary(null)
@@ -123,12 +148,18 @@ export function CloseForm() {
 
   function handleAbort() {
     abortRef.current?.abort()
+    targetPreview.cancel()
   }
 
   async function runSubmit() {
-    if (!canSubmit || !activeEnvironment) return
-
+    if (!canSubmit || !activeEnvironment || abortRef.current) return
+    const review = targetPreview.currentReview()
+    if (!review) return
+    targetPreview.invalidate()
     reset()
+    setResults(
+      review.targets.map((target) => ({ id: target.id, status: "pending" }))
+    )
     setStatus("running")
 
     const controller = new AbortController()
@@ -141,6 +172,7 @@ export function CloseForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           participants,
+          review,
           accountSid: activeEnvironment.accountSid,
           authToken: activeEnvironment.authToken,
         }),
@@ -162,6 +194,12 @@ export function CloseForm() {
 
       const reader = res.body.getReader()
       await consumeSseStream(reader, (payload) => {
+        if (isTargetResult(payload.result)) {
+          const result = payload.result
+          setResults((previous) =>
+            previous.map((item) => (item.id === result.id ? result : item))
+          )
+        }
         if (
           typeof payload.progress === "object" &&
           payload.progress !== null &&
@@ -198,7 +236,7 @@ export function CloseForm() {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         addLog("warning", strings.common.aborted)
-        setStatus("idle")
+        setStatus("cancelled")
         return
       }
       const message = strings.common.unexpectedError
@@ -224,19 +262,14 @@ export function CloseForm() {
       return
     }
     setFieldErrors([])
-    setConfirmOpen(true)
+    if (targetPreview.currentReview()) setConfirmOpen(true)
   }
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={strings.conversations.close.title}
         description={strings.conversations.close.subtitle}
-        parent={{
-          href: "/?area=conversations",
-          label: strings.sidebar.sections.conversations,
-        }}
         badge={<WarningBadge />}
       />
 
@@ -249,10 +282,21 @@ export function CloseForm() {
         actions={
           <>
             <ActionButton
+              action="search"
+              type="button"
+              disabled={!canSubmit}
+              aria-busy={targetPreview.loading}
+              onClick={() => void targetPreview.analyze()}
+            >
+              {targetPreview.loading
+                ? strings.operationReview.loading
+                : strings.operationReview.analyze}
+            </ActionButton>
+            <ActionButton
               action="destructive"
               aria-busy={status === "running"}
               type="submit"
-              disabled={!canSubmit}
+              disabled={!canSubmit || !targetPreview.review?.targets.length}
             >
               {status === "running" ? (
                 <>
@@ -270,7 +314,7 @@ export function CloseForm() {
               )}
             </ActionButton>
 
-            {status === "running" && (
+            {busy && (
               <ActionButton action="stop" type="button" onClick={handleAbort}>
                 {strings.common.cancel}
               </ActionButton>
@@ -315,7 +359,7 @@ export function CloseForm() {
                       }
                     }}
                     placeholder={strings.common.placeholders.localPhone}
-                    disabled={status === "running"}
+                    disabled={busy}
                     prefix="whatsapp:+55"
                     containerClassName="min-w-0 flex-1"
                     className="pl-[7.5rem]"
@@ -325,7 +369,7 @@ export function CloseForm() {
                       action="remove"
                       iconOnly
                       type="button"
-                      disabled={status === "running"}
+                      disabled={busy}
                       onClick={() =>
                         setPhones((prev) => prev.filter((_, j) => j !== i))
                       }
@@ -338,7 +382,7 @@ export function CloseForm() {
             <ActionButton
               action="add"
               type="button"
-              disabled={status === "running" || phones.length >= MAX_ITEMS}
+              disabled={busy || phones.length >= MAX_ITEMS}
               onClick={() => setPhones((prev) => [...prev, ""])}
             >
               {strings.conversations.close.addPhone}
@@ -358,6 +402,23 @@ export function CloseForm() {
         </div>
       </OperationForm>
 
+      {targetPreview.error && (
+        <p role="alert" className="mt-5 text-sm text-destructive">
+          {targetPreview.error}
+        </p>
+      )}
+      {targetPreview.review && (
+        <OperationReviewPanel review={targetPreview.review} />
+      )}
+      <OperationResults results={results} />
+      <OperationRecovery
+        status={
+          status === "done" &&
+          results.some((result) => result.status !== "success")
+            ? "error"
+            : status
+        }
+      />
       {/* Confirmation dialog */}
       <AlertDialogRoot open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
@@ -384,10 +445,27 @@ export function CloseForm() {
               ))}
             </ul>
           </div>
+          {targetPreview.review?.partial && (
+            <p role="status" className="text-sm text-warning">
+              {strings.operationReview.partial}
+            </p>
+          )}
+          <p className="text-sm">
+            {strings.operationReview.title}:{" "}
+            {targetPreview.review?.targets.length ?? 0}
+          </p>
+          <ul className="max-h-40 overflow-auto font-mono text-xs">
+            {targetPreview.review?.targets.map((target) => (
+              <li key={target.id}>
+                {target.id}
+                {target.relatedId ? ` · ${target.relatedId}` : ""}
+              </li>
+            ))}
+          </ul>
           <AlertDialogFooter>
             <AlertDialogCancel>{strings.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
-              disabled={!canSubmit}
+              disabled={!canSubmit || !targetPreview.review?.targets.length}
               className={buttonVariants({ variant: "destructive" })}
               onClick={() => {
                 setConfirmOpen(false)
