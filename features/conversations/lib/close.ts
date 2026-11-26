@@ -1,3 +1,5 @@
+import type { OperationReview } from "@/lib/operation-review"
+import { previewCloseConversations } from "@/features/conversations/lib/close-preview"
 import { strings } from "@/lib/strings"
 import { RETRY_ATTEMPTS, RETRY_DELAY_MS } from "@/lib/constants"
 import { sanitizeExternalError } from "@/lib/errors"
@@ -12,8 +14,57 @@ export async function closeConversations(
   participants: string[],
   client: ReturnType<typeof getTwilioClient>,
   emit: (event: string) => void,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  review?: OperationReview
 ): Promise<{ totalClosed: number; totalErrors: number }> {
+  if (review) {
+    const current = await previewCloseConversations(
+      participants,
+      client,
+      signal
+    )
+    const eligible = new Set(current.targets.map((target) => target.id))
+    let totalClosed = 0
+    let totalErrors = 0
+    for (const target of review.targets) {
+      signal?.throwIfAborted()
+      try {
+        if (
+          !eligible.has(target.id) ||
+          (await client.conversations.v1.conversations(target.id).fetch())
+            .state !== "active"
+        ) {
+          emit(
+            sseEvent("warning", strings.operationReview.skippedChanged, {
+              result: { id: target.id, status: "skipped" },
+            })
+          )
+          continue
+        }
+        signal?.throwIfAborted()
+        await client.conversations.v1
+          .conversations(target.id)
+          .update({ state: "closed" })
+        totalClosed++
+        emit(
+          sseEvent(
+            "success",
+            strings.conversations.close.log.closed(target.id),
+            { result: { id: target.id, status: "success" } }
+          )
+        )
+      } catch (error) {
+        if (signal?.aborted) throw error
+        totalErrors++
+        emit(
+          sseEvent("error", strings.operationReview.error, {
+            result: { id: target.id, status: "error" },
+          })
+        )
+      }
+    }
+    return { totalClosed, totalErrors }
+  }
   let totalClosed = 0
   let totalErrors = 0
 

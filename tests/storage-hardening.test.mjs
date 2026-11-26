@@ -5,7 +5,10 @@ import { createLoader } from "./typescript-loader.mjs"
 function installBrowserStorage(t, initial = {}) {
   const names = ["window", "localStorage", "CustomEvent"]
   const descriptors = new Map(
-    names.map((name) => [name, Object.getOwnPropertyDescriptor(globalThis, name)])
+    names.map((name) => [
+      name,
+      Object.getOwnPropertyDescriptor(globalThis, name),
+    ])
   )
   const values = new Map(Object.entries(initial))
   const events = []
@@ -88,7 +91,12 @@ test("environment storage validates credential records and reports write results
   const key = "twilio-environments"
   const { storage, values } = installBrowserStorage(t, {
     [key]: JSON.stringify([
-      { id: "env", name: "Produção", accountSid: "invalid", authToken: "token" },
+      {
+        id: "env",
+        name: "Produção",
+        accountSid: "invalid",
+        authToken: "token",
+      },
     ]),
   })
   const { getEnvironments, saveEnvironments } = createLoader()(
@@ -127,9 +135,130 @@ test("variable catalog covers every key with an explicit storage scope", () => {
     "global"
   )
   assert.equal(
-    VARIABLE_GROUPS.filter((group) => group.key !== STORED_KEYS.closeMessages).every(
-      (group) => group.scope === "environment"
+    VARIABLE_GROUPS.filter(
+      (group) => group.key !== STORED_KEYS.closeMessages
+    ).every((group) => group.scope === "environment"),
+    true
+  )
+})
+
+test("environment mutations re-read current storage and preserve unrelated changes", async (t) => {
+  const { values, storage } = installBrowserStorage(t)
+  const { mutateEnvironments, getEnvironments } = createLoader()(
+    "features/environments/storage.ts"
+  )
+  const environment = (id) => ({
+    id,
+    name: id,
+    accountSid: `AC${"1".repeat(32)}`,
+    authToken: "test",
+  })
+  assert.equal(
+    await mutateEnvironments((current) => [...current, environment("first")]),
+    true
+  )
+  // Another tab changes the collection after the first caller has read its UI state.
+  values.set(
+    "twilio-environments",
+    JSON.stringify([...getEnvironments(), environment("second")])
+  )
+  assert.equal(
+    await mutateEnvironments((current) =>
+      current.map((item) =>
+        item.id === "first" ? { ...item, name: "edited" } : item
+      )
     ),
     true
   )
+  assert.deepEqual(
+    getEnvironments().map((item) => [item.id, item.name]),
+    [
+      ["first", "edited"],
+      ["second", "second"],
+    ]
+  )
+  const stored = values.get("twilio-environments")
+  storage.setItem = () => {
+    throw new Error("quota")
+  }
+  assert.equal(
+    await mutateEnvironments((current) => [...current, environment("third")]),
+    false
+  )
+  assert.equal(values.get("twilio-environments"), stored)
+})
+
+test("environment mutations use the same Web Lock and re-read inside its callback", async (t) => {
+  installBrowserStorage(t)
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator")
+  const callbacks = []
+  const locks = []
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      locks: {
+        request(name, callback) {
+          locks.push(name)
+          return new Promise((resolve) =>
+            callbacks.push(() => resolve(callback()))
+          )
+        },
+      },
+    },
+  })
+  t.after(() => {
+    if (descriptor) Object.defineProperty(globalThis, "navigator", descriptor)
+    else delete globalThis.navigator
+  })
+  const { mutateEnvironments, getEnvironments } = createLoader()(
+    "features/environments/storage.ts"
+  )
+  const environment = (id) => ({
+    id,
+    name: id,
+    accountSid: `AC${"1".repeat(32)}`,
+    authToken: "test",
+  })
+  const first = mutateEnvironments((current) => [
+    ...current,
+    environment("one"),
+  ])
+  const second = mutateEnvironments((current) => [
+    ...current,
+    environment("two"),
+  ])
+  assert.deepEqual(locks, [
+    "switchboard:environments",
+    "switchboard:environments",
+  ])
+  callbacks.shift()()
+  callbacks.shift()()
+  assert.deepEqual(await Promise.all([first, second]), [true, true])
+  assert.deepEqual(
+    getEnvironments().map((item) => item.id),
+    ["one", "two"]
+  )
+})
+
+test("environment subscriptions react to cross-tab changes and unsubscribe cleanly", (t) => {
+  installBrowserStorage(t)
+  const listeners = new Map()
+  window.addEventListener = (type, callback) => listeners.set(type, callback)
+  window.removeEventListener = (type, callback) => {
+    if (listeners.get(type) === callback) listeners.delete(type)
+  }
+  const { subscribeEnvironments } = createLoader()(
+    "features/environments/storage.ts"
+  )
+  let changes = 0
+  const unsubscribe = subscribeEnvironments(() => changes++)
+  listeners.get("storage")({ key: "unrelated" })
+  assert.equal(changes, 0)
+  for (const key of ["twilio-environments", "twilio-active-env", null])
+    listeners.get("storage")({ key })
+  assert.equal(changes, 3)
+  listeners.get("switchboard:environments-changed")()
+  assert.equal(changes, 4)
+  unsubscribe()
+  assert.equal(listeners.size, 0)
 })

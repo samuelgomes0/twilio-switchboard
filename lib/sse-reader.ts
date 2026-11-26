@@ -55,6 +55,7 @@ export async function consumeSseStream(
 ): Promise<SsePayload> {
   const decoder = new TextDecoder()
   let buffer = ""
+  let finalPayload: SsePayload | null = null
 
   try {
     while (true) {
@@ -68,17 +69,22 @@ export async function consumeSseStream(
       for (const event of events) {
         const data = dataFromFrame(event)
         if (data === null) continue
+        if (finalPayload) throw new SseProtocolError()
         const payload = parsePayload(data)
-        onEvent(payload)
-        if (payload.done === true) {
-          await reader.cancel()
-          return payload
-        }
+        if (payload.done === true) finalPayload = payload
+        else onEvent(payload)
       }
     }
+    buffer += decoder.decode()
+    if (buffer.trim() || !finalPayload) throw new SseProtocolError()
+    // Commit completion only after EOF proves there are no duplicate final events.
+    onEvent(finalPayload)
+    return finalPayload
   } finally {
-    reader.releaseLock()
+    try {
+      await reader.cancel()
+    } finally {
+      reader.releaseLock()
+    }
   }
-
-  throw new SseProtocolError()
 }

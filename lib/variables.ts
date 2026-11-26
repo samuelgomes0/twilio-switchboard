@@ -30,10 +30,7 @@ export function addVariable(
   const t = value.trim()
   if (!t) return readVariables(key, environmentId)
   const previous = readVariables(key, environmentId)
-  const next = [
-    t,
-    ...previous.filter((v) => v !== t),
-  ].slice(0, MAX_SAVED)
+  const next = [t, ...previous.filter((v) => v !== t)].slice(0, MAX_SAVED)
   writeStorageJson(eKey, next)
   return next
 }
@@ -79,18 +76,8 @@ export const VARIABLE_GROUPS: VariableGroup[] = [
     scope: "environment",
   },
   {
-    key: STORED_KEYS.queueNames,
-    label: strings.variables.groups.queueNames,
-    scope: "environment",
-  },
-  {
     key: STORED_KEYS.skillNames,
     label: strings.variables.groups.skillNames,
-    scope: "environment",
-  },
-  {
-    key: STORED_KEYS.workflowNames,
-    label: strings.variables.groups.workflowNames,
     scope: "environment",
   },
   {
@@ -107,20 +94,5 @@ export const VARIABLE_GROUPS: VariableGroup[] = [
     key: STORED_KEYS.closeMessages,
     label: strings.variables.groups.closeMessages,
     scope: "global",
-  },
-  {
-    key: STORED_KEYS.flexAddresses,
-    label: strings.variables.groups.flexAddresses,
-    scope: "environment",
-  },
-  {
-    key: STORED_KEYS.conversationServiceSids,
-    label: strings.variables.groups.conversationServiceSids,
-    scope: "environment",
-  },
-  {
-    key: STORED_KEYS.studioFlowSids,
-    label: strings.variables.groups.studioFlowSids,
-    scope: "environment",
   },
 ]

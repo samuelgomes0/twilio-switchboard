@@ -1,4 +1,7 @@
 "use client"
+
+import { useWorkspaceSid } from "./workspace-context"
+import { WorkspaceInput } from "./workspace-input"
 import { useBrowserState } from "@/components/use-browser-state"
 import { TaskCard } from "./task-result-card"
 
@@ -14,7 +17,6 @@ import { Loader2, Search } from "lucide-react"
 import * as React from "react"
 
 import { RecentHistory, RecentHistoryItem } from "@/components/recent-history"
-import { StoredInput } from "@/components/stored-input"
 import { SearchInput } from "@/components/search-input"
 import { Label } from "@/components/ui/label"
 import { useEnvironment } from "@/features/environments/context"
@@ -105,9 +107,10 @@ export function SearchTasksForm({
   const [mode, setMode] = React.useState<SearchMode>(
     phoneFromLink ? "phone" : "sid"
   )
-  const [workspaceSid, setWorkspaceSid] = React.useState("")
+  const [workspaceSid, setWorkspaceSid] = useWorkspaceSid()
   const [taskSid, setTaskSid] = React.useState("")
   const [phone, setPhone] = React.useState(phoneFromLink)
+  const [hasMore, setHasMore] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>(
@@ -128,6 +131,7 @@ export function SearchTasksForm({
     setTaskSid("")
     setPhone("")
     setTasks(null)
+    setHasMore(false)
     setError(null)
     setFieldErrors({})
   }
@@ -157,6 +161,7 @@ export function SearchTasksForm({
     setLoading(true)
     setError(null)
     setTasks(null)
+    setHasMore(false)
     const controller = new AbortController()
     abortRef.current = controller
 
@@ -206,6 +211,7 @@ export function SearchTasksForm({
         const json = (await res.json()) as {
           tasks: SearchTaskResult[]
           phone: string
+          hasMore?: boolean
           error?: string
         }
         if (controller.signal.aborted) return
@@ -214,6 +220,7 @@ export function SearchTasksForm({
           return
         }
         setTasks(json.tasks)
+        setHasMore(json.hasMore === true)
         const entry: PhoneHistoryEntry = {
           ts: Date.now(),
           mode: "phone",
@@ -275,14 +282,9 @@ export function SearchTasksForm({
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={strings.taskrouter.searchTasks.title}
         description={strings.taskrouter.searchTasks.subtitle}
-        parent={{
-          href: "/?area=taskrouter",
-          label: strings.sidebar.sections.taskrouter,
-        }}
       />
 
       {/* No environment warning */}
@@ -335,7 +337,7 @@ export function SearchTasksForm({
           <Label htmlFor="workspaceSid">
             {strings.taskrouter.searchTasks.workspaceSidLabel}
           </Label>
-          <StoredInput
+          <WorkspaceInput
             id="workspaceSid"
             className="search-control"
             aria-describedby={
@@ -459,6 +461,14 @@ export function SearchTasksForm({
               {tasks.length === 0
                 ? strings.taskrouter.searchTasks.result.none
                 : strings.taskrouter.searchTasks.result.count(tasks.length)}
+            </p>
+          )}
+          {hasMore && (
+            <p
+              role="status"
+              className="rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-sm text-warning"
+            >
+              {strings.taskrouter.searchTasks.result.limitWarning}
             </p>
           )}
           {tasks.map((task) => (

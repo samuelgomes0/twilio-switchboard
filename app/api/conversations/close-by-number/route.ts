@@ -1,7 +1,7 @@
+import { isOperationReview } from "@/lib/operation-review"
+import { previewCloseConversations } from "@/features/conversations/lib/close-preview"
 import { strings } from "@/lib/strings"
-import {
-  closeConversations,
-} from "@/features/conversations/lib/close"
+import { closeConversations } from "@/features/conversations/lib/close"
 import { sseEvent } from "@/lib/sse-event"
 import { toApiResponse } from "@/lib/errors"
 import { getTwilioClient } from "@/lib/twilio-client"
@@ -61,6 +61,20 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  if (
+    (body.previewOnly !== undefined && typeof body.previewOnly !== "boolean") ||
+    (body.review !== undefined && !isOperationReview(body.review, "CH")) ||
+    (body.previewOnly === true && body.review !== undefined)
+  ) {
+    return Response.json(
+      { error: strings.operationReview.invalid },
+      { status: 400 }
+    )
+  }
+  const review =
+    body.review === undefined
+      ? undefined
+      : (body.review as import("@/lib/operation-review").OperationReview)
   let client: ReturnType<typeof getTwilioClient>
   try {
     client = getTwilioClient(credentials.accountSid, credentials.authToken)
@@ -72,7 +86,22 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  return createSseResponse(req, strings.common.unexpectedError, async (emit, signal) => {
+  if (body.previewOnly === true) {
+    try {
+      return Response.json(
+        await previewCloseConversations(participants, client, req.signal)
+      )
+    } catch {
+      return Response.json(
+        { error: strings.operationReview.failed },
+        { status: 500 }
+      )
+    }
+  }
+  return createSseResponse(
+    req,
+    strings.common.unexpectedError,
+    async (emit, signal) => {
       emit(
         sseEvent(
           "info",
@@ -84,7 +113,8 @@ export async function POST(req: NextRequest) {
         participants,
         client,
         emit,
-        signal
+        signal,
+        review
       )
 
       emit(
@@ -98,7 +128,6 @@ export async function POST(req: NextRequest) {
           }
         )
       )
-
     }
   )
 }

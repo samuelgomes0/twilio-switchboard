@@ -78,6 +78,11 @@ export async function assignWorkersToQueue(
 
     if (worker === null) {
       totalErrors++
+      emit(
+        sseEvent("error", strings.operationReview.error, {
+          result: { id: identifier, status: "error" },
+        })
+      )
       continue
     }
 
@@ -85,7 +90,8 @@ export async function assignWorkersToQueue(
       emit(
         sseEvent(
           "warning",
-          strings.taskrouter.assignWorkers.log.notFound(identifier)
+          strings.taskrouter.assignWorkers.log.notFound(identifier),
+          { result: { id: identifier, status: "skipped" } }
         )
       )
       totalSkipped++
@@ -105,13 +111,13 @@ export async function assignWorkersToQueue(
     try {
       signal?.throwIfAborted()
       await addSkillToWorker(
-          client,
-          input.workspaceSid,
-          worker.sid,
-          worker.attributes,
-          input.skill,
-          input.level
-        )
+        client,
+        input.workspaceSid,
+        worker.sid,
+        worker.attributes,
+        input.skill,
+        input.level
+      )
       totalUpdated++
       emit(
         sseEvent(
@@ -120,7 +126,8 @@ export async function assignWorkersToQueue(
             input.skill,
             identifier,
             worker.sid
-          )
+          ),
+          { result: { id: identifier, status: "success" } }
         )
       )
     } catch (error) {
@@ -133,7 +140,8 @@ export async function assignWorkersToQueue(
             strings.taskrouter.assignWorkers.log.updateLabel(worker.sid),
             1,
             sanitizeExternalError(error)
-          )
+          ),
+          { result: { id: identifier, status: "error" } }
         )
       )
     }

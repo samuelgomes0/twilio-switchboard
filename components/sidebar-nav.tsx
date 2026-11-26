@@ -5,13 +5,9 @@ import {
   BookUser,
   ChevronDown,
   FileSearch2,
-  Filter,
-  GitBranch,
   Hash,
   LayoutDashboard,
   Network,
-  ListX,
-  MapPin,
   MessageSquare,
   MessageSquareOff,
   Search,
@@ -49,44 +45,16 @@ const conversationsNavItems: NavItem[] = [
   },
 ]
 
-const flexNavItems: NavItem[] = [
-  {
-    label: strings.sidebar.nav.flex.createAddressConfig.label,
-    href: "/flex/create-conversation-address",
-    icon: MapPin,
-  },
-]
-
 const taskrouterNavItems: NavItem[] = [
-  {
-    label: strings.sidebar.nav.taskrouter.addParticularFilter.label,
-    href: "/taskrouter/add-business-rule-filter",
-    icon: Filter,
-  },
   {
     label: strings.sidebar.nav.taskrouter.searchTasks.label,
     href: "/taskrouter/search-tasks-by-sid-or-number",
     icon: Search,
   },
   {
-    label: strings.sidebar.nav.taskrouter.createWorkflow.label,
-    href: "/taskrouter/create-workflow-from-csv",
-    icon: GitBranch,
-  },
-  {
-    label: strings.sidebar.nav.taskrouter.cancelQueueTasks.label,
-    href: "/taskrouter/cancel-queue-tasks-and-close-conversations",
-    icon: ListX,
-  },
-  {
     label: strings.taskrouter.workerManagement.title,
     href: "/taskrouter/manage-workers",
     icon: Settings2,
-  },
-  {
-    label: strings.sidebar.nav.taskrouter.workflows.label,
-    href: "/taskrouter/workflows",
-    icon: Workflow,
   },
 ]
 
@@ -161,7 +129,10 @@ function NavSection({
   }
   return (
     <section className="nav-group">
-      <div className="nav-group-row" data-active={pathname.startsWith(`/${area}/`)}>
+      <div
+        className="nav-group-row"
+        data-active={pathname.startsWith(`/${area}/`)}
+      >
         {collapsed ? (
           <Link
             href={`/?area=${area}`}
@@ -186,7 +157,9 @@ function NavSection({
             <span className="nav-label">{label}</span>
             <ChevronDown
               aria-hidden="true"
-              className={expanded ? "ml-auto size-3 rotate-180" : "ml-auto size-3"}
+              className={
+                expanded ? "ml-auto size-3 rotate-180" : "ml-auto size-3"
+              }
             />
           </button>
         )}
@@ -229,12 +202,6 @@ export function getNavigationTrail(pathname: string) {
       items: numbersNavItems,
     },
     {
-      href: "/?area=flex",
-      prefix: "/flex/",
-      label: strings.sidebar.sections.flex,
-      items: flexNavItems,
-    },
-    {
       href: "/settings",
       prefix: "/settings/",
       label: strings.sidebar.sections.settings,
@@ -270,9 +237,7 @@ export function SidebarNav({
         <span className="nav-brand-mark">
           <Network aria-hidden="true" className="size-4" />
         </span>
-        <span className="nav-brand-copy">
-          {strings.sidebar.title}
-        </span>
+        <span className="nav-brand-copy">{strings.sidebar.title}</span>
       </Link>
       <nav
         className="nav-content"
@@ -312,15 +277,6 @@ export function SidebarNav({
           area="numbers"
           items={numbersNavItems}
           icon={Hash}
-          collapsed={collapsed}
-          pathname={pathname}
-          onNavigate={onNavigate}
-        />
-        <NavSection
-          label={strings.sidebar.sections.flex}
-          area="flex"
-          items={flexNavItems}
-          icon={MapPin}
           collapsed={collapsed}
           pathname={pathname}
           onNavigate={onNavigate}

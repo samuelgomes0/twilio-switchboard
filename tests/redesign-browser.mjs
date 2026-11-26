@@ -8,14 +8,12 @@ const { chromium } = await import(pathToFileURL(`${process.env.SWITCHBOARD_PLAYW
 const { strings } = createLoader()("lib/strings.ts")
 const base = process.env.SWITCHBOARD_TEST_URL ?? "http://127.0.0.1:3000"
 const sid = prefix => prefix + "1".repeat(32)
-const WS = sid("WS"), CH = sid("CH"), WK = sid("WK"), WT = sid("WT"), WW = sid("WW"), WQ = sid("WQ")
+const WS = sid("WS"), CH = sid("CH"), WK = sid("WK"), WT = sid("WT")
 const environment = { id: "redesign-test", name: "Homologação simulada", accountSid: sid("AC"), authToken: "1".repeat(32) }
 const date = "2026-10-01T12:00:00.000Z"
 const conversation = { sid: CH, friendlyName: "Atendimento de homologação", state: "active", dateCreated: date, dateUpdated: date, attributes: "{\"origem\":\"teste\"}", messagingServiceSid: null }
 const worker = { sid: WK, workspaceSid: WS, friendlyName: "Operador de homologação", activityName: "Available", available: true, attributes: '{"routing":{"skills":["suporte"],"levels":{"suporte":2}}}', dateCreated: date, dateUpdated: date, dateStatusChanged: date }
 const task = { sid: WT, workspaceSid: WS, assignmentStatus: "pending", priority: 2, age: 65, attributes: '{"from":"whatsapp:+5511999999999"}', taskQueueFriendlyName: "Suporte", workflowFriendlyName: "Atendimento", dateCreated: date, dateUpdated: date, taskChannelUniqueName: "chat", channel: "whatsapp" }
-const workflowConfiguration = { task_routing: { filters: [{ filter_friendly_name: "Suporte", expression: "type == 'support'", targets: [{ queue: WQ }] }], default_filter: { queue: WQ } } }
-const workflow = { sid: WW, workspaceSid: WS, friendlyName: "Atendimento", assignmentCallbackUrl: "https://example.com/assign", fallbackAssignmentCallbackUrl: null, taskReservationTimeout: 120, configuration: JSON.stringify(workflowConfiguration), parsedConfiguration: workflowConfiguration, configurationIssue: null, dateCreated: date, dateUpdated: date }
 const requests = []
 const failures = []
 let mode = "success", delay = 0
@@ -50,24 +48,12 @@ await context.route("**/api/**", async route => {
     "/api/taskrouter/get-task-by-sid": { task },
     "/api/taskrouter/search-tasks-by-number": { tasks: empty ? [] : [task], phone: body.phoneNumber },
     "/api/taskrouter/get-worker-details": { worker },
-    "/api/taskrouter/workflows/list": { workflows: empty ? [] : [workflow], nextPageToken: null },
-    "/api/taskrouter/workflows/get": { workflow },
-    "/api/taskrouter/workflows/update": { workflow: { ...workflow, friendlyName: body.friendlyName, assignmentCallbackUrl: body.assignmentCallbackUrl, fallbackAssignmentCallbackUrl: body.fallbackAssignmentCallbackUrl, taskReservationTimeout: body.taskReservationTimeout, configuration: body.configuration, parsedConfiguration: JSON.parse(body.configuration), dateUpdated: "2026-10-14T13:00:00.000Z" }, reEvaluatedTasks: body.reEvaluateTasks },
-    "/api/taskrouter/workflows/preview-import": {
-      diagnostics: [{ lineNumber: 2, rule: "Suporte", queueName: "Suporte", queueSid: sid("WQ"), status: "valid", reason: "ready" }],
-      totalRows: 1, validRows: 1, ignoredRows: 0, errorRows: 0,
-      defaultQueueFound: true, canCreate: true,
-    },
     "/api/numbers/list-messaging-numbers": { numbers: empty ? [] : [{ id: sid("IG"), friendlyName: "Marca com nome extenso para testar a apresentação dos resultados", phoneNumber: "+5511999999999", service: "Conversations" }, { id: "IG" + "2".repeat(32), friendlyName: "Outra marca", phoneNumber: "+5511888888888", service: "Programmable Chat" }] },
-    "/api/flex/create-conversation-address": { sid: sid("IG"), address: body.address, type: body.type, friendlyName: body.friendlyName, autoCreation: { enabled: true, type: body.autoCreationType }, dateCreated: date, dateUpdated: date, country: null },
   }[url]
   if (json) return route.fulfill({ json })
   const finals = {
     "/api/conversations/close-by-number": { totalClosed: 2, totalErrors: 0 },
     "/api/taskrouter/add-skill-to-workers": { totalUpdated: 1, totalSkipped: 0, totalErrors: 0 },
-    "/api/taskrouter/cancel-queue-tasks-and-close-conversations": { totalSuccess: 1, totalSkipped: 0, totalErrors: 0 },
-    "/api/taskrouter/create-workflow-from-csv": { workflowSid: sid("WW"), workflowName: body.workflowName, totalFilters: 1 },
-    "/api/taskrouter/add-business-rule-filter": { totalAdded: 1, totalSkipped: 0, totalErrors: 0 },
     "/api/taskrouter/set-worker-feature-status": { totalUpdated: 1, totalErrors: 0 },
   }[url]
   assert.ok(finals, `Unexpected API ${url}`)
@@ -99,7 +85,7 @@ async function confirmSubmit() {
   await page.waitForTimeout(100)
 }
 try {
-  const routes = ["/", "/conversations", "/conversations/consult-by-sid", "/conversations/search-by-number", "/conversations/close-by-number", "/taskrouter", "/taskrouter/manage-workers", "/taskrouter/search-tasks-by-sid-or-number", "/taskrouter/fetch-task", "/taskrouter/workflows", `/taskrouter/workflows/${WW}?workspaceSid=${WS}`, "/taskrouter/create-workflow-from-csv", "/taskrouter/add-business-rule-filter", "/taskrouter/cancel-queue-tasks-and-close-conversations", "/numbers", "/numbers/list-messaging-numbers", "/flex", "/flex/create-conversation-address", "/settings", "/settings/manage-environments", "/settings/manage-contacts", "/settings/manage-variables"]
+  const routes = ["/", "/conversations", "/conversations/consult-by-sid", "/conversations/search-by-number", "/conversations/close-by-number", "/taskrouter", "/taskrouter/manage-workers", "/taskrouter/search-tasks-by-sid-or-number", "/taskrouter/fetch-task", "/numbers", "/numbers/list-messaging-numbers", "/settings", "/settings/manage-environments", "/settings/manage-contacts", "/settings/manage-variables"]
   for (const width of process.env.SWITCHBOARD_TEST_FLOWS_ONLY ? [] : [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     for (const route of routes) { await go(route); await verifyLayout(`${width}:${route}`) }
@@ -162,24 +148,10 @@ try {
   await verifyLayout("Worker feature result")
   console.log("Workers: prefill, skills, false e contrato de lote aprovados")
 
-  for (const route of ["/conversations/close-by-number", "/taskrouter/cancel-queue-tasks-and-close-conversations", "/taskrouter/create-workflow-from-csv", "/taskrouter/add-business-rule-filter"]) {
+  for (const route of ["/conversations/close-by-number",]) {
     await go(route)
     if (route.endsWith("close-by-number")) await page.locator("#close-phone-0").fill("11999999999")
-    else {
-      await page.locator("#workspaceSid").fill(WS)
-      if (route.endsWith("cancel-queue-tasks-and-close-conversations")) await page.locator("#taskQueueName").fill("Suporte")
-      if (route.includes("create-workflow")) {
-        await page.locator("#workflowName").fill("Workflow de teste")
-        await page.locator("#csvFile").setInputFiles({ name: "regras.csv", mimeType: "text/csv", buffer: Buffer.from("Regra de Negócio;Fila Twilio\nSuporte;Suporte") })
-        await page.getByRole("button", { name: strings.taskrouter.createWorkflow.analyze }).click()
-        await page.getByText(strings.taskrouter.createWorkflow.analysisReady).waitFor()
-      }
-      if (route.endsWith("add-business-rule-filter")) {
-        await page.locator("#filterName").fill("Suporte")
-        await page.locator("#filter-workflow-0").fill(sid("WW"))
-        await page.locator("#filter-queue-0").fill(sid("WQ"))
-      }
-    }
+
     const count = requests.length
     await page.locator('main button[type="submit"]:visible').click()
     await page.getByRole("alertdialog").locator('[data-slot="alert-dialog-cancel"]').click()
@@ -203,29 +175,6 @@ try {
   await verifyLayout("Numbers results mobile")
   await page.screenshot({ path: ".next/redesign/numbers-mobile.png", fullPage: true })
   console.log("Numbers: filtro e exportação total preservados")
-
-  await go("/flex/create-conversation-address")
-  await page.locator("#address").fill("whatsapp:+5511999999999")
-  await page.locator("#integrationType").selectOption("default")
-  await confirmSubmit()
-  assert.equal(requests.findLast(r => r.url.endsWith("create-address-config")).body.autoCreationEnabled, true)
-  await verifyLayout("Flex result mobile")
-
-  await go(`/taskrouter/workflows/${WW}?workspaceSid=${WS}`)
-  await page.getByText(workflow.friendlyName, { exact: true }).first().waitFor()
-  await page.getByRole("button", { name: strings.taskrouter.workflows.edit.open }).click()
-  await page.locator("#workflow-edit-name").fill("Atendimento atualizado")
-  const workflowUpdateRequests = requests.length
-  await page.getByRole("button", { name: strings.taskrouter.workflows.edit.review }).click()
-  const workflowDialog = page.getByRole("alertdialog")
-  await workflowDialog.waitFor()
-  assert.equal(requests.length, workflowUpdateRequests)
-  await workflowDialog.locator('[data-slot="alert-dialog-action"]').click()
-  await page.getByText(strings.taskrouter.workflows.edit.success, { exact: true }).waitFor()
-  const workflowUpdate = requests.findLast(r => r.url.endsWith("/workflows/update"))
-  assert.equal(workflowUpdate.body.reEvaluateTasks, false)
-  assert.equal(workflowUpdate.body.expectedDateUpdated, date)
-  await verifyLayout("Workflow atualizado")
 
   mode = "error"
   await go("/numbers/list-messaging-numbers")

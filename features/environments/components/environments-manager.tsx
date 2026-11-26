@@ -33,28 +33,27 @@ export function EnvironmentsManager() {
     null
   )
 
-  function handleAdd(form: FormState) {
-    addEnvironment(form)
-    setShowAddForm(false)
+  async function handleAdd(form: FormState) {
+    const saved = await addEnvironment(form)
+    if (saved) setShowAddForm(false)
+    return saved
   }
 
-  function handleUpdate(id: string, form: FormState) {
-    updateEnvironment(id, form)
-    setEditingId(null)
+  async function handleUpdate(id: string, form: FormState) {
+    const saved = await updateEnvironment(id, form)
+    if (saved) setEditingId(null)
+    return saved
   }
 
-  function handleDelete(id: string) {
-    deleteEnvironment(id)
-    setConfirmDeleteId(null)
+  async function handleDelete(id: string) {
+    if (await deleteEnvironment(id)) setConfirmDeleteId(null)
   }
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={strings.environments.manager.title}
         description={strings.environments.manager.subtitle}
-        parent={{ href: "/settings", label: strings.environments.page.title }}
         actions={
           !showAddForm && (
             <ActionButton
@@ -177,7 +176,6 @@ export function EnvironmentsManager() {
           </p>
         </section>
       )}
-
     </div>
   )
 }

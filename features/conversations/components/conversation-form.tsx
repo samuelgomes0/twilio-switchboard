@@ -159,10 +159,6 @@ export function ConversationForm(props: ConversationFormProps) {
       <PageHeader
         title={labels.title}
         description={labels.subtitle}
-        parent={{
-          href: "/?area=conversations",
-          label: strings.sidebar.sections.conversations,
-        }}
       />
       {contextMismatch && activeEnvironment && (
         <p role="status" className="mb-5 text-sm text-muted-foreground">

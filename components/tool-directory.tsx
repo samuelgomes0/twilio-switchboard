@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { conversationsTools } from "@/features/conversations/tools"
 import { taskrouterTools } from "@/features/taskrouter/tools"
 import { numbersTools } from "@/features/numbers/tools"
-import { flexTools } from "@/features/flex/tools"
 import { strings } from "@/lib/strings"
 import { ArrowUpRight, ChevronDown, Settings2 } from "lucide-react"
 import Link from "next/link"
@@ -29,7 +28,6 @@ const GROUPS = [
     label: strings.sidebar.sections.numbers,
     tools: numbersTools,
   },
-  { id: "flex", label: strings.sidebar.sections.flex, tools: flexTools },
 ]
 const TOOLS = GROUPS.flatMap((group) =>
   group.tools

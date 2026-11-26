@@ -12,7 +12,7 @@ Guia obrigatório para agentes de IA que operam neste repositório. Leia-o por i
 
 ## 2. Contexto do projeto
 
-Switchboard é um dashboard interno, em pt-BR, para operações Twilio em Conversations, TaskRouter, Numbers e Flex.
+Switchboard é um dashboard interno, em pt-BR, para operações Twilio em Conversations, TaskRouter e Numbers.
 
 | Camada | Tecnologia |
 | --- | --- |
@@ -171,10 +171,8 @@ Ao trocar ambiente ou editar suas credenciais, o shell remonta o conteúdo por `
 
 - Telefones não têm normalização universal. Fechamento de Conversations, busca por participante e busca de Tasks possuem contratos diferentes; reutilize a função específica da feature.
 - Fechamento por número percorre páginas e altera somente Conversations `active`.
-- Cancelamento de fila atua somente em Tasks `pending`/`reserved`: cancela a Task antes de tentar mensagem e fechamento; falha ao cancelar impede os efeitos seguintes.
 - Atualizações de Worker preservam todos os demais atributos. `false`, `0` e ausência são valores semanticamente distintos.
 - Resolução de Worker usa SID WK direto ou `friendlyName` com limite 1; o campo historicamente chamado email não consulta atributo `email`.
-- CSV de Workflow usa `;`, BOM opcional, aspas e LF/CRLF; headers obrigatórios `Regra de Negócio` e `Fila Twilio`. Entrada inválida ou sem linha útil não pode criar Workflow.
 - Consulta de mensagens carrega no máximo 1.000 e exporta apenas mensagens carregadas e filtradas.
 - Numbers prioriza configurações de Conversations na deduplicação; a classificação restante como Programmable Chat é heurística e não deve ser apresentada como origem comprovada.
 

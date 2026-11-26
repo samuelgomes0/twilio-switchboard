@@ -133,11 +133,9 @@ export function ContactsManager() {
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={strings.contacts.manager.title}
         description={strings.contacts.manager.subtitle}
-        parent={{ href: "/settings", label: strings.environments.page.title }}
         actions={
           !showAddForm && (
             <ActionButton

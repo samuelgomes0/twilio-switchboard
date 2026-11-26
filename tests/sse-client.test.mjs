@@ -2,12 +2,11 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { clients, clientHarness } from "./sse-client-harness.mjs"
 
-const frame = payload => `data: ${JSON.stringify(payload)}\n\n`
+const frame = (payload) => `data: ${JSON.stringify(payload)}\n\n`
 const final = {
   level: "success",
   message: "fim",
   done: true,
-  workflowSid: "WW",
   totalAdded: 1,
   totalErrors: 0,
 }
@@ -35,12 +34,18 @@ for (const [name] of clients) {
     const bytes = new TextEncoder().encode(text)
     const whole = await run({ chunks: [bytes] })
     const fragmented = await run({
-      chunks: Array.from(bytes, byte => Uint8Array.of(byte)),
+      chunks: Array.from(bytes, (byte) => Uint8Array.of(byte)),
     })
     assert.deepEqual(fragmented.state, whole.state)
-    assert.deepEqual(whole.state.logs.map(log => log.message), ["ação 😀", "fim"])
+    assert.deepEqual(
+      whole.state.logs.map((log) => log.message),
+      ["ação 😀", "fim"]
+    )
     assert.equal(whole.state.status, "done")
-    assert.equal(whole.state.history.length, name === "update-worker-feature" ? 0 : 1)
+    assert.equal(
+      whole.state.history.length,
+      name === "update-worker-feature" ? 0 : 1
+    )
     assert.equal(whole.trace.filter(([type]) => type === "cancel").length, 1)
   })
 
@@ -64,7 +69,10 @@ for (const [name] of clients) {
     for (const raw of ["{broken", "null", '{"level":"other","message":5}']) {
       const result = await run({ chunks: [`data: ${raw}\n\n` + frame(final)] })
       assert.equal(result.state.status, "error")
-      assert.equal(result.state.logs.some(log => log.message === "fim"), false)
+      assert.equal(
+        result.state.logs.some((log) => log.message === "fim"),
+        false
+      )
     }
     const failed = await run({
       chunks: [frame({ level: "info", message: "fail" }) + frame(final)],
@@ -73,20 +81,34 @@ for (const [name] of clients) {
     assert.equal(failed.state.status, "error")
   })
 
-  test(`${name}: o primeiro final encerra leitura e efeitos laterais`, async () => {
-    const result = await run({
-      chunks: [frame(final), frame({ ...final, message: "again" })],
-    })
-    assert.deepEqual(result.state.logs.map(log => log.message), ["fim"])
-    assert.equal(result.state.history.length, name === "update-worker-feature" ? 0 : 1)
-    assert.equal(result.trace.filter(([type]) => type === "read").length, 1)
+  test(`${name}: finais duplicados ou dados após o final falham sem registrar sucesso`, async () => {
+    for (const chunks of [
+      [frame(final) + frame(final)],
+      [frame(final), frame({ ...final, message: "again" })],
+      [frame(final), frame({ level: "info", message: "late" })],
+      [frame(final), "data: {broken"],
+    ]) {
+      const result = await run({ chunks })
+      assert.equal(result.state.status, "error")
+      assert.equal(result.state.history.length, 0)
+      assert.equal(
+        result.state.logs.some((log) => log.message === "fim"),
+        false
+      )
+    }
+    for (const totalErrors of [undefined, 0, 1]) {
+      const error = await run({
+        chunks: [
+          frame({ level: "error", message: "erro", done: true, totalErrors }),
+        ],
+      })
+      assert.equal(error.state.status, "error")
+      assert.equal(error.state.history.length, 0)
+    }
 
-    const error = await run({
-      chunks: [frame({ level: "error", message: "erro", done: true, totalErrors: 1 })],
+    const invalidDone = await run({
+      chunks: [frame({ ...final, done: "yes" })],
     })
-    assert.equal(error.state.status, "error")
-
-    const invalidDone = await run({ chunks: [frame({ ...final, done: "yes" })] })
     assert.equal(invalidDone.state.status, "error")
   })
 
@@ -109,33 +131,7 @@ for (const [name] of clients) {
         throw abortError
       },
     })
-    assert.equal(aborted.state.status, "idle")
+    assert.equal(aborted.state.status, "cancelled")
     assert.equal(aborted.state.logs.at(-1).level, "warning")
   })
 }
-
-test("create-workflow: cancelamento durante leitura do arquivo impede o request", async () => {
-  let result
-  const csvFile = {
-    text: async () => {
-      result.abortRef.current.abort()
-      return "Regra de Negócio;Fila Twilio\nRegra;Suporte"
-    },
-  }
-  result = clientHarness("create-workflow", { csvFile })
-  await result.run({})
-  assert.equal(result.trace.some(([type]) => type === "fetch"), false)
-  assert.equal(result.state.status, "idle")
-  assert.equal(result.state.logs.at(-1).level, "warning")
-  assert.equal(result.abortRef.current, null)
-})
-
-test("create-workflow: arquivo diferente da prévia invalida a criação", async () => {
-  const result = clientHarness("create-workflow", {
-    csvFile: { text: async () => "csv alterado" },
-  })
-  await result.run({})
-  assert.equal(result.trace.some(([type]) => type === "fetch"), false)
-  assert.equal(result.state.status, "idle")
-  assert.equal(result.abortRef.current, null)
-})

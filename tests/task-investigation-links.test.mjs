@@ -11,9 +11,6 @@ test("investigation links carry exact resource identifiers and source environmen
   const conversation = new URL(links.conversation, "http://localhost")
   assert.equal(conversation.pathname, "/conversations/consult-by-sid")
   assert.deepEqual(Object.fromEntries(conversation.searchParams), { environmentId: "source environment", sid: sid("CH") })
-  const workflow = new URL(links.workflow, "http://localhost")
-  assert.equal(workflow.pathname, `/taskrouter/workflows/${sid("WW")}`)
-  assert.deepEqual(Object.fromEntries(workflow.searchParams), { environmentId: "source environment", workspaceSid: sid("WS") })
   assert.ok(!JSON.stringify(links).includes("must-not-travel"))
 })
 
@@ -23,11 +20,5 @@ test("recognized Conversation attribute names produce links without guessing fro
   }
   for (const attributes of ["invalid-json", "null", "[]", '"text"', '{"conversationSid":42}', JSON.stringify({ conversationSid: "CH/path?injection=true" }), JSON.stringify({ channelSid: sid("TC") }), JSON.stringify({ unrelated: sid("CH") })]) {
     assert.equal(taskInvestigationLinks({ ...task, attributes }, "source").conversation, null)
-  }
-})
-
-test("invalid Workspace or Workflow identifiers never create a related Workflow link", () => {
-  for (const invalid of [{ workflowSid: null }, { workflowSid: "WW-invalid" }, { workspaceSid: "WS/path" }]) {
-    assert.equal(taskInvestigationLinks({ ...task, ...invalid }, "source").workflow, null)
   }
 })

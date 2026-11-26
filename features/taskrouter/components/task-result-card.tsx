@@ -93,7 +93,7 @@ export function TaskCard({ task }: { task: SearchTaskResult }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {links && (links.conversation || links.workflow) && (
+        {links && links.conversation && (
           <nav
             aria-label={strings.taskrouter.searchTasks.relatedResources}
             className="flex flex-wrap gap-2"
@@ -102,13 +102,6 @@ export function TaskCard({ task }: { task: SearchTaskResult }) {
               <Button asChild variant="outline" size="sm">
                 <Link href={links.conversation}>
                   {strings.taskrouter.searchTasks.openConversation}
-                </Link>
-              </Button>
-            )}
-            {links.workflow && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={links.workflow}>
-                  {strings.taskrouter.searchTasks.openWorkflow}
                 </Link>
               </Button>
             )}

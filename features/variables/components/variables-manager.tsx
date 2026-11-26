@@ -265,11 +265,9 @@ export function VariablesManager() {
 
   return (
     <div className="workspace-page">
-      {/* Breadcrumb */}
       <PageHeader
         title={s.title}
         description={s.subtitle}
-        parent={{ href: "/settings", label: strings.environments.page.title }}
       />
 
       {!activeEnvironment && <NoEnvironmentSelected className="mb-4" />}

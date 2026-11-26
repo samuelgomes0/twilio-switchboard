@@ -1,4 +1,5 @@
 import {
+  STORAGE_ERROR_EVENT,
   readStorageJson,
   readStorageValue,
   removeStorageValue,
@@ -52,4 +53,44 @@ export function setActiveEnvironmentId(id: string): boolean {
 
 export function removeActiveEnvironmentId(): boolean {
   return removeStorageValue(ACTIVE_ENV_KEY)
+}
+
+const ENVIRONMENTS_CHANGED_EVENT = "switchboard:environments-changed"
+
+export function subscribeEnvironments(onChange: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (
+      event.key === null ||
+      event.key === ENVIRONMENTS_KEY ||
+      event.key === ACTIVE_ENV_KEY
+    )
+      onChange()
+  }
+  window.addEventListener("storage", onStorage)
+  window.addEventListener(ENVIRONMENTS_CHANGED_EVENT, onChange)
+  return () => {
+    window.removeEventListener("storage", onStorage)
+    window.removeEventListener(ENVIRONMENTS_CHANGED_EVENT, onChange)
+  }
+}
+
+export async function mutateEnvironments(
+  change: (current: TwilioEnvironment[]) => TwilioEnvironment[] | null
+): Promise<boolean> {
+  const commit = () => {
+    const updated = change(getEnvironments())
+    if (!updated || !saveEnvironments(updated)) return false
+    window.dispatchEvent(new CustomEvent(ENVIRONMENTS_CHANGED_EVENT))
+    return true
+  }
+  // Serialize cooperating tabs where Web Locks is available; always re-read before writing.
+  try {
+    if (typeof navigator !== "undefined" && navigator.locks) {
+      return await navigator.locks.request("switchboard:environments", commit)
+    }
+    return commit()
+  } catch {
+    window.dispatchEvent(new CustomEvent(STORAGE_ERROR_EVENT))
+    return false
+  }
 }
